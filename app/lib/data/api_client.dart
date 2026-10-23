@@ -44,6 +44,16 @@ class ApiClient {
     );
   }
 
+  Future<dynamic> patch(String ruta, Object cuerpo, {String? token}) {
+    return _enviar(
+      () => _dio.patch<dynamic>(ruta, data: cuerpo, options: _opciones(token)),
+    );
+  }
+
+  Future<void> delete(String ruta, {String? token}) async {
+    await _enviar(() => _dio.delete<dynamic>(ruta, options: _opciones(token)));
+  }
+
   Options? _opciones(String? token) => token == null
       ? null
       : Options(headers: {'Authorization': 'Bearer $token'});

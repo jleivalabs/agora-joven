@@ -2,14 +2,22 @@
 
 Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 
+## Nota de pausa (actualizada 2026-10-23)
+
+- Último commit publicado: `285f020` (Bloque 2, en `origin/main`).
+- Bloque 3 **comprobado** (pruebas automáticas del agente y pruebas funcionales en emulador de la
+  persona autora), **todavía sin commit ni push**.
+- Pendiente: revisar los cambios, hacer commit y push del Bloque 3.
+- No comenzar el Bloque 4 hasta cerrar lo anterior.
+
 ## Bloques
 
 | Bloque | Contenido | Estado |
 |---|---|---|
 | 0 | Base: repositorio, app mínima con GetX, `/health`, Docker Compose, documentación | ✅ Commit `5a8611d` |
 | 1 | Backend: SQLite, autenticación JWT y catálogo de 20 debates | ✅ Commit `4238dd5` |
-| 2 | App: sesión (registro, acceso, restauración, cierre) y catálogo con filtro y detalle | ✅ Comprobado (43 pruebas automáticas y recorrido manual en emulador); pendiente de commit y push |
-| 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ⏳ |
+| 2 | App: sesión (registro, acceso, restauración, cierre) y catálogo con filtro y detalle | ✅ Commit `285f020`, publicado en `origin/main` |
+| 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ✅ Comprobado (pruebas automáticas y pruebas funcionales en emulador); pendiente de commit y push |
 | 4 | Debates guardados con Hive | ⏳ |
 | 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ⏳ |
 | 6 | CI, workflow de Release, README final, auditoría de secretos | ⏳ |
@@ -43,8 +51,9 @@ cubre el arranque y la pantalla de bienvenida.
 
 ## Pendientes conocidos
 
-- Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`.
-- Bloque 2: commit y push (los hace la persona autora).
+- Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`, Bloque 2 `285f020` (publicado en
+  `origin/main`).
+- Bloque 3: revisión de cambios, commit y push (los hace la persona autora).
 - Versión de Python: local 3.11.9 (no hay 3.12 instalado) para `.venv` y pytest; el contenedor
   usa 3.12.15. Las pruebas locales no sustituyen la validación del contenedor.
 
@@ -150,6 +159,79 @@ APK. No se registran correos, contraseñas ni tokens usados.
 **Sin comprobación manual** (solo cobertura automática, ver tabla anterior): caducidad o
 invalidez del token, 401 de una sesión anterior, varios 401 simultáneos, respuestas tardías de
 login, restauración o filtros, y fallo al guardar el token.
+
+## Bloque 3 — aportes compartidos (2026-10-22)
+
+Sin dependencias nuevas. Backend: modelo `Aporte` con claves foráneas a `usuarios` y `debates`,
+esquemas con `extra="forbid"`, repositorio y rutas. App: modelo, `AportesRepository`,
+`AportesController`, sección en el detalle y `AporteFormScreen`; `ApiClient` gana `patch` y
+`delete`.
+
+### Pruebas automáticas (ejecutadas por el agente)
+
+| Suite | Resultado |
+|---|---|
+| Backend `pytest -q` (Python 3.11 local, base temporal) | **68 passed** (41 anteriores + 27 de `test_aportes.py`) |
+| `flutter analyze` | **No issues found** |
+| `flutter test --timeout 30s` | **72 passed** (43 anteriores + 18 de `aportes_controller_test.dart` + 11 de `aportes_flujo_test.dart`) |
+
+Backend (`test_aportes.py`): A crea y B ve el mismo aporte con `es_propio` correcto; B recibe 403
+al editar y al eliminar y el contenido queda intacto; A edita parcialmente (solo tipo, solo texto)
+y elimina (204 sin cuerpo); PATCH sin cambios reales no marca edición; `autor_id`, `debate_id`,
+`id` y `es_propio` en el cuerpo → 422; 401 sin token o con token inválido en las cuatro rutas;
+404 de debate y de aporte; tipo inválido, texto corto, corto tras quitar espacios, más de 1000,
+campos ausentes o nulos → 422; límites 10 y 1000 tras recortar; PATCH vacío, nulo, inválido o con
+campos extra → 422 sin cambios; orden más recientes primero, estable entre usuarios y con
+desempate por id; respuestas sin correo, contraseña, hash, `autor_id` ni tokens; persistencia al
+reabrir la base; claves foráneas que rechazan aportes huérfanos.
+
+Flutter (servidor falso con dos usuarios y almacén simulado): lista vacía, propios y ajenos,
+error y reintento, carga antigua que no pisa a la reciente; publicar sin duplicar al actualizar,
+envíos duplicados ignorados, sin red al publicar (aviso de que pudo guardarse y sin reintento),
+editar enviando solo lo cambiado, editar sin cambios sin petición, 403 y 404 al editar; eliminar
+solo tras confirmación del servidor, 403 y sin red sin retirar, 404 que retira; publicación
+tardía tras cambiar de sesión, 401 tardío de la sesión anterior, respuestas tras cerrar el
+detalle, debates distintos sin mezclarse. Flujos con widgets: vacío y publicación, validación
+local sin petición, Editar/Eliminar solo en propios, edición con "Editado", error al guardar que
+conserva texto y formulario, confirmar y cancelar eliminación, 403 al eliminar, fallo de carga
+de aportes que mantiene el contexto, actualización con aportes de otra persona, salida del detalle
+con carga pendiente y sesión que caduca al publicar.
+
+Ajuste durante las pruebas (en la prueba, no en la app): con una carga de aportes pendiente,
+`pumpAndSettle` no termina porque el indicador gira; esa prueba avanza los fotogramas a mano.
+
+### Docker (ejecutado por el agente)
+
+| Paso | Resultado |
+|---|---|
+| Antes de actualizar (recuento, sin leer contenido) | Tablas `debates`, `usuarios`; 20 debates, 2 usuarios |
+| `docker compose up --build -d api` | ✅ Contenedor recreado y *healthy*; volumen `agora-joven_agora_datos` conservado |
+| Después de actualizar | ✅ Tablas `aportes`, `debates`, `usuarios`; 20 debates, 2 usuarios, 0 aportes |
+| Claves foráneas de `aportes` | ✅ `autor_id → usuarios.id`, `debate_id → debates.id` |
+| `/health` · aportes sin token (GET, POST, PATCH, DELETE) | ✅ 200 · 401 en las cuatro |
+| Rutas publicadas (OpenAPI) | ✅ `/debates/{debate_id}/aportes`, `/aportes/{aporte_id}` |
+
+El agente no creó, modificó ni borró cuentas o contenido del volumen real.
+
+### Comprobación manual en emulador (realizada por la persona autora, no por el agente)
+
+**Confirmación general de la persona autora:** las pruebas funcionales de aportes en el emulador
+fueron satisfactorias.
+
+**Observado en las capturas aportadas:**
+
+| Comprobación | Resultado |
+|---|---|
+| Publicación de aportes | ✅ |
+| Lectura de un aporte desde otra cuenta | ✅ |
+| Editar y Eliminar visibles solo en aportes propios | ✅ |
+| Diálogo de confirmación al eliminar | ✅ |
+| El aporte ajeno se conserva | ✅ |
+
+No se registran aquí otras evidencias específicas (por ejemplo, el 403 real con dos tokens o el
+comportamiento con el backend detenido) más allá de la confirmación general. La incidencia del
+menú flotante del teclado del emulador se resolvió cambiando la configuración del teclado del
+emulador, sin cambios en la aplicación.
 
 ## Decisiones registradas (2026-10-22)
 

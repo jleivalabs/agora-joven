@@ -48,3 +48,15 @@ def auth(client, registrar) -> dict[str, str]:
         "/auth/login", json={"email": "ana@example.com", "password": PASSWORD}
     )
     return {"Authorization": f"Bearer {respuesta.json()['access_token']}"}
+
+
+@pytest.fixture
+def sesion_de(client, registrar) -> Callable[[str, str], dict[str, str]]:
+    """Registra a otra persona e inicia su sesión; devuelve su cabecera Authorization."""
+
+    def _sesion(email: str, nombre: str) -> dict[str, str]:
+        registrar(email=email, nombre=nombre)
+        respuesta = client.post("/auth/login", json={"email": email, "password": PASSWORD})
+        return {"Authorization": f"Bearer {respuesta.json()['access_token']}"}
+
+    return _sesion

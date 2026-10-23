@@ -3,9 +3,9 @@
 App Flutter para **comprender temas públicos**, **consultar debates ciudadanos** y **publicar
 preguntas, argumentos o propuestas**, con un backend propio en FastAPI.
 
-> **Estado: Bloque 2.** Backend con autenticación JWT y catálogo de 20 debates en SQLite. App con
-> registro, inicio y cierre de sesión, restauración de la sesión y catálogo con filtro y detalle.
-> Aportes, guardados y asistente están **planificados, no implementados**.
+> **Estado: Bloque 3.** Backend con autenticación JWT, catálogo de 20 debates y aportes en SQLite.
+> App con sesión, catálogo con filtro y detalle, y aportes compartidos (publicar, editar y eliminar
+> los propios). Guardados y asistente están **planificados, no implementados**.
 > Ver [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 
 ## Estructura
@@ -102,7 +102,17 @@ Invoke-RestMethod "$u/auth/me" -Headers $h
 (Invoke-RestMethod "$u/debates" -Headers $h).Count          # 20
 Invoke-RestMethod "$u/debates/categorias" -Headers $h
 Invoke-RestMethod "$u/debates"                               # sin token: error 401
+
+# Aportes
+$nuevo = @{ tipo = "pregunta"; texto = "¿Qué opinan quienes estudian de noche?" } | ConvertTo-Json
+$a = Invoke-RestMethod "$u/debates/1/aportes" -Method Post -Headers $h -ContentType "application/json" -Body $nuevo
+Invoke-RestMethod "$u/debates/1/aportes" -Headers $h          # incluye autor_nombre y es_propio
+Invoke-RestMethod "$u/aportes/$($a.id)" -Method Patch -Headers $h -ContentType "application/json" `
+  -Body (@{ tipo = "argumento" } | ConvertTo-Json)
+Invoke-RestMethod "$u/aportes/$($a.id)" -Method Delete -Headers $h   # 204
 ```
+
+Con el token de otra cuenta, `PATCH` y `DELETE` sobre ese aporte responden 403.
 
 La documentación interactiva está en `http://localhost:8010/docs`.
 
@@ -135,7 +145,9 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8010
 | Dispositivo físico en la misma red | `http://<IP-del-PC>:8010` | Añadir esa IP a `app/android/app/src/main/res/xml/network_security_config.xml` o usar HTTPS |
 
 Qué hace hoy la app: registro, inicio y cierre de sesión, restauración de la sesión al abrir,
-catálogo de debates con filtro por categoría y detalle con contexto y perspectivas.
+catálogo de debates con filtro por categoría, detalle con contexto y perspectivas, y aportes
+(preguntas, argumentos o propuestas) visibles para todas las cuentas; solo su autor puede
+editarlos o eliminarlos.
 
 ### Paquetes de la app
 

@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from app.catalogo import cargar_catalogo
 from app.config import Settings
 from app.db import Base, crear_fabrica_sesiones, crear_motor
-from app.routers import auth, debates
+from app.routers import aportes, auth, debates
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -29,7 +29,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
         motor.dispose()
 
-    app = FastAPI(title="Ágora Joven API", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="Ágora Joven API", version="0.3.0", lifespan=lifespan)
 
     @app.get("/health", tags=["sistema"])
     def health() -> dict[str, str]:
@@ -38,4 +38,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(debates.router)
+    app.include_router(aportes.router)
     return app

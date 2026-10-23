@@ -5,6 +5,7 @@ import 'config/app_config.dart';
 import 'controllers/sesion_controller.dart';
 import 'data/api_client.dart';
 import 'data/token_storage.dart';
+import 'repositories/aportes_repository.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/debates_repository.dart';
 import 'screens/raiz_screen.dart';
@@ -27,6 +28,7 @@ class AgoraJovenApp extends StatelessWidget {
         final cliente = api ?? ApiClient(baseUrl: AppConfig.apiBaseUrl);
         Get.put(AuthRepository(cliente, tokens ?? SecureTokenStorage()));
         Get.put(DebatesRepository(cliente));
+        Get.put(AportesRepository(cliente));
         Get.put(SesionController(Get.find()));
       }),
       home: const RaizScreen(),

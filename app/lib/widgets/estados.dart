@@ -110,3 +110,40 @@ class _EstadoConIcono extends StatelessWidget {
     );
   }
 }
+
+/// Estado compacto para una sección dentro de una lista desplazable (sin scroll propio).
+class EstadoEnLinea extends StatelessWidget {
+  const EstadoEnLinea({
+    super.key,
+    required this.mensaje,
+    this.icono = Icons.info_outline,
+    this.esError = false,
+    this.textoAccion,
+    this.onAccion,
+  });
+
+  final String mensaje;
+  final IconData icono;
+  final bool esError;
+  final String? textoAccion;
+  final VoidCallback? onAccion;
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+      child: Column(
+        children: [
+          Icon(icono, color: esError ? colores.error : colores.outline),
+          const SizedBox(height: AppSpacing.s),
+          Text(mensaje, textAlign: TextAlign.center),
+          if (textoAccion != null) ...[
+            const SizedBox(height: AppSpacing.s),
+            OutlinedButton(onPressed: onAccion, child: Text(textoAccion!)),
+          ],
+        ],
+      ),
+    );
+  }
+}

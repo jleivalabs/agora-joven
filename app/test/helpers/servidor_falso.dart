@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 
 const emailAna = 'ana@example.com';
 const passwordAna = 'clave-de-prueba-123';
+const emailBeto = 'beto@example.com';
 
 class RespuestaFalsa {
   const RespuestaFalsa(this.codigo, [this.cuerpo]);
@@ -25,11 +26,12 @@ typedef Manejador = FutureOr<RespuestaFalsa> Function(RequestOptions peticion);
 class ServidorFalso implements HttpClientAdapter {
   ServidorFalso() {
     _rutasPorDefecto();
+    _rutasDeAportes();
   }
 
   final _rutas = <String, Manejador>{};
   final peticiones = <RequestOptions>[];
-  final tokensValidos = <String, int>{'token-ana': 1};
+  final tokensValidos = <String, int>{'token-ana': 1, 'token-beto': 2};
   final usuarios = <String, Map<String, Object>>{
     emailAna: {
       'id': 1,
@@ -37,20 +39,30 @@ class ServidorFalso implements HttpClientAdapter {
       'email': emailAna,
       'password': passwordAna,
     },
+    emailBeto: {
+      'id': 2,
+      'nombre': 'Beto',
+      'email': emailBeto,
+      'password': passwordAna,
+    },
   };
+
+  /// Aportes guardados en el servidor falso (con `autor_id`, que nunca se envía al cliente).
+  final aportes = <Map<String, Object?>>[];
+  int _siguienteAporte = 0;
   int _siguienteToken = 0;
 
   ApiClient cliente() =>
       ApiClient(baseUrl: 'http://servidor.falso', adaptador: this);
 
   /// Sustituye el manejador de una ruta, por ejemplo `cuando('GET /debates', ...)`.
-  /// Las rutas con id usan `{id}`: `GET /debates/{id}`.
+  /// Las rutas con id usan `{id}`: `GET /debates/{id}`, `PATCH /aportes/{id}`.
   void cuando(String ruta, Manejador manejador) => _rutas[ruta] = manejador;
 
   int contar(String ruta) => peticiones.where((p) => _clave(p) == ruta).length;
 
   String _clave(RequestOptions p) {
-    final ruta = p.path.replaceAll(RegExp(r'/\d+$'), '/{id}');
+    final ruta = p.path.replaceAll(RegExp(r'/\d+(?=/|$)'), '/{id}');
     return '${p.method} $ruta';
   }
 
@@ -66,7 +78,7 @@ class ServidorFalso implements HttpClientAdapter {
         ? const RespuestaFalsa(404, {'detail': 'Not Found'})
         : await manejador(options);
     return ResponseBody.fromString(
-      jsonEncode(respuesta.cuerpo),
+      respuesta.cuerpo == null ? '' : jsonEncode(respuesta.cuerpo),
       respuesta.codigo,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
@@ -81,6 +93,47 @@ class ServidorFalso implements HttpClientAdapter {
     final cabecera = p.headers['Authorization'] as String?;
     if (cabecera == null || !cabecera.startsWith('Bearer ')) return null;
     return tokensValidos[cabecera.substring(7)];
+  }
+
+  static int idDe(RequestOptions p) =>
+      int.parse(RegExp(r'/(\d+)').firstMatch(p.path)!.group(1)!);
+
+  /// Guarda un aporte directamente en el servidor (como si lo hubiera publicado [autorId]).
+  Map<String, Object?> sembrarAporte({
+    required int autorId,
+    int debateId = 1,
+    String tipo = 'pregunta',
+    String texto = 'Aporte sembrado para la prueba.',
+  }) {
+    final aporte = <String, Object?>{
+      'id': ++_siguienteAporte,
+      'debate_id': debateId,
+      'autor_id': autorId,
+      'tipo': tipo,
+      'texto': texto,
+      'creado_en':
+          '2026-10-22T10:00:${_siguienteAporte.toString().padLeft(2, '0')}Z',
+      'editado_en': null,
+    };
+    aportes.add(aporte);
+    return aporte;
+  }
+
+  Map<String, Object?> _aporteSalida(Map<String, Object?> a, int usuarioId) {
+    final autor = usuarios.values.firstWhere((u) => u['id'] == a['autor_id']);
+    return {
+      for (final k in [
+        'id',
+        'debate_id',
+        'tipo',
+        'texto',
+        'creado_en',
+        'editado_en',
+      ])
+        k: a[k],
+      'autor_nombre': autor['nombre'],
+      'es_propio': a['autor_id'] == usuarioId,
+    };
   }
 
   static Object? cuerpo(RequestOptions p) =>
@@ -173,12 +226,68 @@ class ServidorFalso implements HttpClientAdapter {
     });
     cuando('GET /debates/{id}', (p) {
       if (usuarioDelToken(p) == null) return _noAutorizado;
-      final id = int.parse(p.path.split('/').last);
+      final id = idDe(p);
       final d = debatesFalsos.where((d) => d['id'] == id);
       if (d.isEmpty) {
         return const RespuestaFalsa(404, {'detail': 'Debate no encontrado.'});
       }
       return RespuestaFalsa(200, d.first);
+    });
+  }
+
+  void _rutasDeAportes() {
+    cuando('GET /debates/{id}/aportes', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final debateId = idDe(p);
+      final lista = aportes.where((a) => a['debate_id'] == debateId).toList()
+        ..sort((a, b) => (b['id'] as int).compareTo(a['id'] as int));
+      return RespuestaFalsa(200, [
+        for (final a in lista) _aporteSalida(a, usuario),
+      ]);
+    });
+    cuando('POST /debates/{id}/aportes', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final datos = cuerpo(p) as Map;
+      final texto = (datos['texto'] as String).trim();
+      if (texto.length < 10 || texto.length > 1000) {
+        return const RespuestaFalsa(422, {'detail': []});
+      }
+      final a = sembrarAporte(
+        autorId: usuario,
+        debateId: idDe(p),
+        tipo: datos['tipo'] as String,
+        texto: texto,
+      );
+      return RespuestaFalsa(201, _aporteSalida(a, usuario));
+    });
+    cuando('PATCH /aportes/{id}', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final a = aportes.where((a) => a['id'] == idDe(p)).firstOrNull;
+      if (a == null) {
+        return const RespuestaFalsa(404, {'detail': 'Aporte no encontrado.'});
+      }
+      if (a['autor_id'] != usuario) {
+        return const RespuestaFalsa(403, {'detail': 'x'});
+      }
+      final datos = cuerpo(p) as Map;
+      a.addAll({...datos, 'editado_en': '2026-10-22T11:00:00Z'});
+      return RespuestaFalsa(200, _aporteSalida(a, usuario));
+    });
+    cuando('DELETE /aportes/{id}', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final a = aportes.where((a) => a['id'] == idDe(p)).firstOrNull;
+      if (a == null) {
+        return const RespuestaFalsa(404, {'detail': 'Aporte no encontrado.'});
+      }
+      if (a['autor_id'] != usuario) {
+        return const RespuestaFalsa(403, {'detail': 'x'});
+      }
+      aportes.remove(a);
+      return const RespuestaFalsa(204);
     });
   }
 

@@ -1,8 +1,8 @@
 # Arquitectura — Ágora Joven
 
 > Estado: el backend implementa `/health`, autenticación y catálogo (Bloque 1). La app implementa
-> sesión (registro, acceso, restauración, cierre) y catálogo con detalle (Bloque 2). Aportes,
-> guardados y asistente siguen **previstos**.
+> sesión (registro, acceso, restauración, cierre) y catálogo con detalle (Bloque 2). Aportes
+> compartidos en backend y app (Bloque 3). Guardados y asistente siguen **previstos**.
 
 ## Vista general
 
@@ -31,7 +31,7 @@ Regla: una pantalla solo habla con controladores; un controlador solo con reposi
 | `LoginScreen`, `RegistroScreen` | `SesionController` | `AuthRepository` | `ApiClient`, `TokenStorage` | ✅ |
 | `DebatesScreen` (lista + filtro) | `DebatesController` | `DebatesRepository` | `ApiClient` | ✅ |
 | `DetalleDebateScreen` | `DetalleDebateController` (uno por debate) | `DebatesRepository` | `ApiClient` | ✅ |
-| Sección de aportes + formulario | `AportesController` | `AportesRepository` | `ApiClient` | ⏳ |
+| Sección de aportes (en el detalle) + `AporteFormScreen` | `AportesController` (uno por debate) | `AportesRepository` | `ApiClient` | ✅ |
 | `GuardadosScreen` | `GuardadosController` | `GuardadosRepository` | Hive (caja por usuario) | ⏳ |
 | Asistente (en el detalle) | `AsistenteController` | `AsistenteRepository` | `ApiClient` | ⏳ |
 
@@ -70,6 +70,23 @@ desaparecer: al cerrar sesión no quedan datos del usuario anterior en memoria.
 - `DebatesController` y `DetalleDebateController` numeran sus peticiones: si se cambia rápido de
   categoría, solo se aplica la respuesta de la última.
 
+### Aportes en la app
+
+- La sección de aportes vive en el detalle. Si falla su carga, el contexto del debate sigue visible
+  y la sección ofrece "Reintentar". Se actualiza con el botón "Actualizar aportes" o deslizando.
+- `AportesController` (etiqueta = id del debate) pasa todas las operaciones por
+  `SesionController.ejecutar` y numera las cargas; además, al cerrarse la pantalla deja de aplicar
+  respuestas (`_activo`). El formulario solo se cierra si la operación tuvo éxito en la sesión
+  vigente y sigue abierto.
+- Crear o editar coloca el aporte por id (reemplaza o inserta al principio): nunca duplica. Editar
+  envía solo los campos cambiados; sin cambios no llama al servidor.
+- Eliminar pide confirmación y solo retira el aporte cuando el servidor responde 204 (o 404: ya no
+  existía). Mientras tanto muestra progreso en esa tarjeta.
+- Editar y Eliminar solo se muestran si `es_propio`; es cortesía de interfaz, la autorización la
+  aplica el servidor (403).
+- Publicar **no se reintenta solo**: ante desconexión o tiempo agotado se avisa de que pudo
+  guardarse y se pide actualizar la lista antes de repetir. El texto del formulario se conserva.
+
 ### Errores
 
 `ApiClient` convierte errores de Dio en `ApiException` tipado. `mensajeDeError` da un texto en
@@ -92,7 +109,7 @@ campos (`Revisa el correo.`). Algunos casos tienen texto propio según el contex
 
 ## Modelos
 
-`Usuario` y `Debate` están implementados (`backend/app/models.py`); `Aporte` es propuesta.
+`Usuario`, `Debate` y `Aporte` están implementados (`backend/app/models.py`).
 
 **Usuario**
 | Campo | Tipo | Notas |
@@ -121,12 +138,15 @@ campos (`Revisa el correo.`). Algunos casos tienen texto propio según el contex
 |---|---|---|
 | id | int | |
 | debate_id | int | FK a Debate |
-| autor_id | int | FK a Usuario; lo asigna el servidor desde el token, nunca el cliente |
-| autor_nombre | str | Solo en respuestas |
+| autor_id | int | FK a Usuario; lo asigna el servidor desde el token, nunca el cliente. **No se devuelve** |
+| autor_nombre | str | Solo en respuestas (nombre visible; nunca el correo) |
 | tipo | enum | pregunta, argumento, propuesta |
-| texto | str (10–1000) | |
-| creado_en / editado_en | datetime | `editado_en` nulo si no se editó |
-| es_propio | bool | Calculado en la respuesta para el usuario autenticado |
+| texto | str (10–1000) | Longitud comprobada tras quitar espacios exteriores |
+| creado_en / editado_en | datetime | `editado_en` nulo si no se editó; solo cambia si un PATCH modifica algo |
+| es_propio | bool | Calculado en el servidor en cada respuesta para quien consulta |
+
+Índice `(debate_id, creado_en, id)` para el orden de la lista. La tabla se añadió con
+`create_all`, que crea solo las tablas que faltan: usuarios y debates existentes no se tocan.
 
 ## Contrato de endpoints
 
@@ -148,10 +168,10 @@ existe, la respuesta es 401 `Sesión no válida o caducada. Inicia sesión de nu
 | `GET /debates/categorias` | ✅ | Las 8 categorías en orden fijo, con `etiqueta` y `total` (puede ser 0) | 200 · 401 |
 | `GET /debates?categoria=` | ✅ | Lista resumida `{id, titulo, categoria, resumen, origen}`, orden por `id` ascendente | 200 (lista vacía si la categoría no tiene debates) · 401 · 422 categoría desconocida |
 | `GET /debates/{id}` | ✅ | Detalle: resumen + `contexto`, `perspectivas[{titulo, descripcion}]`, `actualizado_en` | 200 · 401 · 404 `Debate no encontrado.` · 422 id no numérico |
-| `GET /debates/{id}/aportes` | ⏳ | Aportes del debate (más recientes primero) | 200 · 401 · 404 |
-| `POST /debates/{id}/aportes` | ⏳ | Crear `{tipo, texto}` | 201 · 401 · 404 · 422 |
-| `PATCH /aportes/{id}` | ⏳ | Editar el propio `{tipo?, texto?}` | 200 · 401 · **403 si no es el autor** · 404 · 422 |
-| `DELETE /aportes/{id}` | ⏳ | Eliminar el propio | 204 · 401 · **403** · 404 |
+| `GET /debates/{id}/aportes` | ✅ | Aportes del debate, `creado_en` descendente con desempate por `id` descendente; sin paginación | 200 · 401 · 404 debate |
+| `POST /debates/{id}/aportes` | ✅ | Crear `{tipo, texto}`; cualquier otro campo (`autor_id`, `debate_id`…) → 422 | 201 aporte · 401 · 404 debate · 422 |
+| `PATCH /aportes/{id}` | ✅ | Editar el propio `{tipo?, texto?}`: al menos uno, sin `null`, sin campos extra | 200 · 401 · **403 si no es el autor** · 404 · 422 |
+| `DELETE /aportes/{id}` | ✅ | Eliminar el propio | 204 sin cuerpo · 401 · **403** · 404 |
 | `POST /asistente/debates/{id}` | ⏳ | `{modo: "contexto" \| "perspectivas"}` → `{texto, aviso}` | 200 · 401 · 404 · 422 · 503 proveedor no disponible |
 
 Valores de `categoria`: `educacion`, `ambiente`, `movilidad`, `empleo`, `salud`, `tecnologia`,
@@ -182,8 +202,8 @@ backend/app/
 ├── models.py           Usuario, Debate, Categoria
 ├── schemas.py          validación de entrada y forma de las respuestas
 ├── security.py         Argon2, JWT y dependencia usuario_actual
-├── repositorios/       consultas a la base (usuarios, debates)
-├── routers/            auth.py, debates.py
+├── repositorios/       consultas a la base (usuarios, debates, aportes)
+├── routers/            auth.py, debates.py, aportes.py (propiedad comprobada → 403)
 ├── catalogo.py         carga idempotente del catálogo (también: python -m app.catalogo)
 └── datos/debates.json  20 debates editoriales
 ```

@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from sqlalchemy import JSON, DateTime, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -66,3 +66,23 @@ class Debate(Base):
     actualizado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=ahora_utc, onupdate=ahora_utc
     )
+
+
+class TipoAporte(StrEnum):
+    pregunta = "pregunta"
+    argumento = "argumento"
+    propuesta = "propuesta"
+
+
+class Aporte(Base):
+    __tablename__ = "aportes"
+    __table_args__ = (Index("ix_aportes_debate_orden", "debate_id", "creado_en", "id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    debate_id: Mapped[int] = mapped_column(ForeignKey("debates.id"))
+    # El autor sale siempre del token; nunca del cuerpo de la petición.
+    autor_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), index=True)
+    tipo: Mapped[str] = mapped_column(String(20))
+    texto: Mapped[str] = mapped_column(Text)
+    creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora_utc)
+    editado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
