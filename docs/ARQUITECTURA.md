@@ -1,7 +1,8 @@
 # Arquitectura — Ágora Joven
 
-> Estado: **propuesta**. En el Bloque 0 solo existen la pantalla inicial, `ArranqueController`,
-> el tema visual y `GET /health`. El resto describe lo previsto.
+> Estado: la app solo tiene la pantalla inicial, `ArranqueController` y el tema visual (Bloque 0).
+> El backend implementa `/health`, autenticación y catálogo de debates (Bloque 1). Aportes,
+> asistente y las capas de la app descritas abajo siguen **previstos**.
 
 ## Vista general
 
@@ -51,14 +52,16 @@ Widgets comunes de estado: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con r
 401, `prohibido` 403, `noEncontrado` 404, `solicitudInvalida` 400, `validacion` 422, `servidor`
 5xx). Los controladores exponen un mensaje en español distinto para cada caso.
 
-## Modelos (propuesta)
+## Modelos
+
+`Usuario` y `Debate` están implementados (`backend/app/models.py`); `Aporte` es propuesta.
 
 **Usuario**
 | Campo | Tipo | Notas |
 |---|---|---|
 | id | int | |
 | nombre | str (2–60) | Nombre visible en los aportes |
-| email | str | Único; solo lo ve su dueño |
+| email | str | Normalizado (sin espacios, minúsculas) y único en la base; solo lo ve su dueño |
 | password_hash | str | Solo en el servidor (Argon2); nunca se devuelve |
 | creado_en | datetime (UTC) | |
 
@@ -66,6 +69,7 @@ Widgets comunes de estado: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con r
 | Campo | Tipo | Notas |
 |---|---|---|
 | id | int | |
+| slug | str único | Clave estable del archivo editorial; permite recargar sin duplicar. No se expone en la API |
 | titulo | str | |
 | categoria | enum | p. ej. educacion, ambiente, movilidad, empleo, salud, tecnologia, cultura, participacion |
 | resumen | str | Para la lista |
@@ -86,31 +90,65 @@ Widgets comunes de estado: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con r
 | creado_en / editado_en | datetime | `editado_en` nulo si no se editó |
 | es_propio | bool | Calculado en la respuesta para el usuario autenticado |
 
-## Contrato inicial de endpoints
+## Contrato de endpoints
 
 Base: `http://<host>:8010` (Docker Compose). Errores con el formato estándar de FastAPI
-(`{"detail": ...}`).
+(`{"detail": "mensaje"}`; en 422, `detail` es la lista de errores de validación).
 
 Solo son públicos `GET /health`, `POST /auth/registro` y `POST /auth/login`. **Todo lo demás,
-incluido `GET /auth/me`, exige un token válido** (`Authorization: Bearer <token>`); sin token, con
-un token mal formado o caducado, la respuesta es 401.
+incluido `GET /auth/me`, exige un token válido** (`Authorization: Bearer <token>`). Sin token, con
+otro esquema, mal formado, con firma alterada, sin algoritmo, caducado o de un usuario que ya no
+existe, la respuesta es 401 `Sesión no válida o caducada. Inicia sesión de nuevo.` con la cabecera
+`WWW-Authenticate: Bearer`.
 
-| Método y ruta | Uso | Respuestas principales |
-|---|---|---|
-| `GET /health` | Salud del servicio (**implementado**) | 200 |
-| `POST /auth/registro` | Crear cuenta `{nombre, email, password}` | 201 usuario · 400 email ya registrado · 422 |
-| `POST /auth/login` | `{email, password}` → `{access_token, token_type}` | 200 · 401 credenciales inválidas · 422 |
-| `GET /auth/me` | Usuario del token | 200 · 401 |
-| `GET /debates/categorias` | Categorías con número de debates | 200 · 401 |
-| `GET /debates?categoria=` | Lista resumida | 200 · 401 · 422 categoría inválida |
-| `GET /debates/{id}` | Detalle con contexto y perspectivas | 200 · 401 · 404 |
-| `GET /debates/{id}/aportes` | Aportes del debate (más recientes primero) | 200 · 401 · 404 |
-| `POST /debates/{id}/aportes` | Crear `{tipo, texto}` | 201 · 401 · 404 · 422 |
-| `PATCH /aportes/{id}` | Editar el propio `{tipo?, texto?}` | 200 · 401 · **403 si no es el autor** · 404 · 422 |
-| `DELETE /aportes/{id}` | Eliminar el propio | 204 · 401 · **403** · 404 |
-| `POST /asistente/debates/{id}` | `{modo: "contexto" \| "perspectivas"}` → `{texto, aviso}` | 200 · 401 · 404 · 422 · 503 proveedor no disponible |
+| Método y ruta | Estado | Uso | Respuestas |
+|---|---|---|---|
+| `GET /health` | ✅ | Salud del servicio | 200 `{status, servicio}` |
+| `POST /auth/registro` | ✅ | `{nombre (2–60), email, password (8–128)}` | 201 `{id, nombre, email, creado_en}` · 400 `Ya existe una cuenta con ese correo.` · 422 |
+| `POST /auth/login` | ✅ | `{email, password}` | 200 `{access_token, token_type: "bearer", expira_en}` · 401 `Correo o contraseña incorrectos.` · 422 campos vacíos |
+| `GET /auth/me` | ✅ | Usuario del token | 200 `{id, nombre, email, creado_en}` · 401 |
+| `GET /debates/categorias` | ✅ | Las 8 categorías en orden fijo, con `etiqueta` y `total` (puede ser 0) | 200 · 401 |
+| `GET /debates?categoria=` | ✅ | Lista resumida `{id, titulo, categoria, resumen, origen}`, orden por `id` ascendente | 200 (lista vacía si la categoría no tiene debates) · 401 · 422 categoría desconocida |
+| `GET /debates/{id}` | ✅ | Detalle: resumen + `contexto`, `perspectivas[{titulo, descripcion}]`, `actualizado_en` | 200 · 401 · 404 `Debate no encontrado.` · 422 id no numérico |
+| `GET /debates/{id}/aportes` | ⏳ | Aportes del debate (más recientes primero) | 200 · 401 · 404 |
+| `POST /debates/{id}/aportes` | ⏳ | Crear `{tipo, texto}` | 201 · 401 · 404 · 422 |
+| `PATCH /aportes/{id}` | ⏳ | Editar el propio `{tipo?, texto?}` | 200 · 401 · **403 si no es el autor** · 404 · 422 |
+| `DELETE /aportes/{id}` | ⏳ | Eliminar el propio | 204 · 401 · **403** · 404 |
+| `POST /asistente/debates/{id}` | ⏳ | `{modo: "contexto" \| "perspectivas"}` → `{texto, aviso}` | 200 · 401 · 404 · 422 · 503 proveedor no disponible |
 
-El cierre de sesión es local (se borra el token); el JWT expira por tiempo.
+Valores de `categoria`: `educacion`, `ambiente`, `movilidad`, `empleo`, `salud`, `tecnologia`,
+`cultura`, `participacion`.
+
+El cierre de sesión es local (se borra el token); el JWT expira por tiempo. Un correo duplicado
+responde 400 con un mensaje explícito: se acepta que esto revela si un correo está registrado, a
+cambio de un mensaje claro en el registro.
+
+### Autenticación (implementación)
+
+- Contraseñas con Argon2id (`pwdlib`). Nunca se devuelven ni se registran la contraseña o su hash.
+  Si el correo no existe, se verifica contra un hash señuelo para no responder más rápido.
+- JWT HS256 con `sub`, `iat` y `exp` obligatorios; el algoritmo se fija al verificar (se rechaza
+  `alg: none` y cualquier otro). Caducidad: `JWT_EXPIRA_MINUTOS` (60 por defecto).
+- `JWT_SECRET` se lee del entorno del servidor; es obligatorio, de al menos 32 caracteres y no tiene
+  valor por defecto: sin él la app no arranca y Docker Compose no se ejecuta.
+- Uvicorn solo registra método, ruta y código; no se registran cabeceras ni cuerpos. Ningún
+  endpoint recibe el token por la URL.
+
+### Código del backend
+
+```
+backend/app/
+├── main.py             create_app(): ciclo de vida (tablas + carga del catálogo) y routers
+├── config.py           Settings (variables de entorno)
+├── db.py               motor SQLite (PRAGMA foreign_keys=ON), sesiones, get_db
+├── models.py           Usuario, Debate, Categoria
+├── schemas.py          validación de entrada y forma de las respuestas
+├── security.py         Argon2, JWT y dependencia usuario_actual
+├── repositorios/       consultas a la base (usuarios, debates)
+├── routers/            auth.py, debates.py
+├── catalogo.py         carga idempotente del catálogo (también: python -m app.catalogo)
+└── datos/debates.json  20 debates editoriales
+```
 
 ## Asistente (previsto)
 
@@ -130,24 +168,34 @@ El cierre de sesión es local (se borra el token); el JWT expira por tiempo.
   app muestra el error. Las respuestas simuladas solo pueden existir dentro de las pruebas
   automatizadas y nunca se presentan como evidencia de integración real.
 
-## Persistencia (decisiones previstas)
+## Persistencia
 
 | Dónde | Tecnología | Motivo |
 |---|---|---|
-| Backend | SQLite en un volumen de Docker | Sin servicio extra que levantar; suficiente para la escala del proyecto. Se descartó Postgres (más pasos para quien evalúa). |
+| Backend (implementado) | SQLite en el volumen Docker `agora_datos` (`/srv/data/agora.db`), con claves foráneas activadas | Sin servicio extra que levantar; suficiente para la escala del proyecto. Se descartó Postgres (más pasos para quien evalúa). Las tablas se crean con `create_all` al arrancar; no hay migraciones (Alembic) porque los bloques siguientes solo añaden tablas nuevas. |
 | App, guardados | Hive (caja por usuario) | Mismo patrón practicado en el curso; sobrevive al cierre completo. |
 | App, token | `flutter_secure_storage` | Requisito del curso: el token no va en Hive ni en preferencias. |
 
-## Paquetes previstos (aún no instalados)
+## Catálogo editorial
 
-- App: `dio`, `flutter_secure_storage`, `hive`, `hive_flutter` (mismas versiones que ExploraEC,
-  confirmar al añadirlos).
-- Backend: `sqlalchemy`, `pyjwt`, `pwdlib[argon2]`, `pydantic-settings`, `email-validator` y el
-  cliente de Gemini (paquete y versión por confirmar en el bloque del asistente).
+- Fuente: `backend/app/datos/debates.json`, 20 debates en 8 categorías, todos con
+  `origen: "Material editorial de demostración"`, contexto y al menos dos perspectivas con títulos
+  distintos. Redacción propia, sin cifras ni afirmaciones legales.
+- Carga: al arrancar la API y con `python -m app.catalogo`. Valida el archivo antes de escribir.
+  Identifica cada debate por `slug`: inserta los nuevos y actualiza los cambiados; nunca borra
+  debates ni toca usuarios. Ejecutarla de nuevo no duplica nada.
+
+## Dependencias
+
+- Backend (Bloque 1, versiones del lock del curso): `sqlalchemy` 2.1.1 (acceso a SQLite), `pyjwt`
+  2.15.1 (tokens), `pwdlib[argon2]` 0.3.1 (hash Argon2id), `pydantic-settings` 2.15.0 (configuración
+  desde el entorno), `email-validator` 2.3.0 (validación de correo en el registro).
+- Previstas para la app: `dio`, `flutter_secure_storage`, `hive`, `hive_flutter` (mismas versiones
+  que ExploraEC, confirmar al añadirlos). Para el asistente: cliente de Gemini (por confirmar).
 
 ## Python: local frente a contenedor
 
 - Contenedor (referencia de ejecución): `python:3.12-slim`, comprobado Python 3.12.15.
 - Entorno local de desarrollo y pruebas: Python 3.11.9 en `backend/.venv` (no hay 3.12 instalado).
 - Una prueba que pasa en local no demuestra que el contenedor funcione; el contenedor se valida
-  aparte con `docker compose up` y `GET /health`.
+  aparte (ver `docs/SEGUIMIENTO.md`).

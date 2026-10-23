@@ -9,9 +9,20 @@ services:
     # backends del curso que usan 8000.
     ports:
       - "${API_PORT:-8010}:8000"
+    # Compose toma estas variables del entorno o de backend/.env (no versionado).
+    # Sin JWT_SECRET la orden falla con el mensaje indicado: no hay secreto de respaldo.
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en backend/.env (ver .env.example)}
+      JWT_EXPIRA_MINUTOS: ${JWT_EXPIRA_MINUTOS:-60}
+      DATABASE_URL: sqlite:////srv/data/agora.db
+    volumes:
+      - agora_datos:/srv/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 10s
       timeout: 3s
       retries: 5
     restart: unless-stopped
+
+volumes:
+  agora_datos:

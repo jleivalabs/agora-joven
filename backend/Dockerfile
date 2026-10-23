@@ -13,10 +13,11 @@ RUN pip install -r requirements.txt
 
 COPY app/ ./app/
 
-# No ejecutar como root.
-RUN useradd --create-home agora && chown -R agora:agora /srv
+# No ejecutar como root. /srv/data es el punto de montaje del volumen de SQLite: al crearse
+# el volumen por primera vez hereda este propietario, así que agora puede escribir en él.
+RUN useradd --create-home agora && mkdir -p /srv/data && chown -R agora:agora /srv
 USER agora
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

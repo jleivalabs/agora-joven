@@ -20,7 +20,11 @@ __pycache__/
 .coverage
 htmlcov/
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite3
+backend/data/
 
 # IDE y sistema
 .idea/

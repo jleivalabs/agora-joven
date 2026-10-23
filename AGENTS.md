@@ -31,7 +31,8 @@ Si algo falla, corrige el código; no desactives el análisis ni borres pruebas.
 ## Versiones (no actualizar sin acuerdo)
 
 Flutter 3.47.5 / Dart 3.13.4, `get` 4.7.3. Backend: Python 3.12 (Docker), FastAPI 0.142.2,
-Starlette 1.7.0, Pydantic 2.13.5, Uvicorn 0.54.0. No actualizar herramientas ni dependencias
+Starlette 1.7.0, Pydantic 2.13.5, Uvicorn 0.54.0, SQLAlchemy 2.1.1, PyJWT 2.15.1, pwdlib 0.3.1,
+pydantic-settings 2.15.0, email-validator 2.3.0 (fijadas en `backend/requirements.txt`). No actualizar herramientas ni dependencias
 globales.
 
 ## Reglas de diseño

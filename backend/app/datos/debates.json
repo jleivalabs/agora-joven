@@ -1,0 +1,262 @@
+[
+  {
+    "slug": "celulares-en-el-aula",
+    "categoria": "educacion",
+    "titulo": "¿Deberían permitirse los celulares en el aula?",
+    "resumen": "Algunos centros educativos restringen el uso del celular en clase y otros lo integran como herramienta de aprendizaje.",
+    "contexto": "El celular forma parte de la vida diaria de la mayoría de estudiantes. En el aula puede servir para investigar, usar aplicaciones educativas o comunicarse en emergencias, pero también puede distraer y afectar la convivencia. Cada comunidad educativa decide reglas distintas, y el debate gira en torno a cómo equilibrar aprendizaje, atención y autonomía.",
+    "perspectivas": [
+      {"titulo": "Restringir durante las clases", "descripcion": "Limitar el celular en clase favorece la concentración, reduce comparaciones en redes sociales y mejora la interacción cara a cara entre estudiantes."},
+      {"titulo": "Integrarlo con reglas claras", "descripcion": "Prohibirlo desaprovecha una herramienta útil; es preferible enseñar un uso responsable con momentos y propósitos definidos por el docente."},
+      {"titulo": "Decisión de cada comunidad", "descripcion": "Las reglas deberían acordarse entre estudiantes, familias y docentes según la realidad de cada institución, en lugar de una norma única."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "educacion-financiera-escolar",
+    "categoria": "educacion",
+    "titulo": "Educación financiera como materia en el colegio",
+    "resumen": "Se discute si el manejo del dinero, el ahorro y el crédito deberían enseñarse de forma obligatoria en secundaria.",
+    "contexto": "Al terminar el colegio muchas personas jóvenes enfrentan decisiones como abrir una cuenta, pedir un préstamo para estudiar o administrar su primer salario. Algunas voces proponen una materia específica de educación financiera; otras prefieren integrar estos contenidos en asignaturas existentes para no sobrecargar el currículo.",
+    "perspectivas": [
+      {"titulo": "Materia obligatoria", "descripcion": "Una asignatura propia garantiza que todo estudiante reciba herramientas prácticas para evitar deudas impagables y planificar su futuro."},
+      {"titulo": "Contenido transversal", "descripcion": "Es mejor incorporar ejemplos financieros en matemáticas o ciencias sociales que añadir horas a un currículo ya exigente."},
+      {"titulo": "Responsabilidad compartida", "descripcion": "La escuela puede dar bases, pero las familias y las instituciones financieras también deben ofrecer información clara y comprensible."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "tareas-escolares-en-casa",
+    "categoria": "educacion",
+    "titulo": "¿Cuántas tareas para la casa son razonables?",
+    "resumen": "La carga de deberes divide opiniones entre quienes los consideran necesarios y quienes piden más tiempo libre para descansar y convivir.",
+    "contexto": "Las tareas en casa buscan reforzar lo aprendido y desarrollar hábitos de estudio. Sin embargo, el tiempo disponible, el acceso a recursos y el apoyo familiar varían mucho entre estudiantes. El debate considera qué tipo de tareas aportan aprendizaje y cómo evitar que amplíen desigualdades.",
+    "perspectivas": [
+      {"titulo": "Reducir la carga", "descripcion": "Menos tareas dejan espacio para el descanso, el deporte y la vida familiar, que también son parte del desarrollo personal."},
+      {"titulo": "Mantener tareas significativas", "descripcion": "La práctica autónoma es necesaria; el problema no es la cantidad sino que las tareas sean repetitivas o sin retroalimentación."},
+      {"titulo": "Coordinación entre docentes", "descripcion": "Un calendario compartido entre asignaturas evitaría acumulaciones en la misma semana sin eliminar el trabajo en casa."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "plasticos-de-un-solo-uso",
+    "categoria": "ambiente",
+    "titulo": "Plásticos de un solo uso en comercios locales",
+    "resumen": "Fundas, sorbetes y envases desechables: ¿prohibirlos, cobrarlos o promover alternativas voluntarias?",
+    "contexto": "Los plásticos de un solo uso son prácticos y económicos, pero generan residuos que pueden terminar en ríos, playas o espacios públicos. Existen distintas estrategias para reducirlos, desde restricciones hasta incentivos y campañas educativas. Cada enfoque tiene efectos diferentes sobre comerciantes, consumidores y el ambiente.",
+    "perspectivas": [
+      {"titulo": "Restricción progresiva", "descripcion": "Establecer plazos para dejar de usar ciertos productos desechables impulsa cambios reales y da tiempo a los comercios para adaptarse."},
+      {"titulo": "Incentivos y alternativas", "descripcion": "Apoyar a pequeños comercios con alternativas accesibles evita que el costo de la transición recaiga en quienes tienen menos recursos."},
+      {"titulo": "Cambio de hábitos", "descripcion": "La educación y el ejemplo cotidiano, como llevar bolsas reutilizables, pueden lograr cambios duraderos sin imponer sanciones."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "huertos-urbanos-comunitarios",
+    "categoria": "ambiente",
+    "titulo": "Huertos urbanos en espacios públicos",
+    "resumen": "Convertir terrenos baldíos o parques en huertos comunitarios plantea preguntas sobre uso del espacio, mantenimiento y beneficios.",
+    "contexto": "Los huertos urbanos pueden acercar a las personas a la producción de alimentos, fortalecer lazos vecinales y mejorar espacios descuidados. También requieren agua, organización y acuerdos sobre quién los cuida y quién se beneficia. El debate trata sobre cómo y dónde impulsarlos.",
+    "perspectivas": [
+      {"titulo": "Impulso municipal", "descripcion": "Los gobiernos locales podrían ceder espacios y apoyo técnico para que los barrios organicen huertos de forma estable."},
+      {"titulo": "Iniciativa vecinal", "descripcion": "Los huertos funcionan mejor cuando nacen de la comunidad, sin depender de trámites o cambios de administración."},
+      {"titulo": "Prioridad a otros usos", "descripcion": "Algunos espacios públicos son escasos y deberían destinarse a recreación o deporte, que también responden a necesidades del barrio."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "consumo-de-moda-rapida",
+    "categoria": "ambiente",
+    "titulo": "Moda rápida y consumo responsable",
+    "resumen": "La ropa barata y de rápida renovación es accesible, pero se cuestiona su impacto ambiental y social.",
+    "contexto": "La moda rápida permite comprar prendas nuevas a bajo costo y seguir tendencias. Al mismo tiempo, se discute el desperdicio textil y las condiciones de producción. Alternativas como la ropa de segunda mano, el intercambio o la reparación ganan espacio entre personas jóvenes, aunque no siempre son igual de accesibles.",
+    "perspectivas": [
+      {"titulo": "Consumo consciente", "descripcion": "Comprar menos y mejor, reparar e intercambiar prendas reduce residuos y valora el trabajo detrás de cada prenda."},
+      {"titulo": "Acceso económico", "descripcion": "Para muchas familias la ropa económica es una necesidad; exigir otras opciones sin alternativas asequibles no es justo."},
+      {"titulo": "Responsabilidad de las marcas", "descripcion": "El cambio principal debe venir de quienes producen, con información transparente sobre materiales y procesos."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "ciclovias-en-la-ciudad",
+    "categoria": "movilidad",
+    "titulo": "Más ciclovías en calles principales",
+    "resumen": "Dedicar carriles exclusivos a bicicletas puede mejorar la seguridad de ciclistas, pero reduce espacio para autos y estacionamiento.",
+    "contexto": "La bicicleta es una opción de movilidad económica y saludable para muchas personas jóvenes. Sin infraestructura segura, circular en bicicleta puede ser riesgoso. Ampliar ciclovías implica redistribuir el espacio vial, lo que genera opiniones distintas entre ciclistas, conductores, comerciantes y peatones.",
+    "perspectivas": [
+      {"titulo": "Red de ciclovías conectada", "descripcion": "Carriles protegidos y continuos animan a más personas a usar la bicicleta y reducen conflictos con vehículos motorizados."},
+      {"titulo": "Impacto en el comercio y el tránsito", "descripcion": "Quitar carriles o estacionamientos puede afectar negocios y congestionar vías si no se planifica con quienes las usan."},
+      {"titulo": "Pacificar antes que separar", "descripcion": "Reducir velocidades y mejorar la convivencia en la vía puede ser más viable que construir carriles exclusivos en todas partes."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "transporte-publico-nocturno",
+    "categoria": "movilidad",
+    "titulo": "Transporte público en horario nocturno",
+    "resumen": "Extender rutas de bus por la noche facilitaría el regreso de estudiantes y trabajadores, pero implica costos y retos de seguridad.",
+    "contexto": "Muchas personas jóvenes estudian o trabajan hasta tarde y dependen del transporte público para volver a casa. Cuando el servicio termina temprano, las alternativas pueden ser costosas o inseguras. Ampliar horarios requiere financiamiento, personal y medidas para que el viaje sea seguro.",
+    "perspectivas": [
+      {"titulo": "Servicio nocturno básico", "descripcion": "Unas pocas rutas troncales nocturnas darían una alternativa segura y económica a quienes estudian o trabajan de noche."},
+      {"titulo": "Priorizar la calidad diurna", "descripcion": "Con recursos limitados, mejorar frecuencia y estado de las unidades en el día beneficia a más personas."},
+      {"titulo": "Soluciones mixtas", "descripcion": "Acuerdos con servicios a demanda o transporte compartido podrían cubrir la noche con menor costo que rutas fijas."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "tarifa-preferencial-estudiantes",
+    "categoria": "movilidad",
+    "titulo": "Tarifa preferencial de transporte para estudiantes",
+    "resumen": "Se debate a quién debería beneficiar la tarifa reducida y cómo financiarla sin afectar el servicio.",
+    "contexto": "Las tarifas diferenciadas buscan que el costo del transporte no sea una barrera para estudiar. Su alcance puede variar: por nivel educativo, por edad o por situación económica. También surgen preguntas sobre cómo verificar quién accede y quién asume la diferencia en el costo.",
+    "perspectivas": [
+      {"titulo": "Ampliar la cobertura", "descripcion": "Incluir a estudiantes de institutos técnicos y universidades reconoce que el costo del transporte afecta a toda la etapa formativa."},
+      {"titulo": "Focalizar según necesidad", "descripcion": "Concentrar el beneficio en quienes tienen menos recursos permite mayor apoyo sin comprometer la sostenibilidad del sistema."},
+      {"titulo": "Mejorar la verificación", "descripcion": "Una credencial digital sencilla reduciría abusos y trámites, sin importar el alcance que se defina."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "primer-empleo-sin-experiencia",
+    "categoria": "empleo",
+    "titulo": "Primer empleo: ¿cómo conseguir experiencia sin tenerla?",
+    "resumen": "Muchas ofertas piden experiencia previa, lo que dificulta el ingreso de personas jóvenes al mercado laboral.",
+    "contexto": "Conseguir el primer trabajo es un paso importante y a menudo frustrante. Las empresas buscan personas con experiencia, pero esa experiencia solo se obtiene trabajando. Programas de pasantías, aprendices o incentivos a la contratación juvenil son algunas respuestas, cada una con ventajas y riesgos.",
+    "perspectivas": [
+      {"titulo": "Incentivos a la contratación", "descripcion": "Beneficios para empresas que contraten personas jóvenes podrían abrir puertas que hoy permanecen cerradas."},
+      {"titulo": "Pasantías con derechos", "descripcion": "Las prácticas son valiosas si incluyen acompañamiento, horarios razonables y algún reconocimiento económico."},
+      {"titulo": "Valorar otras experiencias", "descripcion": "El voluntariado, los proyectos propios o el trabajo comunitario también desarrollan habilidades y deberían considerarse."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "trabajo-en-plataformas-digitales",
+    "categoria": "empleo",
+    "titulo": "Trabajo en plataformas de reparto y transporte",
+    "resumen": "Las aplicaciones de reparto ofrecen ingresos flexibles, pero se discute la protección de quienes trabajan en ellas.",
+    "contexto": "Muchas personas jóvenes generan ingresos mediante aplicaciones de reparto o transporte. Valoran la flexibilidad de horarios, pero también enfrentan riesgos en la vía, gastos propios y poca estabilidad. El debate se centra en cómo equilibrar flexibilidad y protección.",
+    "perspectivas": [
+      {"titulo": "Mayor protección", "descripcion": "Quienes trabajan en plataformas deberían contar con seguro ante accidentes y condiciones mínimas acordadas."},
+      {"titulo": "Preservar la flexibilidad", "descripcion": "Reglas demasiado rígidas podrían reducir las oportunidades de quienes usan estas plataformas como ingreso complementario."},
+      {"titulo": "Diálogo entre las partes", "descripcion": "Acuerdos entre trabajadores, empresas y autoridades pueden encontrar soluciones adaptadas a este tipo de trabajo."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "salud-mental-en-colegios",
+    "categoria": "salud",
+    "titulo": "Apoyo de salud mental en colegios y universidades",
+    "resumen": "Crece la conversación sobre ansiedad y estrés en estudiantes y sobre qué apoyos deberían ofrecer las instituciones educativas.",
+    "contexto": "La etapa escolar y universitaria incluye presiones académicas, sociales y familiares. Hablar de salud mental se ha vuelto más frecuente, y con ello surgen preguntas sobre el papel de las instituciones educativas: detección temprana, acompañamiento, derivación a especialistas y prevención.",
+    "perspectivas": [
+      {"titulo": "Profesionales en cada institución", "descripcion": "Contar con personal especializado accesible facilita pedir ayuda a tiempo y reduce el estigma."},
+      {"titulo": "Prevención en el día a día", "descripcion": "Más allá de la atención individual, cambiar cargas académicas y fomentar espacios de bienestar previene problemas."},
+      {"titulo": "Redes de apoyo entre pares", "descripcion": "Programas de acompañamiento entre estudiantes formados pueden complementar la atención profesional."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "bebidas-azucaradas-en-bares-escolares",
+    "categoria": "salud",
+    "titulo": "Bebidas azucaradas en los bares escolares",
+    "resumen": "Se discute si limitar la venta de productos con mucho azúcar en colegios o apostar por la información y la libre elección.",
+    "contexto": "Los bares escolares influyen en los hábitos de alimentación de niñas, niños y adolescentes. Algunas propuestas buscan limitar ciertos productos y otras prefieren mejorar la oferta y la información disponible. El debate involucra salud, economía de los bares y autonomía de los estudiantes.",
+    "perspectivas": [
+      {"titulo": "Limitar la oferta", "descripcion": "El entorno escolar debe facilitar decisiones saludables; restringir ciertos productos es una forma de hacerlo."},
+      {"titulo": "Informar y educar", "descripcion": "Enseñar a leer etiquetas y comprender la nutrición forma personas capaces de decidir dentro y fuera del colegio."},
+      {"titulo": "Opciones atractivas y asequibles", "descripcion": "Si las alternativas saludables son sabrosas y de precio similar, el cambio ocurre sin necesidad de prohibir."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "inteligencia-artificial-en-tareas",
+    "categoria": "tecnologia",
+    "titulo": "Uso de inteligencia artificial en tareas académicas",
+    "resumen": "Las herramientas de IA generativa plantean dudas sobre aprendizaje, originalidad y evaluación en la educación.",
+    "contexto": "Las herramientas de inteligencia artificial pueden explicar conceptos, sugerir ideas o redactar textos. Esto abre oportunidades de aprendizaje y, a la vez, preguntas sobre la autoría, la verificación de información y la forma de evaluar. Instituciones y docentes adoptan posturas muy distintas.",
+    "perspectivas": [
+      {"titulo": "Uso transparente permitido", "descripcion": "Permitir la IA declarando cómo se usó prepara para un mundo donde estas herramientas son habituales."},
+      {"titulo": "Limitar en evaluaciones", "descripcion": "Algunas actividades deben hacerse sin IA para comprobar lo que cada estudiante sabe y desarrollar habilidades propias."},
+      {"titulo": "Repensar la evaluación", "descripcion": "Más trabajo oral, proyectos y procesos en clase reducen el problema sin depender de prohibiciones difíciles de controlar."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "edad-minima-redes-sociales",
+    "categoria": "tecnologia",
+    "titulo": "Edad mínima para abrir cuentas en redes sociales",
+    "resumen": "¿Deberían las plataformas verificar la edad de forma estricta o corresponde a las familias decidir?",
+    "contexto": "Las redes sociales permiten expresarse, informarse y mantener amistades, pero también exponen a riesgos como el acoso o el contenido inapropiado. La verificación de edad plantea dilemas sobre privacidad y efectividad. El debate pregunta quién debe establecer y hacer cumplir los límites.",
+    "perspectivas": [
+      {"titulo": "Verificación más estricta", "descripcion": "Las plataformas tienen recursos para proteger a menores y deberían comprobar la edad con mayor rigor."},
+      {"titulo": "Privacidad ante todo", "descripcion": "Exigir documentos para verificar la edad crea nuevos riesgos sobre datos personales de toda la población usuaria."},
+      {"titulo": "Acompañamiento familiar y educativo", "descripcion": "Más que una edad fija, se necesita formación digital y diálogo en casa y en la escuela."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "conectividad-en-zonas-rurales",
+    "categoria": "tecnologia",
+    "titulo": "Conectividad a internet en zonas rurales",
+    "resumen": "La falta de conexión estable limita el estudio y el trabajo en zonas rurales; se debate cómo cerrar esa brecha.",
+    "contexto": "Internet es clave para estudiar, buscar empleo y acceder a servicios. En muchas zonas rurales la conexión es inestable o costosa. Las soluciones posibles incluyen inversión pública, alianzas con empresas, redes comunitarias y puntos de acceso compartidos, cada una con distintos tiempos y costos.",
+    "perspectivas": [
+      {"titulo": "Inversión pública prioritaria", "descripcion": "La conectividad es un servicio básico para estudiar y trabajar, y el Estado debería garantizarla donde el mercado no llega."},
+      {"titulo": "Redes comunitarias", "descripcion": "Las comunidades organizadas pueden gestionar sus propias redes con apoyo técnico, adaptadas a sus necesidades."},
+      {"titulo": "Puntos de acceso compartidos", "descripcion": "Centros con conexión en escuelas o casas comunales son una solución más rápida mientras se amplía la cobertura."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "espacios-culturales-para-jovenes",
+    "categoria": "cultura",
+    "titulo": "Espacios culturales gestionados por jóvenes",
+    "resumen": "Casas culturales, escenarios abiertos y talleres: ¿cómo deberían financiarse y quién debería gestionarlos?",
+    "contexto": "Los espacios culturales permiten crear, encontrarse y expresar ideas. Muchos colectivos juveniles buscan lugares para ensayar, exponer o enseñar. Las opciones van desde espacios públicos administrados por instituciones hasta lugares autogestionados, con distintos niveles de autonomía y sostenibilidad.",
+    "perspectivas": [
+      {"titulo": "Cogestión con instituciones", "descripcion": "Que gobiernos locales aporten el espacio y los colectivos definan la programación combina estabilidad y participación."},
+      {"titulo": "Autogestión", "descripcion": "La independencia permite programaciones diversas y críticas, aunque exige buscar recursos propios."},
+      {"titulo": "Uso de espacios existentes", "descripcion": "Abrir escuelas, bibliotecas o parques en horarios ampliados puede ser más viable que crear lugares nuevos."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "arte-urbano-y-murales",
+    "categoria": "cultura",
+    "titulo": "Arte urbano y murales en el espacio público",
+    "resumen": "Los murales pueden embellecer barrios y transmitir mensajes, pero se discute quién decide qué se pinta y dónde.",
+    "contexto": "El arte urbano es una forma de expresión muy presente entre jóvenes. Algunos murales se realizan con permiso y apoyo de la comunidad, mientras otras intervenciones generan conflictos con propietarios o vecinos. El debate trata sobre la libertad de expresión, el patrimonio y la convivencia.",
+    "perspectivas": [
+      {"titulo": "Muros habilitados", "descripcion": "Destinar paredes y convocatorias abiertas canaliza el talento y reduce conflictos con propietarios."},
+      {"titulo": "Decisión de la comunidad", "descripcion": "Los vecinos deberían participar en elegir temas y lugares, porque conviven a diario con las obras."},
+      {"titulo": "Expresión espontánea", "descripcion": "Parte del valor del arte urbano está en su independencia; regularlo demasiado puede quitarle sentido."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "voto-desde-los-16",
+    "categoria": "participacion",
+    "titulo": "Participación electoral desde los 16 años",
+    "resumen": "En varios países se debate si las personas de 16 y 17 años deberían votar y con qué condiciones.",
+    "contexto": "La participación electoral de adolescentes es un tema discutido en distintos lugares del mundo. Hay quienes ven en ella una forma de reconocer intereses de las nuevas generaciones y quienes consideran que el voto debería empezar a la mayoría de edad. Las reglas concretas dependen de cada país; este debate se centra en los argumentos generales.",
+    "perspectivas": [
+      {"titulo": "Votar más temprano", "descripcion": "Participar desde los 16 años fortalece el hábito democrático y da voz a quienes viven las consecuencias de decisiones a largo plazo."},
+      {"titulo": "Votar a la mayoría de edad", "descripcion": "Asociar el voto con la mayoría de edad mantiene coherencia con otros derechos y responsabilidades legales."},
+      {"titulo": "Formación cívica primero", "descripcion": "Independientemente de la edad, una educación cívica sólida es lo que hace que el voto sea informado."}
+    ],
+    "origen": "Material editorial de demostración"
+  },
+  {
+    "slug": "presupuestos-participativos-juveniles",
+    "categoria": "participacion",
+    "titulo": "Presupuestos participativos para jóvenes",
+    "resumen": "Reservar una parte del presupuesto local para proyectos propuestos y votados por jóvenes despierta entusiasmo y dudas.",
+    "contexto": "Los presupuestos participativos permiten que la ciudadanía proponga y elija proyectos financiados con recursos públicos. Una versión juvenil busca involucrar a jóvenes en decisiones concretas. Sus resultados dependen del diseño: monto, reglas de votación, acompañamiento técnico y seguimiento de lo aprobado.",
+    "perspectivas": [
+      {"titulo": "Aprender decidiendo", "descripcion": "Decidir sobre recursos reales enseña cómo funciona lo público y motiva a participar en la comunidad."},
+      {"titulo": "Riesgo de participación simbólica", "descripcion": "Si los montos son pequeños o los proyectos no se ejecutan, la iniciativa puede generar desconfianza."},
+      {"titulo": "Acompañamiento técnico", "descripcion": "Con apoyo para formular y ejecutar proyectos, las propuestas juveniles pueden ser viables y sostenibles."}
+    ],
+    "origen": "Material editorial de demostración"
+  }
+]

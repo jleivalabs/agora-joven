@@ -6,3 +6,5 @@ tests/
 .env
 .env.*
 *.db
+*.db-*
+data/
