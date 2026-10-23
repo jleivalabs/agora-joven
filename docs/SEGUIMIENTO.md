@@ -6,15 +6,16 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 
 | Bloque | Contenido | Estado |
 |---|---|---|
-| 0 | Base: repositorio, app mínima con GetX, `/health`, Docker Compose, documentación | ✅ Comprobado; commit `5a8611d` |
-| 1 | Backend: SQLite, autenticación JWT y catálogo de 20 debates | ✅ Comprobado (pruebas y Docker con volumen); pendiente de commit |
-| 2 | Backend: aportes con propiedad comprobada en el servidor | ⏳ |
-| 3 | App: sesión (login, registro, logout, token seguro, número de sesión) | ⏳ |
-| 4 | App: lista por categorías y detalle con estados de carga/vacío/error | ⏳ |
-| 5 | App: aportes (crear, editar, eliminar propios) | ⏳ |
-| 6 | App: debates guardados con Hive | ⏳ |
-| 7 | Asistente: endpoint del backend y pantalla en la app | ⏳ |
-| 8 | CI, workflow de Release, README final, auditoría de secretos | ⏳ |
+| 0 | Base: repositorio, app mínima con GetX, `/health`, Docker Compose, documentación | ✅ Commit `5a8611d` |
+| 1 | Backend: SQLite, autenticación JWT y catálogo de 20 debates | ✅ Commit `4238dd5` |
+| 2 | App: sesión (registro, acceso, restauración, cierre) y catálogo con filtro y detalle | ✅ Comprobado (43 pruebas automáticas y recorrido manual en emulador); pendiente de commit y push |
+| 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ⏳ |
+| 4 | Debates guardados con Hive | ⏳ |
+| 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ⏳ |
+| 6 | CI, workflow de Release, README final, auditoría de secretos | ⏳ |
+
+La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
+la sesión y el catálogo en la app.
 
 ## Bloque 0 — comprobaciones (2026-10-22)
 
@@ -42,8 +43,8 @@ cubre el arranque y la pantalla de bienvenida.
 
 ## Pendientes conocidos
 
-- Commit del Bloque 0 registrado: `5a8611d`.
-- Commit del Bloque 1 (lo decide la persona autora).
+- Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`.
+- Bloque 2: commit y push (los hace la persona autora).
 - Versión de Python: local 3.11.9 (no hay 3.12 instalado) para `.venv` y pytest; el contenedor
   usa 3.12.15. Las pruebas locales no sustituyen la validación del contenedor.
 
@@ -96,6 +97,59 @@ Puerto 8010 antes de actualizar: `com.docker.backend` (puerto publicado por Dock
 
 No se usó `down -v` ni se borró el volumen. La cuenta de prueba queda en la base del volumen; la
 contraseña no se guardó en ningún archivo, así que esa cuenta no se puede volver a usar.
+
+## Bloque 2 — sesión y catálogo en la app (2026-10-22)
+
+Paquetes añadidos (versiones de ExploraEC, fijadas exactas): `dio` 5.11.1 y
+`flutter_secure_storage` 11.2.0. Se eliminaron `ArranqueController`, `InicioScreen` y su prueba:
+la restauración de sesión sustituye al arranque del Bloque 0. El backend no se modificó, así que
+no se repitieron sus 41 pruebas.
+
+### Pruebas automáticas (ejecutadas por el agente)
+
+`flutter analyze` → **No issues found**. `flutter test --timeout 30s` → **43 passed** (unos 2 s).
+Sin backend real: servidor falso conectado como adaptador de Dio (la app usa su `ApiClient` real)
+y almacén de token en memoria con fallo de escritura simulable.
+
+| Archivo | Pruebas | Cubre |
+|---|---|---|
+| `api_client_test.dart` | 4 | 400, 401, 403, 404, 422 y 5xx clasificados, con mensajes distintos y sin mostrar el detalle del servidor; desconexión frente a tiempo agotado; cabecera Bearer solo cuando hay token; respuesta con forma inesperada |
+| `sesion_controller_test.dart` | 18 | Restauración sin token, válida, caducada (borra el token), con fallo de red o 5xx (conserva el token) y reintento; restauración pendiente que no reactiva tras cerrar; login válido, inválido (mensaje propio, sin aviso de caducidad), tiempo agotado, fallo al guardar el token, envíos duplicados y login pendiente invalidado; registro correcto, duplicado (400) y 422 con campos; cierre de sesión; 401 de una sesión anterior que no cierra la actual; varios 401 simultáneos con un único cierre |
+| `debates_controller_test.dart` | 7 | 20 debates y categorías; filtro y vuelta a Todas; categoría vacía; respuestas de filtros fuera de orden; error 500 y reintento; 401 durante la carga; detalle completo y 404 |
+| `app_flujo_test.dart` | 14 | Flujos con la app completa: acceso, credenciales inválidas, mostrar contraseña, login y saludo, registro con aviso y correo escrito, duplicado, filtro, detalle y vuelta, vacío, error con reintento, detalle inexistente, restauración con fallo de red, token caducado al abrir, caducidad en el detalle, cierre de sesión y botón Atrás |
+
+Dos ajustes durante las pruebas, ambos en las pruebas y no en la app: inicializar el binding de
+Flutter en las pruebas unitarias (`Get.key` lo necesita) y desplazar la fila horizontal de chips
+antes de pulsar los que quedan fuera de la vista.
+
+### Comprobaciones estáticas (agente)
+
+- `lib/screens` y `lib/controllers` no importan Dio ni `flutter_secure_storage`.
+- `setState` solo para mostrar u ocultar la contraseña (estado local del formulario).
+- `lib/` no contiene `print`, `debugPrint` ni `LogInterceptor`.
+
+### Comprobación manual en emulador (realizada por la persona autora, no por el agente)
+
+Recorrido en `emulator-5554` contra el backend real en Docker (puerto 8010). La persona autora
+confirmó correcto el recorrido funcional; el agente no ejecutó la app en el emulador ni compiló el
+APK. No se registran correos, contraseñas ni tokens usados.
+
+| Comprobación | Resultado aportado |
+|---|---|
+| Backend *healthy* y `GET /health` | ✅ Respuesta correcta |
+| Compilación e instalación del APK de depuración | ✅ Correctas (incluye el manifiesto con `INTERNET`, `networkSecurityConfig` y `dataExtractionRules`) |
+| Registro e inicio de sesión | ✅ |
+| Mensajes de correo duplicado y de credenciales incorrectas | ✅ |
+| Catálogo, filtro Educación (3 debates) y regreso a Todas | ✅ |
+| Detalle con contexto, perspectivas y aviso editorial | ✅ |
+| Restauración de sesión tras `am force-stop` y apertura desde el icono | ✅ |
+| Backend detenido (`docker compose stop api`) | ✅ Aparece el error con "Reintentar"; la captura corresponde al **detalle de un debate** |
+| Backend iniciado (`docker compose start api`) y reintento | ✅ Recupera la conexión |
+| Cierre de sesión, retorno al acceso y botón Atrás | ✅ |
+
+**Sin comprobación manual** (solo cobertura automática, ver tabla anterior): caducidad o
+invalidez del token, 401 de una sesión anterior, varios 401 simultáneos, respuestas tardías de
+login, restauración o filtros, y fallo al guardar el token.
 
 ## Decisiones registradas (2026-10-22)
 

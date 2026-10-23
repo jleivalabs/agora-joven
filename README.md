@@ -3,9 +3,9 @@
 App Flutter para **comprender temas públicos**, **consultar debates ciudadanos** y **publicar
 preguntas, argumentos o propuestas**, con un backend propio en FastAPI.
 
-> **Estado: Bloque 1.** Backend con `GET /health`, registro, inicio de sesión, `GET /auth/me` y
-> catálogo de 20 debates en SQLite. La app solo tiene la pantalla inicial. Aportes, guardados,
-> asistente y las pantallas de sesión y debates están **planificados, no implementados**.
+> **Estado: Bloque 2.** Backend con autenticación JWT y catálogo de 20 debates en SQLite. App con
+> registro, inicio y cierre de sesión, restauración de la sesión y catálogo con filtro y detalle.
+> Aportes, guardados y asistente están **planificados, no implementados**.
 > Ver [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 
 ## Estructura
@@ -118,20 +118,53 @@ Usan una base SQLite temporal y un secreto sintético generado en cada ejecució
 
 ## App
 
-```bash
+Requiere el backend en marcha (sección anterior) y un emulador Android abierto.
+
+```powershell
 cd app
 flutter pub get
-flutter analyze
-flutter test
-flutter run          # con un emulador Android abierto
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8010
 ```
 
-Direcciones del backend por entorno (se usarán desde el Bloque 3):
+`API_BASE_URL` es opcional en el emulador: `http://10.0.2.2:8010` es el valor por defecto
+(10.0.2.2 es el equipo anfitrión visto desde el emulador).
 
-| Entorno | URL base |
-|---|---|
-| Emulador Android | `http://10.0.2.2:8010` |
-| Dispositivo físico en la misma red | `http://<IP-del-PC>:8010` |
+| Entorno | URL base | Notas |
+|---|---|---|
+| Emulador Android | `http://10.0.2.2:8010` | Permitido en `network_security_config.xml` |
+| Dispositivo físico en la misma red | `http://<IP-del-PC>:8010` | Añadir esa IP a `app/android/app/src/main/res/xml/network_security_config.xml` o usar HTTPS |
+
+Qué hace hoy la app: registro, inicio y cierre de sesión, restauración de la sesión al abrir,
+catálogo de debates con filtro por categoría y detalle con contexto y perspectivas.
+
+### Paquetes de la app
+
+| Paquete | Versión | Para qué |
+|---|---|---|
+| `get` | 4.7.3 | Estado (controladores GetX) y navegación |
+| `dio` | 5.11.1 | HTTP con límites de tiempo; en pruebas se sustituye su adaptador por un servidor falso |
+| `flutter_secure_storage` | 11.2.0 | Guardar solo el token, cifrado con el Keystore de Android (minSdk 24) |
+
+Versiones iguales a las del proyecto del curso (ExploraEC), fijadas de forma exacta.
+
+### Configuración Android (práctica)
+
+- `INTERNET` declarado en el manifiesto principal (necesario en el APK de release).
+- HTTP sin TLS permitido **solo** hacia `10.0.2.2`, `localhost` y `127.0.0.1`
+  (`network_security_config.xml`). En producción el backend debe usar HTTPS.
+- Copia de seguridad desactivada (`allowBackup="false"` y `data_extraction_rules.xml`): la sesión
+  no se restaura en otro dispositivo, porque el token cifrado depende de una clave del Keystore.
+
+### Pruebas de la app
+
+```powershell
+cd app
+flutter analyze
+flutter test
+```
+
+Las pruebas no necesitan el backend: usan un servidor falso conectado a Dio y un almacén de token
+en memoria.
 
 ## Arquitectura
 
@@ -145,7 +178,8 @@ fuente de datos (`data/`). Detalle, modelos y contrato de endpoints en
 - `JWT_SECRET` vive solo en `backend/.env` (o en el entorno del servidor); sin él la API no arranca.
 - Contraseñas con Argon2id; ninguna respuesta incluye la contraseña ni su hash.
 - Los registros de Uvicorn muestran método, ruta y código, nunca cabeceras ni tokens.
-- El token de sesión se guardará en la app con `flutter_secure_storage` (previsto).
+- En la app, solo el token se guarda, con `flutter_secure_storage`; nunca la contraseña. La app
+  no registra cuerpos, tokens ni la cabecera `Authorization`, y no contiene claves del servidor.
 - Asistente con Gemini a través del backend propio; la clave vivirá únicamente en el `.env` del
   servidor (previsto). No se envían correos, credenciales ni tokens al proveedor.
 - `AGENTS.md` y `.claude/settings.json` guían a los agentes de código, pero no son una barrera
@@ -155,6 +189,6 @@ fuente de datos (`data/`). Detalle, modelos y contrato de endpoints en
 
 - Contenido de debates: material editorial de demostración redactado para este proyecto; no
   representa posiciones oficiales ni contiene datos estadísticos o normativos.
-- Paquetes: Flutter (BSD-3), GetX `get` (MIT), FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT),
+- Paquetes: Flutter (BSD-3), GetX `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3), FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT),
   PyJWT (MIT), pwdlib (MIT), argon2-cffi (MIT), pydantic-settings (MIT), email-validator
   (Unlicense). Licencias comprobadas en los metadatos de los paquetes instalados.

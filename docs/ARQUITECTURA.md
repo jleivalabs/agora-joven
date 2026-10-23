@@ -1,56 +1,94 @@
 # Arquitectura — Ágora Joven
 
-> Estado: la app solo tiene la pantalla inicial, `ArranqueController` y el tema visual (Bloque 0).
-> El backend implementa `/health`, autenticación y catálogo de debates (Bloque 1). Aportes,
-> asistente y las capas de la app descritas abajo siguen **previstos**.
+> Estado: el backend implementa `/health`, autenticación y catálogo (Bloque 1). La app implementa
+> sesión (registro, acceso, restauración, cierre) y catálogo con detalle (Bloque 2). Aportes,
+> guardados y asistente siguen **previstos**.
 
 ## Vista general
 
 ```
 ┌──────────────── App Flutter (app/) ────────────────┐        ┌──────── Backend (backend/) ────────┐
-│ screens/      Pantallas y widgets (sin HTTP/Hive)  │        │ FastAPI                             │
-│     │ Obx / Get.find                               │        │  routers/  → services/ → repos/     │
+│ screens/      Pantallas y widgets (sin HTTP)       │        │ FastAPI                             │
+│     │ Obx / Get.find                               │        │  routers/ → repositorios/ → models  │
 │ controllers/  GetxController (estado compartido)   │        │             │                       │
-│     │                                              │  HTTPS │  SQLite persistente (volumen)       │
+│     │                                              │  HTTP  │  SQLite persistente (volumen)       │
 │ repositories/ Reglas de acceso y mapeo a modelos   │ ─────► │  JWT (firma con secreto en .env)    │
-│     │                                              │  JSON  │  Asistente → proveedor de IA        │
+│     │                                              │  JSON  │  Asistente → Gemini (previsto)      │
 │ data/         ApiClient (Dio) · TokenStorage       │        │  (clave solo en el servidor)        │
-│               (flutter_secure_storage) · Hive      │        └─────────────────────────────────────┘
-└────────────────────────────────────────────────────┘
+│               (flutter_secure_storage) · Hive*     │        └─────────────────────────────────────┘
+└────────────────────────────────────────────────────┘        * previsto
 ```
 
 Regla: una pantalla solo habla con controladores; un controlador solo con repositorios; solo
-`data/` conoce Dio, `flutter_secure_storage` o Hive.
+`data/` conoce Dio o `flutter_secure_storage`. Comprobado con búsqueda en `lib/screens` y
+`lib/controllers`: no importan Dio ni el almacenamiento seguro.
 
-## Capas de la app (previstas)
+## Capas de la app
 
-| Pantalla (`screens/`) | Controlador GetX | Repositorio | Fuente de datos |
-|---|---|---|---|
-| `InicioScreen` (existe) | `ArranqueController` (existe) | — | — |
-| `LoginScreen`, `RegistroScreen` | `SesionController` | `AuthRepository` | `ApiClient`, `TokenStorage` |
-| `DebatesScreen` (lista por categoría) | `DebatesController` | `DebatesRepository` | `ApiClient` |
-| `DebateDetalleScreen` | `DebateDetalleController` | `DebatesRepository` | `ApiClient` |
-| Sección de aportes + `AporteFormScreen` | `AportesController` | `AportesRepository` | `ApiClient` |
-| `GuardadosScreen` | `GuardadosController` | `GuardadosRepository` | Hive (caja por usuario) |
-| `AsistenteSheet` (en el detalle) | `AsistenteController` | `AsistenteRepository` | `ApiClient` |
+| Pantalla (`screens/`) | Controlador GetX | Repositorio | Fuente de datos | Estado |
+|---|---|---|---|---|
+| `RaizScreen` (elige según la sesión) | `SesionController` | `AuthRepository` | `ApiClient`, `TokenStorage` | ✅ |
+| `LoginScreen`, `RegistroScreen` | `SesionController` | `AuthRepository` | `ApiClient`, `TokenStorage` | ✅ |
+| `DebatesScreen` (lista + filtro) | `DebatesController` | `DebatesRepository` | `ApiClient` | ✅ |
+| `DetalleDebateScreen` | `DetalleDebateController` (uno por debate) | `DebatesRepository` | `ApiClient` | ✅ |
+| Sección de aportes + formulario | `AportesController` | `AportesRepository` | `ApiClient` | ⏳ |
+| `GuardadosScreen` | `GuardadosController` | `GuardadosRepository` | Hive (caja por usuario) | ⏳ |
+| Asistente (en el detalle) | `AsistenteController` | `AsistenteRepository` | `ApiClient` | ⏳ |
 
-Widgets comunes de estado: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con reintentar).
+Widgets comunes: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con reintentar y acción
+secundaria), `Marca` y `Aviso`. `setState` solo se usa para estado local de un formulario
+(mostrar u ocultar la contraseña); el estado compartido vive en controladores.
 
-### Protección de sesión
+`DebatesScreen` y `DetalleDebateScreen` crean su controlador al aparecer y lo eliminan al
+desaparecer: al cerrar sesión no quedan datos del usuario anterior en memoria.
 
-- `SesionController` mantiene un **número de sesión** que aumenta en cada login y logout.
-- Cada petición registra el número vigente al salir; si al volver ya cambió, la respuesta se
-  descarta y no modifica el estado (evita que una respuesta tardía de la sesión A aparezca en la
-  sesión B).
-- Al cerrar sesión: borrar token, limpiar controladores dependientes y cerrar la caja Hive del
-  usuario.
-- Un 401 cierra la sesión solo si pertenece al número de sesión vigente.
+### Sesión
+
+- Arranque: `SesionController.restaurar()` lee el token y lo valida con `GET /auth/me`.
+  Sin token → acceso. 401 → borra el token y avisa "Tu sesión caducó". Red, tiempo agotado o 5xx →
+  conserva el token y muestra "Reintentar" o "Iniciar sesión con otra cuenta".
+- Login: `POST /auth/login` → `GET /auth/me` → guardar token. Si guardar falla, no se inicia la
+  sesión y se informa. Solo se guarda el token; nunca la contraseña.
+- Registro: no inicia sesión; vuelve al acceso con aviso y el correo ya escrito.
+- Cierre: borra el token, limpia el usuario, elimina los controladores del catálogo y cierra todas
+  las pantallas apiladas (`popUntil(isFirst)`). La raíz pasa a mostrar el acceso, así que Atrás
+  no puede volver a pantallas protegidas.
+
+### Protección ante respuestas tardías
+
+- `SesionController` mantiene un **contador de sesión** que aumenta al empezar una restauración o
+  un login, y al cerrar o caducar la sesión.
+- Cada operación captura el contador al empezar y, tras cada espera (incluidos errores y
+  `finally`), solo aplica resultados si no cambió. Un login o una restauración pendientes no
+  pueden reactivar una sesión invalidada; si el token ya se escribió, se borra solo si sigue
+  siendo el suyo (`borrarTokenSiEs`).
+- Las operaciones autenticadas pasan por `SesionController.ejecutar`: un 401 cierra la sesión solo
+  si pertenece a la sesión vigente, y como el contador cambia al primer 401, los siguientes 401
+  simultáneos se ignoran (un único aviso y una única redirección).
+- El 401 de `POST /auth/login` no pasa por `ejecutar`: significa credenciales incorrectas, no
+  sesión caducada.
+- `DebatesController` y `DetalleDebateController` numeran sus peticiones: si se cambia rápido de
+  categoría, solo se aplica la respuesta de la última.
 
 ### Errores
 
-`ApiClient` convierte errores de Dio en un `AppException` tipado (`sinConexion`, `noAutorizado`
-401, `prohibido` 403, `noEncontrado` 404, `solicitudInvalida` 400, `validacion` 422, `servidor`
-5xx). Los controladores exponen un mensaje en español distinto para cada caso.
+`ApiClient` convierte errores de Dio en `ApiException` tipado. `mensajeDeError` da un texto en
+español distinto para: sin conexión, tiempo agotado, 400, 401, 403, 404, 422, 5xx y respuesta
+inesperada. Nunca se muestra el `detail` del servidor; en 422 solo se usan los nombres de los
+campos (`Revisa el correo.`). Algunos casos tienen texto propio según el contexto: 401 en login,
+400 en registro (correo duplicado) y 404 en el detalle.
+
+### Red y Android
+
+- `API_BASE_URL` por `--dart-define` (por defecto `http://10.0.2.2:8010`, emulador → equipo).
+- Límites: conexión 8 s, envío 10 s, recepción 15 s (`lib/config/app_config.dart`).
+- Sin interceptores de registro: no se registran cuerpos, contraseñas, tokens ni `Authorization`.
+- `AndroidManifest.xml` (main): permiso `INTERNET` (también en release); `networkSecurityConfig`
+  permite HTTP en claro **solo** hacia `10.0.2.2`, `localhost` y `127.0.0.1` (configuración de
+  práctica; para un dispositivo físico hay que añadir la IP del equipo o usar HTTPS);
+  `allowBackup="false"`, `fullBackupContent="false"` y `dataExtractionRules` excluyen los datos de
+  la app de la copia en la nube y de la transferencia entre dispositivos (el token cifrado depende
+  de una clave del Keystore que no viaja con la copia).
 
 ## Modelos
 
@@ -190,8 +228,10 @@ backend/app/
 - Backend (Bloque 1, versiones del lock del curso): `sqlalchemy` 2.1.1 (acceso a SQLite), `pyjwt`
   2.15.1 (tokens), `pwdlib[argon2]` 0.3.1 (hash Argon2id), `pydantic-settings` 2.15.0 (configuración
   desde el entorno), `email-validator` 2.3.0 (validación de correo en el registro).
-- Previstas para la app: `dio`, `flutter_secure_storage`, `hive`, `hive_flutter` (mismas versiones
-  que ExploraEC, confirmar al añadirlos). Para el asistente: cliente de Gemini (por confirmar).
+- App (Bloque 2, mismas versiones que ExploraEC, fijadas exactas en `pubspec.yaml`): `dio` 5.11.1
+  (HTTP con límites de tiempo y adaptador sustituible en pruebas), `flutter_secure_storage` 11.2.0
+  (token cifrado con Keystore; exige minSdk 24, igual al mínimo de Flutter 3.47.5).
+- Previstas: `hive`, `hive_flutter` (guardados); cliente de Gemini en el backend (asistente).
 
 ## Python: local frente a contenedor
 
