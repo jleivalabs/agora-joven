@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze*)",
+      "Bash(flutter test*)",
+      "Bash(dart format *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(docker compose config*)",
+      "Bash(docker compose ps*)",
+      "PowerShell(flutter analyze*)",
+      "PowerShell(flutter test*)",
+      "PowerShell(dart format *)",
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)",
+      "PowerShell(docker compose config*)",
+      "PowerShell(docker compose ps*)"
+    ],
+    "ask": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(flutter pub add *)",
+      "Bash(docker compose up*)",
+      "Bash(docker compose down*)",
+      "PowerShell(git add *)",
+      "PowerShell(git commit *)",
+      "PowerShell(flutter pub add *)",
+      "PowerShell(docker compose up*)",
+      "PowerShell(docker compose down*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.production)",
+      "Read(**/.env.development)",
+      "Edit(**/.env)",
+      "Bash(git push*)",
+      "Bash(git tag*)",
+      "Bash(gh release *)",
+      "Bash(gh repo create*)",
+      "Bash(docker push*)",
+      "PowerShell(git push*)",
+      "PowerShell(git tag*)",
+      "PowerShell(gh release *)",
+      "PowerShell(gh repo create*)",
+      "PowerShell(docker push*)"
+    ]
+  }
+}

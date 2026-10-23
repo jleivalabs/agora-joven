@@ -1,0 +1,6 @@
+# Finales de línea LF en el repositorio (independiente de core.autocrlf)
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.jar binary

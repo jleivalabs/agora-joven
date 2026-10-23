@@ -1,0 +1,17 @@
+name: agora-joven
+
+services:
+  api:
+    build: .
+    image: agora-joven-api:dev
+    container_name: agora-joven-api
+    # Puerto del host configurable; 8010 por defecto para no chocar con otros
+    # backends del curso que usan 8000.
+    ports:
+      - "${API_PORT:-8010}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
