@@ -21,7 +21,11 @@ void main() {
 
   Future<void> abrir(WidgetTester tester) async {
     await tester.pumpWidget(
-      AgoraJovenApp(api: servidor.cliente(), tokens: almacen),
+      AgoraJovenApp(
+        api: servidor.cliente(),
+        tokens: almacen,
+        guardados: AlmacenGuardadosFalso(),
+      ),
     );
     await tester.pumpAndSettle();
   }

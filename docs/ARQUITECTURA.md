@@ -2,7 +2,8 @@
 
 > Estado: el backend implementa `/health`, autenticación y catálogo (Bloque 1). La app implementa
 > sesión (registro, acceso, restauración, cierre) y catálogo con detalle (Bloque 2). Aportes
-> compartidos en backend y app (Bloque 3). Guardados y asistente siguen **previstos**.
+> compartidos en backend y app (Bloque 3). Debates guardados con Hive (Bloque 4). El asistente
+> sigue **previsto**.
 
 ## Vista general
 
@@ -15,8 +16,8 @@
 │ repositories/ Reglas de acceso y mapeo a modelos   │ ─────► │  JWT (firma con secreto en .env)    │
 │     │                                              │  JSON  │  Asistente → Gemini (previsto)      │
 │ data/         ApiClient (Dio) · TokenStorage       │        │  (clave solo en el servidor)        │
-│               (flutter_secure_storage) · Hive*     │        └─────────────────────────────────────┘
-└────────────────────────────────────────────────────┘        * previsto
+│               (flutter_secure_storage) · Hive      │        └─────────────────────────────────────┘
+└────────────────────────────────────────────────────┘
 ```
 
 Regla: una pantalla solo habla con controladores; un controlador solo con repositorios; solo
@@ -32,7 +33,7 @@ Regla: una pantalla solo habla con controladores; un controlador solo con reposi
 | `DebatesScreen` (lista + filtro) | `DebatesController` | `DebatesRepository` | `ApiClient` | ✅ |
 | `DetalleDebateScreen` | `DetalleDebateController` (uno por debate) | `DebatesRepository` | `ApiClient` | ✅ |
 | Sección de aportes (en el detalle) + `AporteFormScreen` | `AportesController` (uno por debate) | `AportesRepository` | `ApiClient` | ✅ |
-| `GuardadosScreen` | `GuardadosController` | `GuardadosRepository` | Hive (caja por usuario) | ⏳ |
+| `GuardadosScreen` + marcador en el detalle | `GuardadosController` (global) | `GuardadosRepository` | `HiveAlmacenGuardados` (caja por usuario) | ✅ |
 | Asistente (en el detalle) | `AsistenteController` | `AsistenteRepository` | `ApiClient` | ⏳ |
 
 Widgets comunes: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con reintentar y acción
@@ -86,6 +87,24 @@ desaparecer: al cerrar sesión no quedan datos del usuario anterior en memoria.
   aplica el servidor (403).
 - Publicar **no se reintenta solo**: ante desconexión o tiempo agotado se avisa de que pudo
   guardarse y se pide actualizar la lista antes de repetir. El texto del formulario se conserva.
+
+### Debates guardados (Hive)
+
+- Fuente de datos: `lib/data/guardados_local.dart` (`AlmacenGuardados` / `HiveAlmacenGuardados`).
+  Una caja por cuenta, `guardados_<id_usuario>`, con clave = id del debate (sin duplicados). Hive
+  se inicializa en `main.dart` con `Hive.initFlutter()`; solo `data/` y `main.dart` importan Hive.
+- Se guarda solo `id`, `titulo`, `categoria`, `etiqueta_categoria` y `guardado_en`. Nada de
+  tokens, credenciales ni aportes. El detalle se pide siempre al backend (flujo remoto existente).
+- Cerrar sesión no borra las cajas: los guardados se conservan para esa cuenta. Al cambiar de
+  usuario, `GuardadosController` limpia la lista visible y carga solo la caja de la nueva cuenta.
+- Cada operación captura un contador de cuenta: si la cuenta cambia mientras espera, su
+  resultado no se muestra (la escritura termina en la caja de la cuenta que la pidió). Las
+  lecturas se numeran; si un guardado termina durante una lectura, se relee.
+- Un fallo de escritura no marca el debate como guardado (o no lo quita) y se avisa. Un fallo de
+  lectura muestra error con Reintentar sin borrar datos. Los registros dañados se omiten al leer,
+  sin borrarlos.
+- La lista de guardados se lee localmente aunque el backend falle (sesión ya activa). No hay
+  modo sin conexión ni sincronización.
 
 ### Errores
 
@@ -251,7 +270,10 @@ backend/app/
 - App (Bloque 2, mismas versiones que ExploraEC, fijadas exactas en `pubspec.yaml`): `dio` 5.11.1
   (HTTP con límites de tiempo y adaptador sustituible en pruebas), `flutter_secure_storage` 11.2.0
   (token cifrado con Keystore; exige minSdk 24, igual al mínimo de Flutter 3.47.5).
-- Previstas: `hive`, `hive_flutter` (guardados); cliente de Gemini en el backend (asistente).
+- App (Bloque 4, versiones de ExploraEC, fijadas exactas): `hive` 2.2.3 y `hive_flutter` 1.1.0
+  (este último trae `path_provider` 2.1.6, la misma versión que en ExploraEC). No se actualizó
+  ninguna otra dependencia.
+- Prevista: cliente de Gemini en el backend (asistente).
 
 ## Python: local frente a contenedor
 

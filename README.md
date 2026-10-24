@@ -3,9 +3,9 @@
 App Flutter para **comprender temas públicos**, **consultar debates ciudadanos** y **publicar
 preguntas, argumentos o propuestas**, con un backend propio en FastAPI.
 
-> **Estado: Bloque 3.** Backend con autenticación JWT, catálogo de 20 debates y aportes en SQLite.
-> App con sesión, catálogo con filtro y detalle, y aportes compartidos (publicar, editar y eliminar
-> los propios). Guardados y asistente están **planificados, no implementados**.
+> **Estado: Bloque 4.** Backend con autenticación JWT, catálogo de 20 debates y aportes en SQLite.
+> App con sesión, catálogo con filtro y detalle, aportes compartidos y debates guardados en el
+> dispositivo (Hive). El asistente está **planificado, no implementado**.
 > Ver [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 
 ## Estructura
@@ -147,7 +147,8 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8010
 Qué hace hoy la app: registro, inicio y cierre de sesión, restauración de la sesión al abrir,
 catálogo de debates con filtro por categoría, detalle con contexto y perspectivas, y aportes
 (preguntas, argumentos o propuestas) visibles para todas las cuentas; solo su autor puede
-editarlos o eliminarlos.
+editarlos o eliminarlos. Cada cuenta puede guardar debates en el dispositivo (marcador en el
+detalle, pantalla "Guardados" desde el catálogo); se conservan al cerrar la app o la sesión.
 
 ### Paquetes de la app
 
@@ -156,6 +157,8 @@ editarlos o eliminarlos.
 | `get` | 4.7.3 | Estado (controladores GetX) y navegación |
 | `dio` | 5.11.1 | HTTP con límites de tiempo; en pruebas se sustituye su adaptador por un servidor falso |
 | `flutter_secure_storage` | 11.2.0 | Guardar solo el token, cifrado con el Keystore de Android (minSdk 24) |
+| `hive` | 2.2.3 | Debates guardados en el dispositivo, una caja por cuenta |
+| `hive_flutter` | 1.1.0 | `Hive.initFlutter()`: ubica las cajas en el directorio de la app (trae `path_provider` 2.1.6) |
 
 Versiones iguales a las del proyecto del curso (ExploraEC), fijadas de forma exacta.
 
@@ -201,6 +204,6 @@ fuente de datos (`data/`). Detalle, modelos y contrato de endpoints en
 
 - Contenido de debates: material editorial de demostración redactado para este proyecto; no
   representa posiciones oficiales ni contiene datos estadísticos o normativos.
-- Paquetes: Flutter (BSD-3), GetX `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3), FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT),
+- Paquetes: Flutter (BSD-3), GetX `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3), `hive` y `hive_flutter` (Apache-2.0), FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT),
   PyJWT (MIT), pwdlib (MIT), argon2-cffi (MIT), pydantic-settings (MIT), email-validator
   (Unlicense). Licencias comprobadas en los metadatos de los paquetes instalados.

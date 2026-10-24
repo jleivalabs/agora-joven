@@ -7,6 +7,7 @@ import '../models/debate.dart';
 import '../theme/app_theme.dart';
 import '../widgets/estados.dart';
 import 'detalle_debate_screen.dart';
+import 'guardados_screen.dart';
 
 /// Catálogo de debates. Crea su controlador al aparecer y lo elimina al desaparecer
 /// (por ejemplo al cerrar sesión), de modo que no quedan datos del usuario anterior.
@@ -38,7 +39,14 @@ class _DebatesScreenState extends State<DebatesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Debates'),
-        actions: [_MenuCuenta(sesion: _sesion)],
+        actions: [
+          IconButton(
+            tooltip: 'Guardados',
+            icon: const Icon(Icons.bookmarks_outlined),
+            onPressed: () => Get.to<void>(() => const GuardadosScreen()),
+          ),
+          _MenuCuenta(sesion: _sesion),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

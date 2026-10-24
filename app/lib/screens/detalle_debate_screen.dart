@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../controllers/aportes_controller.dart';
 import '../controllers/debates_controller.dart';
 import '../controllers/detalle_debate_controller.dart';
+import '../controllers/guardados_controller.dart';
 import '../models/aporte.dart';
 import '../models/debate.dart';
 import '../theme/app_theme.dart';
@@ -55,7 +56,15 @@ class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Debate')),
+      appBar: AppBar(
+        title: const Text('Debate'),
+        actions: [
+          _BotonGuardar(
+            detalle: _detalle,
+            etiquetaCategoria: widget.etiquetaCategoria,
+          ),
+        ],
+      ),
       body: Obx(() {
         switch (_detalle.estado.value) {
           case EstadoCarga.cargando:
@@ -77,6 +86,52 @@ class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
         }
       }),
     );
+  }
+}
+
+/// Guardar o quitar el debate de guardados. Solo aparece cuando el detalle está cargado.
+class _BotonGuardar extends StatelessWidget {
+  const _BotonGuardar({required this.detalle, required this.etiquetaCategoria});
+
+  final DetalleDebateController detalle;
+  final String etiquetaCategoria;
+
+  @override
+  Widget build(BuildContext context) {
+    final guardados = Get.find<GuardadosController>();
+    return Obx(() {
+      final debate = detalle.debate.value;
+      if (debate == null) return const SizedBox.shrink();
+      if (guardados.pendientes.contains(debate.id)) {
+        return const Padding(
+          padding: EdgeInsets.all(AppSpacing.m),
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+              semanticsLabel: 'Actualizando guardados',
+            ),
+          ),
+        );
+      }
+      final guardado = guardados.estaGuardado(debate.id);
+      return IconButton(
+        tooltip: guardado ? 'Quitar de guardados' : 'Guardar debate',
+        icon: Icon(guardado ? Icons.bookmark : Icons.bookmark_border),
+        onPressed: () async {
+          final mensaje = guardado
+              ? await guardados.quitar(debate.id)
+              : await guardados.guardar(debate, etiquetaCategoria);
+          if (mensaje != null && context.mounted) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(mensaje)));
+          }
+        },
+      );
+    });
   }
 }
 

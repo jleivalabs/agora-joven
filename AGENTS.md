@@ -30,7 +30,7 @@ Si algo falla, corrige el código; no desactives el análisis ni borres pruebas.
 
 ## Versiones (no actualizar sin acuerdo)
 
-Flutter 3.47.5 / Dart 3.13.4, `get` 4.7.3, `dio` 5.11.1, `flutter_secure_storage` 11.2.0. Backend: Python 3.12 (Docker), FastAPI 0.142.2,
+Flutter 3.47.5 / Dart 3.13.4, `get` 4.7.3, `dio` 5.11.1, `flutter_secure_storage` 11.2.0, `hive` 2.2.3, `hive_flutter` 1.1.0. Backend: Python 3.12 (Docker), FastAPI 0.142.2,
 Starlette 1.7.0, Pydantic 2.13.5, Uvicorn 0.54.0, SQLAlchemy 2.1.1, PyJWT 2.15.1, pwdlib 0.3.1,
 pydantic-settings 2.15.0, email-validator 2.3.0 (fijadas en `backend/requirements.txt`). No actualizar herramientas ni dependencias
 globales.

@@ -28,7 +28,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      AgoraJovenApp(api: servidor.cliente(), tokens: almacen),
+      AgoraJovenApp(
+        api: servidor.cliente(),
+        tokens: almacen,
+        guardados: AlmacenGuardadosFalso(),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Debate sintético 1'));

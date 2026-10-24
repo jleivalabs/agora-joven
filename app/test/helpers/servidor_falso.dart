@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:agora_joven/data/api_client.dart';
+import 'package:agora_joven/data/guardados_local.dart';
 import 'package:agora_joven/data/token_storage.dart';
+import 'package:agora_joven/models/debate_guardado.dart';
 import 'package:dio/dio.dart';
 
 const emailAna = 'ana@example.com';
@@ -361,5 +363,43 @@ class AlmacenFalso implements TokenStorage {
   Future<void> borrar() async {
     borrados++;
     token = null;
+  }
+}
+
+/// Almacén de guardados en memoria, con fallos y esperas controlables.
+class AlmacenGuardadosFalso implements AlmacenGuardados {
+  final cajas = <int, Map<int, DebateGuardado>>{};
+  bool fallarLectura = false;
+  bool fallarEscritura = false;
+
+  /// Si se asigna, la próxima escritura espera a que se complete.
+  Completer<void>? esperaEscritura;
+  Completer<void>? esperaLectura;
+
+  @override
+  Future<List<DebateGuardado>> leer(int usuarioId) async {
+    final espera = esperaLectura;
+    esperaLectura = null;
+    if (espera != null) await espera.future;
+    if (fallarLectura) throw const ErrorAlmacenLocal('leer');
+    return [...?cajas[usuarioId]?.values];
+  }
+
+  @override
+  Future<void> guardar(int usuarioId, DebateGuardado debate) async {
+    final espera = esperaEscritura;
+    esperaEscritura = null;
+    if (espera != null) await espera.future;
+    if (fallarEscritura) throw const ErrorAlmacenLocal('guardar');
+    (cajas[usuarioId] ??= {})[debate.id] = debate;
+  }
+
+  @override
+  Future<void> quitar(int usuarioId, int debateId) async {
+    final espera = esperaEscritura;
+    esperaEscritura = null;
+    if (espera != null) await espera.future;
+    if (fallarEscritura) throw const ErrorAlmacenLocal('quitar');
+    cajas[usuarioId]?.remove(debateId);
   }
 }

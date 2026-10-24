@@ -2,13 +2,16 @@
 
 Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 
-## Nota de pausa (actualizada 2026-10-23)
+## Estado actual (24/10/2026)
 
-- Último commit publicado: `285f020` (Bloque 2, en `origin/main`).
-- Bloque 3 **comprobado** (pruebas automáticas del agente y pruebas funcionales en emulador de la
-  persona autora), **todavía sin commit ni push**.
-- Pendiente: revisar los cambios, hacer commit y push del Bloque 3.
-- No comenzar el Bloque 4 hasta cerrar lo anterior.
+- Último commit publicado: `317cf23` (Bloque 3, en `origin/main`).
+- Bloque 4 **comprobado** (92 pruebas Flutter del agente y recorrido manual en emulator-5554 de la
+  persona autora), **sin commit ni push**.
+- Revisión del fallo de disco de Hive: realizada para una condición concreta; queda un **pendiente
+  técnico conocido** (excepción asíncrona no capturada de Hive), sin cambios de código. Ver
+  "Bloque 4 → Revisión del fallo de disco de Hive".
+- Pendiente: revisar los cambios, hacer commit y push del Bloque 4.
+- No comenzar el Bloque 5 hasta cerrar lo anterior.
 
 ## Bloques
 
@@ -17,8 +20,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 0 | Base: repositorio, app mínima con GetX, `/health`, Docker Compose, documentación | ✅ Commit `5a8611d` |
 | 1 | Backend: SQLite, autenticación JWT y catálogo de 20 debates | ✅ Commit `4238dd5` |
 | 2 | App: sesión (registro, acceso, restauración, cierre) y catálogo con filtro y detalle | ✅ Commit `285f020`, publicado en `origin/main` |
-| 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ✅ Comprobado (pruebas automáticas y pruebas funcionales en emulador); pendiente de commit y push |
-| 4 | Debates guardados con Hive | ⏳ |
+| 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ✅ Commit `317cf23`, publicado en `origin/main` |
+| 4 | Debates guardados con Hive | ✅ Comprobado (92 pruebas automáticas y recorrido manual en emulador); pendiente de commit y push |
 | 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ⏳ |
 | 6 | CI, workflow de Release, README final, auditoría de secretos | ⏳ |
 
@@ -51,9 +54,9 @@ cubre el arranque y la pantalla de bienvenida.
 
 ## Pendientes conocidos
 
-- Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`, Bloque 2 `285f020` (publicado en
-  `origin/main`).
-- Bloque 3: revisión de cambios, commit y push (los hace la persona autora).
+- Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`, Bloque 2 `285f020`, Bloque 3
+  `317cf23` (publicados en `origin/main`).
+- Bloque 4: revisión de cambios, commit y push (los hace la persona autora).
 - Versión de Python: local 3.11.9 (no hay 3.12 instalado) para `.venv` y pytest; el contenedor
   usa 3.12.15. Las pruebas locales no sustituyen la validación del contenedor.
 
@@ -232,6 +235,84 @@ No se registran aquí otras evidencias específicas (por ejemplo, el 403 real co
 comportamiento con el backend detenido) más allá de la confirmación general. La incidencia del
 menú flotante del teclado del emulador se resolvió cambiando la configuración del teclado del
 emulador, sin cambios en la aplicación.
+
+## Bloque 4 — debates guardados con Hive (2026-10-23)
+
+Dependencias añadidas, con las versiones de ExploraEC fijadas exactas: `hive` 2.2.3 y
+`hive_flutter` 1.1.0. Entra además `path_provider` 2.1.6 como dependencia transitiva. El
+`pubspec.lock` solo añadió entradas: no cambió ninguna otra versión. Backend sin cambios (no se
+repitieron sus 68 pruebas).
+
+Archivos nuevos: `models/debate_guardado.dart`, `data/guardados_local.dart`,
+`repositories/guardados_repository.dart`, `controllers/guardados_controller.dart`,
+`screens/guardados_screen.dart`. Modificados: `main.dart` (inicializa Hive), `app.dart`
+(inyección), `detalle_debate_screen.dart` (marcador), `debates_screen.dart` (acceso a Guardados).
+
+### Pruebas automáticas (ejecutadas por el agente)
+
+`flutter analyze` → **No issues found**. `flutter test --timeout 30s` → **92 passed** (72
+anteriores + 20 nuevas). Las pruebas de widgets existentes ahora inyectan un almacén de
+guardados en memoria.
+
+| Archivo | Pruebas | Cubre |
+|---|---|---|
+| `guardados_hive_test.dart` | 6 | **Hive real** en un directorio temporal: persistencia tras cerrar y reabrir Hive, una caja por cuenta, sin duplicados, quitar persiste, solo campos editoriales mínimos, registro dañado omitido sin borrarlo |
+| `guardados_controller_test.dart` | 9 | Sin sesión no se guarda; guardar, duplicados y quitar; fallo de escritura (no se marca), fallo al quitar (se mantiene), fallo de lectura con reintento sin borrar datos; aislamiento entre cuentas y conservación tras cerrar sesión; guardado y lectura pendientes de la cuenta A que no afectan a la cuenta B; guardado que termina durante una lectura no se pierde |
+| `guardados_flujo_test.dart` | 5 | Guardar desde el detalle, verlo en Guardados, abrirlo y quitarlo; fallo de escritura sin marcar; lista legible con el backend caído y detalle con error y Reintentar; error de lectura con reintento; cambio de cuenta con lista vacía para la nueva |
+
+Durante el trabajo se retiró una prueba que provocaba un fallo real del sistema de archivos:
+Hive lanza una excepción interna asíncrona fuera de la llamada (la envoltura sí devolvió el error
+tipado). Los errores de almacenamiento quedan cubiertos con el almacén simulado.
+
+Comprobación estática: ninguna pantalla ni controlador importa Hive (solo `data/` y `main.dart`).
+
+### Comprobación manual en emulator-5554 (24/10/2026, persona autora, no el agente)
+
+**Confirmación de la persona autora:** completó satisfactoriamente el recorrido manual:
+
+| Comprobación | Resultado confirmado |
+|---|---|
+| Guardar, listar y abrir un debate | ✅ |
+| Persistencia tras cierre completo y reapertura | ✅ |
+| Separación de guardados entre dos cuentas (Jleiva y patu) | ✅ |
+| Lista local disponible con el backend detenido; error al abrir el detalle y recuperación con Reintentar tras arrancarlo | ✅ |
+| Quitar un guardado y comprobar que sigue eliminado tras cerrar y reabrir | ✅ |
+
+**Observado en las capturas aportadas:** debate guardado, listado de Guardados, detalle abierto,
+segunda cuenta con la lista vacía, otro debate guardado en esa cuenta y eliminación. Lo demás
+(cierre completo, backend detenido, persistencia de la eliminación) consta por la confirmación de
+la persona autora, no por capturas.
+
+### Revisión del fallo de disco de Hive (24/10/2026, agente)
+
+Reproducción acotada con una prueba temporal, ya borrada, sobre un directorio temporal aislado (sin
+tocar datos de la app ni del emulador), en el entorno de pruebas de Flutter en Windows.
+
+**Condición provocada:** `Hive.init` recibió como ruta un **archivo existente** en lugar de un
+directorio. Al abrir la caja, Hive intentó crear el directorio en esa ruta y el sistema respondió
+que ya existía un archivo con ese nombre (`PathExistsException`, errno 183).
+
+**Observado en esa reproducción:**
+
+- Nuestra capa (`HiveAlmacenGuardados`) devolvió un **error controlado** (`ErrorAlmacenLocal`) en
+  `leer`, `guardar`, `quitar` y un segundo `leer`; con ese error la app muestra un mensaje y no
+  marca nada como guardado.
+- **Además**, cada una de esas cuatro operaciones produjo una `PathExistsException` **asíncrona no
+  capturada** por nuestro `try/catch`, detectada con un `runZonedGuarded` alrededor de la prueba.
+  La traza no permitió localizar en qué punto de Hive se origina.
+- Tras volver a inicializar Hive con un directorio válido en el mismo proceso, guardar y leer
+  funcionaron.
+
+**Alcance de la conclusión:** solo cubre esa condición concreta. No se probaron otros fallos de
+almacenamiento (disco lleno, permisos, archivos de caja dañados…) ni se descarta que la excepción
+pueda capturarse con otro tratamiento. **Su efecto en Android no se verificó**: no se reprodujo en
+emulador ni en dispositivo. Las pruebas automáticas de errores del Bloque 4 usan un almacén
+simulado, que no reproduce este comportamiento de Hive.
+
+**Pendiente técnico conocido:** excepción asíncrona no capturada de Hive cuando la apertura de una
+caja falla por la condición anterior. El Bloque 4 **no** debe considerarse tolerante a cualquier
+fallo de almacenamiento. No se cambió código ni se añadió un manejador global; la decisión sobre su
+tratamiento queda abierta.
 
 ## Decisiones registradas (2026-10-22)
 
