@@ -4,11 +4,14 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 
 ## Estado actual (24/10/2026)
 
-- Último commit publicado: `20fae85` (Bloque 5, en `origin/main`).
-- Bloque 6 (CI, Release y documentación final) preparado, **sin commit ni push**. Los workflows
-  **no se han ejecutado en GitHub**; no hay etiqueta ni Release. **El proyecto no está entregado.**
-- Se mantiene el pendiente técnico conocido de Hive (ver "Bloque 4 → Revisión del fallo de disco").
-- Siguiente paso: los de "Bloque 6 → Pasos para la entrega".
+- **Bloque 6 comprobado.** Release publicada: [v1.0.0](https://github.com/jleivalabs/agora-joven/releases/tag/v1.0.0), generada por GitHub Actions desde
+  el commit `1ce2f37` (código de la Release validada).
+- CI en verde para `1ce2f37` y recorrido final sobre el APK de la Release en emulator-5554,
+  confirmados por la persona autora (ver "Bloque 6 → Validación de la Release v1.0.0").
+- Se mantienen las limitaciones conocidas (README → "Limitaciones conocidas"), incluido el
+  pendiente técnico de Hive.
+- **Solo queda entregar el enlace del repositorio en Moodle** (persona autora). No está
+  registrado como realizado.
 
 ## Bloques
 
@@ -20,7 +23,7 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ✅ Commit `317cf23`, publicado en `origin/main` |
 | 4 | Debates guardados con Hive | ✅ Commit `5df1279`, publicado en `origin/main` (con el pendiente técnico de Hive documentado) |
 | 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ✅ Commit `20fae85`, publicado en `origin/main` |
-| 6 | CI, workflow de Release, README final, auditoría de secretos | Preparado y verificado en local; **workflows sin ejecutar en GitHub**; pendiente commit, push, CI, etiqueta, Release e instalación final |
+| 6 | CI, workflow de Release, README final, auditoría de secretos | ✅ Commit `1ce2f37`; CI en verde; Release `v1.0.0` publicada y validada en emulador (persona autora) |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -54,10 +57,9 @@ cubre el arranque y la pantalla de bienvenida.
 - Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`, Bloque 2 `285f020`, Bloque 3
   `317cf23`, Bloque 4 `5df1279` (publicados en `origin/main`).
 - Commit registrado: Bloque 5 `20fae85` (publicado en `origin/main`).
-- Bloque 6: commit, push, CI en GitHub, etiqueta `v1.0.0`, Release, instalación del APK y
-  validación final (persona autora).
-- Capturas: el README ya incluye 6 capturas reales de desarrollo (ver Bloque 6); ninguna es todavía
-  del APK de la Release.
+- Commit registrado: Bloque 6 `1ce2f37` (publicado; etiqueta `v1.0.0`).
+- **Pendiente único: entregar en Moodle el enlace del repositorio** (persona autora).
+- Capturas: el README incluye 6 capturas reales de desarrollo, no tomadas con el APK de la Release.
 - Pendiente técnico conocido: excepción asíncrona no capturada de Hive (Bloque 4).
 - Versión de Python: local 3.11.9 (no hay 3.12 instalado) para `.venv` y pytest; el contenedor
   usa 3.12.15. Las pruebas locales no sustituyen la validación del contenedor.
@@ -453,7 +455,7 @@ actuales, así que compilación y publicación van en el mismo trabajo.
 El APK local está en `app/build/` (ignorado por Git) y **no es el de la Release**: el de GitHub se
 compilará en el runner, con otra clave de depuración y otro checksum.
 
-### Preparado pero no ejecutado
+### Preparado pero no ejecutado (situación antes del commit `1ce2f37`; resuelta más abajo)
 
 - Workflows de CI y Release: **nunca se han ejecutado en GitHub**. Posibles diferencias con la
   verificación local: runner Linux, descarga de Flutter y dependencias, Java 17 de Temurin.
@@ -465,7 +467,7 @@ compilará en el runner, con otra clave de depuración y otro checksum.
 | Criterio | Estado |
 |---|---|
 | Persistencia remota/colaborativa, Autenticación, Datos reales, Persistencia local, GetX, IA sin secretos, Manejo de errores, Arquitectura | Implementados y comprobados en bloques anteriores (pruebas automáticas y recorridos manuales registrados arriba) |
-| Documentación y entrega | README completo; historial con un commit por bloque; **pendiente** CI en verde, Release con APK generado por GitHub Actions y prueba del APK en emulador |
+| Documentación y entrega | README completo; historial con un commit por bloque; CI en verde; Release `v1.0.0` con APK generado por GitHub Actions; APK probado en emulador (persona autora). Falta solo la entrega en Moodle |
 
 Observaciones: el README incluye 6 capturas reales de desarrollo (ver "Capturas del README"). La lista de verificación del
 curso sugiere un manejador global de errores no capturados ("pantalla roja"); no está
@@ -484,24 +486,52 @@ se ven los nombres de las cuentas de prueba) y las copió sin modificar a `docs/
 El README aclara también que desinstalar la app borra la sesión y los guardados de Hive del
 dispositivo, pero no los datos del backend.
 
-Siguen pendientes: CI en GitHub, etiqueta y Release `v1.0.0`, e instalación y recorrido con el APK
-publicado.
+Estas capturas siguen siendo de desarrollo. Las capturas del recorrido final con el APK de la
+Release no se publican (una de acceso contiene un correo personal) y no son necesarias para el
+cierre.
+
+### Validación de la Release v1.0.0 (24/10/2026, persona autora, no el agente)
+
+El agente no ejecutó workflows, no creó la etiqueta ni la Release, no descargó ni instaló el APK
+y no repitió pruebas ni llamadas a Gemini para este cierre. Solo comprobó en local que la etiqueta
+`v1.0.0` apunta a `1ce2f37`.
+
+**Evidencias aportadas por la persona autora:**
+
+| Comprobación | Resultado aportado |
+|---|---|
+| CI de `1ce2f37` (trabajos Flutter y backend) | ✅ En verde |
+| Workflow "Release APK" para `v1.0.0`, apuntando a `1ce2f37` | ✅ En verde |
+| Release publicada con el APK y el archivo SHA-256 | ✅ [v1.0.0](https://github.com/jleivalabs/agora-joven/releases/tag/v1.0.0) |
+| APK descargado: comparación del checksum SHA-256 | ✅ `True` |
+| Desinstalación de la versión anterior e instalación del APK descargado con `adb` | ✅ `Success` |
+
+**Recorrido final sobre ese APK en emulator-5554, abierto desde su icono.** La persona autora
+confirma todo correcto: acceso; catálogo y detalle; aporte compartido entre cuentas; guardado
+persistente tras cierre completo; asistente real; cierre de sesión con protección frente a Atrás.
+
+**Observado en las capturas del recorrido** (aportadas, no publicadas): catálogo, detalle, aporte
+y respuestas del asistente con Markdown. El resto del recorrido consta por la confirmación de la
+persona autora. La captura de acceso de este recorrido **no se publica** porque contiene un correo
+personal.
+
+**Código de la Release validada:** commit `1ce2f37` (etiqueta `v1.0.0`). Los archivos de la
+Release no se han reconstruido ni sustituido, y la etiqueta no se ha movido.
+
+**Limitaciones que se mantienen** (README → "Limitaciones conocidas"): firma con clave de
+depuración, APK solo para el emulador por HTTP local, pendiente técnico de Hive, sin manejador
+global de errores y dependencia de Gemini.
 
 ### Pasos para la entrega (persona autora)
 
-1. Revisar el diff (`git diff`, `git status`) y hacer commit y push del Bloque 6 a `main`.
-2. En GitHub → Actions, comprobar que **CI** termina en verde (trabajos "Flutter" y "Backend").
-   Si falla, reproducir el paso en local antes de tocar nada.
-3. Con CI en verde y `version: 1.0.0+1` en `pubspec.yaml`:
-   `git tag v1.0.0` y `git push origin v1.0.0`. Comprobar que **Release APK** termina en verde.
-   Si falla por permisos, revisar Settings → Actions → General → Workflow permissions.
-4. Descargar de Releases `agora-joven-v1.0.0-emulador.apk` y su `.sha256`; comparar con
-   `Get-FileHash -Algorithm SHA256`.
-5. Levantar el backend (`docker compose up -d api`, `/health`), `adb uninstall ec.edu.ute.agora_joven`
-   si había otra versión y `adb install` del APK descargado en un emulador.
-6. Seguir el README → "Recorrido de prueba" con dos cuentas (aportes, guardados, asistente,
-   errores) y registrar aquí el resultado.
-7. Entregar en Moodle el enlace del repositorio antes del plazo.
+1. ~~Commit y push del Bloque 6~~ — hecho (`1ce2f37`).
+2. ~~CI en verde~~ — hecho (persona autora).
+3. ~~Etiqueta `v1.0.0` y workflow "Release APK" en verde~~ — hecho (persona autora).
+4. ~~Descargar y verificar el APK y su SHA-256~~ — hecho (persona autora).
+5. ~~Instalar el APK en el emulador~~ — hecho (persona autora).
+6. ~~Recorrido final con dos cuentas~~ — hecho (persona autora).
+7. **Entregar en Moodle el enlace del repositorio** (https://github.com/jleivalabs/agora-joven)
+   antes del lunes 26/10/2026 a las 08:00 — **pendiente**.
 
 ## Decisiones registradas (2026-10-22)
 

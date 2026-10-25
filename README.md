@@ -7,13 +7,16 @@ un asistente educativo con IA (Gemini) que explica el contexto y resume perspect
 Proyecto Final del curso *Desarrolla Aplicaciones Móviles Robustas con Flutter e IA* (CEDIA). Los
 20 debates son **material editorial de demostración** redactado para este proyecto.
 
+> **Versión publicada: [v1.0.0](https://github.com/jleivalabs/agora-joven/releases/tag/v1.0.0)** (APK para el emulador Android + SHA-256), generada por
+> GitHub Actions desde el commit `1ce2f37` y validada por la persona autora en el emulador.
 > Estado y evidencias de cada bloque: [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 
 ## Capturas de pantalla
 
 Capturas reales de las **pruebas de desarrollo** de la persona autora en el emulador Android, con
-la app ejecutada desde el código contra el backend Docker. **Todavía no corresponden al APK de la
-GitHub Release.** Los nombres visibles ("Jleiva", "patu") son cuentas de prueba.
+la app ejecutada desde el código contra el backend Docker; **no** se tomaron con el APK de la
+Release (ese APK se validó después con el recorrido descrito en `docs/SEGUIMIENTO.md`). Los
+nombres visibles ("Jleiva", "patu") son cuentas de prueba.
 
 | Acceso | Catálogo | Aportes de dos cuentas |
 |---|---|---|
@@ -90,8 +93,8 @@ curl.exe http://localhost:8010/health
 
 ### 4. Instalar el APK de la Release
 
-1. Descarga de [Releases](https://github.com/jleivalabs/agora-joven/releases) los archivos
-   `agora-joven-vX.Y.Z-emulador.apk` y `agora-joven-vX.Y.Z-emulador.apk.sha256`.
+1. Descarga de la [Release v1.0.0](https://github.com/jleivalabs/agora-joven/releases/tag/v1.0.0) los archivos
+   `agora-joven-v1.0.0-emulador.apk` y `agora-joven-v1.0.0-emulador.apk.sha256`.
 2. Verifica la descarga (el valor debe coincidir con el del archivo `.sha256`):
 
    ```powershell
