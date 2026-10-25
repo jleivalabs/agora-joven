@@ -320,6 +320,24 @@ pantalla. La espera de la app para esta petición es de 40 s (el backend espera 
 - Asistente (Bloque 5): **sin dependencias nuevas**. Gemini se llama por REST con `urllib` de la
   biblioteca estándar; no se instaló el SDK de Google.
 
+## CI y Release (Bloque 6)
+
+- `.github/workflows/ci.yml` (push y pull request; `contents: read`): trabajo Flutter
+  (`subosito/flutter-action@v2` con Flutter 3.47.5, `pub get --enforce-lockfile`, `analyze`,
+  `test --timeout 30s`) y trabajo backend (`actions/setup-python@v7` con Python 3.12,
+  `pip install -r requirements-dev.txt`, `pytest`). Sin `.env`, sin secretos y con IA simulada.
+- `.github/workflows/release.yml` (etiquetas `v*`): trabajo `backend` (pytest, solo lectura) y
+  trabajo `apk` (`needs: backend`, único con `contents: write`): comprueba que la etiqueta coincida
+  con `version` de `pubspec.yaml`, Java 17 (`actions/setup-java@v6`), `analyze`, `test`,
+  `flutter build apk --release --dart-define=API_BASE_URL=http://10.0.2.2:8010`, renombra a
+  `agora-joven-<etiqueta>-emulador.apk`, calcula su SHA-256 y publica ambos con
+  `softprops/action-gh-release@v3`.
+- Acciones fijadas por versión mayor (`@v7`, `@v6`, `@v2`, `@v3`), comprobadas en sus páginas
+  oficiales el 24/10/2026. No se fijan por commit SHA (decisión de sencillez para el curso).
+- **Firma:** el `buildType release` de la plantilla de Flutter usa `signingConfigs.debug`
+  (comprobado en el APK local: `CN=Android Debug`). En el runner la clave de depuración se genera
+  en cada ejecución. No hay firma de producción.
+
 ## Python: local frente a contenedor
 
 - Contenedor (referencia de ejecución): `python:3.12-slim`, comprobado Python 3.12.15.

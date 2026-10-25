@@ -26,6 +26,10 @@ cd backend && .venv/Scripts/python -m pytest -q        # Windows
 cd backend && docker compose config                     # valida Compose
 ```
 
+CI (`.github/workflows/ci.yml`) repite `flutter analyze`, `flutter test` y `pytest` en GitHub. El
+workflow `release.yml` publica el APK al subir una etiqueta `v*`: crear etiquetas y publicar
+Releases lo hace solo la persona autora.
+
 Si algo falla, corrige el código; no desactives el análisis ni borres pruebas.
 
 ## Versiones (no actualizar sin acuerdo)

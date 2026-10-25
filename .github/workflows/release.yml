@@ -1,0 +1,126 @@
+# Release de Ágora Joven: al subir una etiqueta v* (por ejemplo v1.0.0) vuelve a probar backend y
+# app, compila el APK release y lo publica en una GitHub Release junto con su SHA-256.
+#
+# - El APK se compila para el EMULADOR ANDROID: API_BASE_URL=http://10.0.2.2:8010 (10.0.2.2 es el
+#   equipo anfitrión visto desde el emulador). Un teléfono físico necesita otra dirección y otra
+#   compilación (ver README).
+# - Firma: la del build "release" de la plantilla de Flutter, que usa la clave de DEPURACIÓN que
+#   genera el SDK en el propio runner. No es una firma de producción (ver README → Limitaciones).
+# - Ninguna clave de Gemini ni secreto del backend interviene: la app no los necesita.
+# - Permisos: lectura por defecto; solo el trabajo que publica tiene contents: write.
+
+name: Release APK
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Dependencias fijadas
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Pruebas
+        run: python -m pytest -q
+
+  apk:
+    name: APK y GitHub Release
+    needs: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write # crear la Release y adjuntar archivos; solo este trabajo
+    defaults:
+      run:
+        working-directory: app
+    env:
+      API_BASE_URL: http://10.0.2.2:8010
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7
+
+      - name: La etiqueta coincide con la versión del pubspec
+        run: |
+          version="$(sed -n 's/^version: *\([0-9][0-9.]*\)+.*/\1/p' pubspec.yaml)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "La etiqueta $GITHUB_REF_NAME no coincide con la versión v$version de pubspec.yaml"
+            exit 1
+          fi
+
+      - name: Instalar Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar Flutter 3.47.5
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.5'
+          cache: true
+
+      - name: Dependencias exactas del pubspec.lock
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analizar
+        run: flutter analyze
+
+      - name: Pruebas
+        run: flutter test --timeout 30s
+
+      - name: Compilar el APK release (backend del emulador)
+        run: flutter build apk --release --dart-define="API_BASE_URL=$API_BASE_URL"
+
+      - name: Nombre identificable y SHA-256
+        run: |
+          nombre="agora-joven-${GITHUB_REF_NAME}-emulador.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$nombre"
+          sha256sum "$nombre" > "$nombre.sha256"
+          cat "$nombre.sha256"
+
+      - name: Publicar la GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: Ágora Joven ${{ github.ref_name }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          files: |
+            app/agora-joven-${{ github.ref_name }}-emulador.apk
+            app/agora-joven-${{ github.ref_name }}-emulador.apk.sha256
+          body: |
+            APK para el **emulador Android**: usa el backend en `http://10.0.2.2:8010`.
+            Antes de abrirlo, levanta el backend con Docker (ver README).
+
+            - Firma: clave de depuración generada en el runner (no es una firma de producción).
+              Si ya tenías otra versión instalada, desinstálala antes.
+            - Verifica la descarga con el archivo `.sha256` adjunto.
+            - Un teléfono físico necesita otra compilación con la IP del equipo (ver README).

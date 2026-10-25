@@ -4,12 +4,11 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 
 ## Estado actual (24/10/2026)
 
-- Último commit publicado: `5df1279` (Bloque 4, en `origin/main`).
-- Bloque 5 (asistente con Gemini) **comprobado**: pruebas reales y comprobación visual del Markdown
-  en emulator-5554 por la persona autora; pruebas automáticas del agente en verde. Pendiente:
-  revisión, commit y push.
+- Último commit publicado: `20fae85` (Bloque 5, en `origin/main`).
+- Bloque 6 (CI, Release y documentación final) preparado, **sin commit ni push**. Los workflows
+  **no se han ejecutado en GitHub**; no hay etiqueta ni Release. **El proyecto no está entregado.**
 - Se mantiene el pendiente técnico conocido de Hive (ver "Bloque 4 → Revisión del fallo de disco").
-- No comenzar el Bloque 6.
+- Siguiente paso: los de "Bloque 6 → Pasos para la entrega".
 
 ## Bloques
 
@@ -20,8 +19,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 2 | App: sesión (registro, acceso, restauración, cierre) y catálogo con filtro y detalle | ✅ Commit `285f020`, publicado en `origin/main` |
 | 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ✅ Commit `317cf23`, publicado en `origin/main` |
 | 4 | Debates guardados con Hive | ✅ Commit `5df1279`, publicado en `origin/main` (con el pendiente técnico de Hive documentado) |
-| 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ✅ Comprobado (Gemini real y Markdown en emulador; pruebas automáticas en verde); pendiente de revisión, commit y push |
-| 6 | CI, workflow de Release, README final, auditoría de secretos | ⏳ |
+| 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ✅ Commit `20fae85`, publicado en `origin/main` |
+| 6 | CI, workflow de Release, README final, auditoría de secretos | Preparado y verificado en local; **workflows sin ejecutar en GitHub**; pendiente commit, push, CI, etiqueta, Release e instalación final |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -54,7 +53,11 @@ cubre el arranque y la pantalla de bienvenida.
 
 - Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`, Bloque 2 `285f020`, Bloque 3
   `317cf23`, Bloque 4 `5df1279` (publicados en `origin/main`).
-- Bloque 5: revisión, commit y push (persona autora).
+- Commit registrado: Bloque 5 `20fae85` (publicado en `origin/main`).
+- Bloque 6: commit, push, CI en GitHub, etiqueta `v1.0.0`, Release, instalación del APK y
+  validación final (persona autora).
+- Capturas: el README ya incluye 6 capturas reales de desarrollo (ver Bloque 6); ninguna es todavía
+  del APK de la Release.
 - Pendiente técnico conocido: excepción asíncrona no capturada de Hive (Bloque 4).
 - Versión de Python: local 3.11.9 (no hay 3.12 instalado) para `.venv` y pytest; el contenedor
   usa 3.12.15. Las pruebas locales no sustituyen la validación del contenedor.
@@ -418,6 +421,87 @@ ve además el aviso completo.
 
 **No comprobado manualmente:** el texto del sistema ampliado. Esa comprobación solo consta en las
 pruebas automáticas del agente (360 px con texto ×2).
+
+## Bloque 6 — CI, Release y documentación final (24/10/2026)
+
+Sin funcionalidades nuevas ni dependencias nuevas o actualizadas. Archivos nuevos:
+`.github/workflows/ci.yml` y `.github/workflows/release.yml`. Modificados: `README.md` (reescrito
+para la entrega), `docs/ARQUITECTURA.md` (sección CI y Release), `AGENTS.md` y este archivo.
+
+Acciones comprobadas en sus páginas oficiales de GitHub el 24/10/2026: `actions/checkout@v7`
+(7.0.1), `actions/setup-python@v7` (7.1.0; `cache: pip` y `cache-dependency-path` según su
+README), `actions/setup-java@v6` (6.1.0), `subosito/flutter-action@v2` (2.23.0; `flutter-version`,
+`channel`, `cache`), `softprops/action-gh-release@v3` (3.0.3; `files`, `name`, `body`,
+`generate_release_notes`, `fail_on_unmatched_files`; requiere `contents: write`). No se usan
+`upload-artifact`/`download-artifact`: no quedó confirmada la compatibilidad entre sus versiones
+actuales, así que compilación y publicación van en el mismo trabajo.
+
+### Resultados locales (ejecutados por el agente)
+
+| Comprobación | Resultado |
+|---|---|
+| `flutter analyze` | ✅ No issues found |
+| `flutter test --timeout 30s` | ✅ 114 passed |
+| `flutter pub get --enforce-lockfile` | ✅ Sin cambios en el lock |
+| Backend `pytest` en contenedor desechable `python:3.12-slim` (Python 3.12.15, dependencias de `requirements-dev.txt`, repositorio montado en solo lectura) | ✅ 102 passed |
+| Sintaxis YAML de los dos workflows (PyYAML en el mismo contenedor) | ✅ Válida; permisos: `contents: read` global, `contents: write` solo en el trabajo `apk` |
+| Comprobación etiqueta ↔ `pubspec.yaml` simulada | ✅ `v1.0.0` aceptada, `v1.0.1` rechazada |
+| `flutter build apk --release --dart-define=API_BASE_URL=http://10.0.2.2:8010` | ✅ `app-release.apk` (51,7 MB) |
+| APK local (`aapt`, `apksigner` de build-tools 36.0.0) | ✅ `ec.edu.ute.agora_joven`, versión 1.0.0 (código 1), minSdk 24, permiso `INTERNET`, etiqueta "Ágora Joven", URL `10.0.2.2:8010` incluida, firmado con `CN=Android Debug` |
+| Auditoría de archivos versionados y pendientes (sin leer `.env`) | ✅ Sin `.env`, bases de datos, APK, almacenes de claves ni `local.properties` versionados; `backend/.env` ignorado y nunca en el historial; sin patrones de claves; sin correos fuera de `example.com`; ningún archivo > 1 MB |
+
+El APK local está en `app/build/` (ignorado por Git) y **no es el de la Release**: el de GitHub se
+compilará en el runner, con otra clave de depuración y otro checksum.
+
+### Preparado pero no ejecutado
+
+- Workflows de CI y Release: **nunca se han ejecutado en GitHub**. Posibles diferencias con la
+  verificación local: runner Linux, descarga de Flutter y dependencias, Java 17 de Temurin.
+- La Release `v1.0.0`, su APK y su `.sha256` no existen todavía.
+- No se ha instalado ningún APK de Release ni se ha hecho el recorrido final con él.
+
+### Revisión de coherencia con la rúbrica
+
+| Criterio | Estado |
+|---|---|
+| Persistencia remota/colaborativa, Autenticación, Datos reales, Persistencia local, GetX, IA sin secretos, Manejo de errores, Arquitectura | Implementados y comprobados en bloques anteriores (pruebas automáticas y recorridos manuales registrados arriba) |
+| Documentación y entrega | README completo; historial con un commit por bloque; **pendiente** CI en verde, Release con APK generado por GitHub Actions y prueba del APK en emulador |
+
+Observaciones: el README incluye 6 capturas reales de desarrollo (ver "Capturas del README"). La lista de verificación del
+curso sugiere un manejador global de errores no capturados ("pantalla roja"); no está
+implementado y figura en README → Limitaciones, junto al pendiente técnico de Hive.
+
+### Capturas del README (24/10/2026)
+
+Seis capturas reales aportadas por la persona autora, tomadas en el emulador durante las pruebas de
+desarrollo (app ejecutada desde el código contra el backend Docker), **no** con el APK de la
+Release. El agente las inspeccionó antes de copiarlas (sin correos, contraseñas, tokens ni claves;
+se ven los nombres de las cuentas de prueba) y las copió sin modificar a `docs/capturas/`:
+`01-acceso.png`, `02-catalogo.png`, `03-aportes-dos-cuentas.png`, `04-guardados.png`,
+`05-asistente-contexto.png` (explicación real de Gemini con Markdown) y
+`06-asistente-sin-aportes.png`. Los originales no se tocaron.
+
+El README aclara también que desinstalar la app borra la sesión y los guardados de Hive del
+dispositivo, pero no los datos del backend.
+
+Siguen pendientes: CI en GitHub, etiqueta y Release `v1.0.0`, e instalación y recorrido con el APK
+publicado.
+
+### Pasos para la entrega (persona autora)
+
+1. Revisar el diff (`git diff`, `git status`) y hacer commit y push del Bloque 6 a `main`.
+2. En GitHub → Actions, comprobar que **CI** termina en verde (trabajos "Flutter" y "Backend").
+   Si falla, reproducir el paso en local antes de tocar nada.
+3. Con CI en verde y `version: 1.0.0+1` en `pubspec.yaml`:
+   `git tag v1.0.0` y `git push origin v1.0.0`. Comprobar que **Release APK** termina en verde.
+   Si falla por permisos, revisar Settings → Actions → General → Workflow permissions.
+4. Descargar de Releases `agora-joven-v1.0.0-emulador.apk` y su `.sha256`; comparar con
+   `Get-FileHash -Algorithm SHA256`.
+5. Levantar el backend (`docker compose up -d api`, `/health`), `adb uninstall ec.edu.ute.agora_joven`
+   si había otra versión y `adb install` del APK descargado en un emulador.
+6. Seguir el README → "Recorrido de prueba" con dos cuentas (aportes, guardados, asistente,
+   errores) y registrar aquí el resultado.
+7. Entregar en Moodle el enlace del repositorio antes del plazo.
 
 ## Decisiones registradas (2026-10-22)
 

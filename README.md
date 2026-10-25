@@ -1,40 +1,62 @@
 # Ágora Joven
 
-App Flutter para **comprender temas públicos**, **consultar debates ciudadanos** y **publicar
-preguntas, argumentos o propuestas**, con un backend propio en FastAPI.
+App Android (Flutter) para que personas jóvenes **comprendan temas públicos**, **consulten debates
+ciudadanos** y **publiquen preguntas, argumentos o propuestas**, con un backend propio (FastAPI) y
+un asistente educativo con IA (Gemini) que explica el contexto y resume perspectivas.
 
-> **Estado: Bloque 5.** Backend con autenticación JWT, catálogo de 20 debates, aportes y asistente
-> educativo con Gemini. App con sesión, catálogo con filtro y detalle, aportes compartidos, debates
-> guardados en el dispositivo (Hive) y asistente. El asistente se validó con un proveedor simulado;
-> **la integración real con Gemini está pendiente de comprobar**.
-> Ver [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
+Proyecto Final del curso *Desarrolla Aplicaciones Móviles Robustas con Flutter e IA* (CEDIA). Los
+20 debates son **material editorial de demostración** redactado para este proyecto.
 
-## Estructura
+> Estado y evidencias de cada bloque: [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 
-```
-agora-joven/
-├── app/        App Flutter (Android)
-├── backend/    API FastAPI + Docker Compose
-├── docs/       ALCANCE.md · ARQUITECTURA.md · SEGUIMIENTO.md
-├── AGENTS.md   Reglas para agentes de código (CLAUDE.md lo importa)
-└── README.md
-```
+## Capturas de pantalla
 
-## Requisitos
+Capturas reales de las **pruebas de desarrollo** de la persona autora en el emulador Android, con
+la app ejecutada desde el código contra el backend Docker. **Todavía no corresponden al APK de la
+GitHub Release.** Los nombres visibles ("Jleiva", "patu") son cuentas de prueba.
 
-| Herramienta | Versión comprobada |
+| Acceso | Catálogo | Aportes de dos cuentas |
+|---|---|---|
+| <img src="docs/capturas/01-acceso.png" alt="Pantalla de acceso sin credenciales escritas" width="230"> | <img src="docs/capturas/02-catalogo.png" alt="Catálogo de debates con filtro por categoría" width="230"> | <img src="docs/capturas/03-aportes-dos-cuentas.png" alt="Aportes de dos cuentas; Editar y Eliminar solo en el propio" width="230"> |
+
+| Guardados | Asistente: explicación del contexto | Asistente: sin aportes que resumir |
+|---|---|---|
+| <img src="docs/capturas/04-guardados.png" alt="Pantalla Guardados con un debate" width="230"> | <img src="docs/capturas/05-asistente-contexto.png" alt="Explicación real de Gemini con formato Markdown y etiqueta Generado por IA" width="230"> | <img src="docs/capturas/06-asistente-sin-aportes.png" alt="Asistente indicando que no hay aportes que resumir" width="230"> |
+
+## Qué incluye
+
+- [x] Registro, inicio y cierre de sesión con JWT del backend propio; token en almacenamiento
+      seguro; la sesión se restaura al abrir la app.
+- [x] Catálogo de 20 debates guardados en SQLite del backend, con filtro por categoría y estados de
+      carga, vacío y error.
+- [x] Aportes (pregunta, argumento o propuesta) visibles para todas las cuentas; solo su autor puede
+      editarlos o eliminarlos (403 comprobado en el servidor).
+- [x] Debates guardados con Hive, separados por cuenta, que sobreviven al cierre completo de la app.
+- [x] Asistente educativo con Gemini **a través del backend**: explicar el contexto y resumir los
+      aportes; sin claves en la app y sin publicar nada automáticamente.
+- [x] Estado compartido con GetX y arquitectura en capas.
+- [x] CI y Release del APK con GitHub Actions (`.github/workflows/`).
+
+## Requisitos y versiones comprobadas
+
+| Herramienta | Versión |
 |---|---|
 | Flutter / Dart | 3.47.5 / 3.13.4 (canal stable) |
-| Python local (solo para `.venv` y pytest) | 3.11.9 |
-| Python del contenedor | 3.12 (`python:3.12-slim`; comprobado 3.12.15) |
-| Docker / Compose | 29.8.2 / v5.6.0 (Docker Desktop debe estar en ejecución) |
-| Android | Emulador o dispositivo para ejecutar la app |
+| Docker / Docker Compose | 29.8.2 / v5.6.0 (Docker Desktop en ejecución) |
+| Python del contenedor y de CI | 3.12 (`python:3.12-slim`; comprobado 3.12.15) |
+| Python local (opcional, desarrollo sin Docker) | 3.11.9 |
+| Android | Emulador con API 24 o superior (minSdk 24) |
 
-## Backend
+## Puesta en marcha desde un clon limpio
 
-### 1. Configurar el secreto (una vez)
+### 1. Clonar
 
-El backend no arranca sin `JWT_SECRET` y no trae ningún valor por defecto. En `backend/`:
+```powershell
+git clone https://github.com/jleivalabs/agora-joven.git
+cd agora-joven
+```
+
+### 2. Configurar los secretos del backend (solo en tu equipo)
 
 ```powershell
 cd backend
@@ -42,31 +64,195 @@ Copy-Item .env.example .env
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-Abre `backend/.env` en tu editor y pega el valor generado después de `JWT_SECRET=`. No lo
-compartas ni lo subas al repositorio (`.env` está en `.gitignore`).
+Abre `backend/.env` en tu editor:
 
-### 2. Con Docker Compose (recomendado)
+- `JWT_SECRET=` → pega el valor generado. **Obligatorio**: sin él, Compose no arranca la API.
+- `GEMINI_API_KEY=` → opcional. Crea la clave en
+  [Google AI Studio](https://aistudio.google.com/app/apikey) y pégala solo aquí. Sin clave todo
+  funciona salvo el asistente, que responde "no está configurado".
+
+`backend/.env` está en `.gitignore`: no lo compartas, no lo subas y no pegues sus valores en chats
+ni capturas.
+
+### 3. Arrancar el backend con Docker y comprobar /health
 
 ```powershell
-cd backend
 docker compose up --build -d api
 docker compose ps                     # agora-joven-api debe aparecer como (healthy)
 curl.exe http://localhost:8010/health
 # {"status":"ok","servicio":"agora-joven-api"}
 ```
 
-- Puerto del host: `8010` (variable `API_PORT`), para no chocar con otros backends en `8000`.
-- La base SQLite vive en el volumen `agora-joven_agora_datos` (`/srv/data/agora.db` dentro del
-  contenedor) y sobrevive a `docker compose down` y a recrear el contenedor.
-- `docker compose down` detiene solo este proyecto. **`docker compose down -v` borra el volumen y
-  con él usuarios y datos.**
-- Si falta `JWT_SECRET`, Compose se detiene con:
-  `required variable JWT_SECRET is missing a value: Define JWT_SECRET en backend/.env`.
+- Puerto del host: `8010`. La base SQLite vive en el volumen `agora-joven_agora_datos` y sobrevive
+  a `docker compose down` y a recrear el contenedor. **`docker compose down -v` borra el volumen**.
+- Al arrancar se crean las tablas y se cargan los 20 debates (carga idempotente).
+- Documentación interactiva de la API: `http://localhost:8010/docs`.
 
-### 3. Sin Docker (Windows, PowerShell)
+### 4. Instalar el APK de la Release
 
-Entorno de desarrollo con Python 3.11 local; no reemplaza la comprobación del contenedor (3.12).
-Lee `backend/.env` y guarda la base en `backend/data/agora.db` (ignorada por Git).
+1. Descarga de [Releases](https://github.com/jleivalabs/agora-joven/releases) los archivos
+   `agora-joven-vX.Y.Z-emulador.apk` y `agora-joven-vX.Y.Z-emulador.apk.sha256`.
+2. Verifica la descarga (el valor debe coincidir con el del archivo `.sha256`):
+
+   ```powershell
+   Get-FileHash .\agora-joven-v1.0.0-emulador.apk -Algorithm SHA256
+   Get-Content .\agora-joven-v1.0.0-emulador.apk.sha256
+   ```
+
+3. Con el emulador abierto, instala (si había otra versión firmada con otra clave, desinstálala):
+
+   ```powershell
+   adb uninstall ec.edu.ute.agora_joven      # solo si ya estaba instalada
+   adb install .\agora-joven-v1.0.0-emulador.apk
+   ```
+
+   Desinstalar la app borra lo que guarda **en el dispositivo**: la sesión (token) y los debates
+   guardados con Hive. **No** borra nada del backend: cuentas, aportes y debates siguen en el
+   volumen Docker. Tras reinstalar, inicia sesión de nuevo y vuelve a guardar los debates.
+
+**Dirección del backend de ese APK:** `http://10.0.2.2:8010`. `10.0.2.2` es tu equipo visto desde el
+**emulador Android**; por eso el APK de la Release solo funciona en el emulador con el backend del
+paso 3 en marcha. Un teléfono físico necesita compilar otra vez con la IP del equipo (ver
+"Ejecutar desde el código").
+
+### 5. Ejecutar desde el código (alternativa al APK)
+
+```powershell
+cd app
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8010
+```
+
+| Entorno | `API_BASE_URL` | Notas |
+|---|---|---|
+| Emulador Android | `http://10.0.2.2:8010` (por defecto) | Permitido en `network_security_config.xml` |
+| Teléfono físico en la misma red | `http://<IP-del-PC>:8010` | Añadir esa IP a `app/android/app/src/main/res/xml/network_security_config.xml` o usar HTTPS |
+
+## Recorrido de prueba (dos cuentas)
+
+1. Abre la app → "Crear una cuenta" → registra la cuenta A → inicia sesión.
+2. Catálogo: filtra por una categoría y vuelve a "Todas". Abre un debate: contexto, perspectivas y
+   aviso editorial.
+3. **Guardados:** pulsa el marcador del detalle → vuelve al catálogo → icono "Guardados".
+   Cierra la app por completo (desde recientes o `adb shell am force-stop ec.edu.ute.agora_joven`),
+   ábrela: la sesión se restaura y el debate sigue en Guardados.
+4. **Aportes:** en el debate, "Publicar un aporte" (tipo y texto de 10 a 1000 caracteres). Edítalo.
+5. **Asistente:** "Explicar el contexto" y "Resumir perspectivas de los aportes" (requiere la clave
+   de Gemini en el backend; cada consulta es una llamada real al proveedor).
+6. Menú de cuenta → "Cerrar sesión". Registra la cuenta B e inicia sesión.
+7. Con B: Guardados está vacío; en el mismo debate ves el aporte de A **sin** Editar ni Eliminar.
+   Publica un aporte propio.
+8. Vuelve a A y pulsa "Actualizar aportes": ves los dos, el más reciente primero. Elimina el tuyo
+   (pide confirmación); el de B se conserva.
+9. Errores: con la app abierta, `docker compose stop api` y actualiza: mensaje de error con
+   "Reintentar"; `docker compose start api` y reintenta. Guardados sigue disponible sin backend.
+
+## Arquitectura
+
+```text
+app/lib/
+├── screens/       pantallas y secciones (solo interfaz)
+├── controllers/   estado compartido con GetX (sesión, debates, aportes, guardados, asistente)
+├── repositories/  reglas de acceso y conversión a modelos
+├── data/          ApiClient (Dio), TokenStorage (flutter_secure_storage), Hive
+├── models/        Usuario, Debate, Aporte, DebateGuardado, RespuestaAsistente
+└── widgets/       estados de carga/vacío/error, Markdown seguro
+
+backend/app/
+├── routers/       auth, debates, aportes, asistente
+├── repositorios/  consultas SQLAlchemy
+├── models.py      Usuario, Debate, Aporte (SQLite)
+├── security.py    Argon2id, JWT y usuario actual
+└── ia.py          cliente REST de Gemini (sin SDK)
+```
+
+Un dato viaja así: la pantalla llama a un controlador GetX; el controlador pide la operación a un
+repositorio a través de `SesionController.ejecutar` (que añade el token y descarta respuestas de
+sesiones anteriores); el repositorio usa `ApiClient` (Dio) y convierte el JSON en modelos; el
+controlador actualiza sus observables y `Obx` repinta la pantalla con el estado de carga, vacío,
+datos o error. Ninguna pantalla llama a HTTP, Hive ni al almacenamiento seguro.
+
+Detalle de capas, contrato de la API y decisiones: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+Alcance y correspondencia con la rúbrica: [docs/ALCANCE.md](docs/ALCANCE.md).
+
+## Decisiones técnicas propias
+
+- **Contador de sesión contra respuestas tardías.** Cada operación captura el número de sesión al
+  empezar y solo aplica su resultado si no cambió: una respuesta de la cuenta A nunca altera la
+  cuenta B, un 401 antiguo no cierra la sesión nueva y varios 401 simultáneos producen un solo
+  aviso. Se descartó confiar solo en cancelar peticiones, que no cubre escrituras ya enviadas.
+- **Propiedad de los aportes solo en el servidor.** El autor sale del token; el cuerpo rechaza
+  `autor_id`/`debate_id` (422) y editar o borrar lo ajeno da 403. Los botones de la app son solo
+  cortesía visual.
+- **SQLite en un volumen Docker** en lugar de PostgreSQL: un único servicio que levantar para quien
+  evalúa, suficiente para la escala del proyecto.
+- **Gemini por REST con la biblioteca estándar** en lugar del SDK: sin dependencias nuevas, tiempo
+  máximo de espera explícito y errores clasificados (429/502/503) sin respuestas de reserva.
+
+## Tecnologías
+
+| App | Versión | Uso |
+|---|---|---|
+| `get` | 4.7.3 | Estado (GetxController) y navegación |
+| `dio` | 5.11.1 | HTTP con límites de tiempo |
+| `flutter_secure_storage` | 11.2.0 | Token cifrado (Keystore de Android) |
+| `hive` / `hive_flutter` | 2.2.3 / 1.1.0 | Debates guardados por cuenta |
+| `flutter_markdown_plus` | 1.0.12 | Respuestas del asistente con formato, sin HTML, imágenes ni enlaces activos |
+
+| Backend | Versión | Uso |
+|---|---|---|
+| FastAPI / Starlette / Uvicorn | 0.142.2 / 1.7.0 / 0.54.0 | API |
+| Pydantic / pydantic-settings | 2.13.5 / 2.15.0 | Validación y configuración desde el entorno |
+| SQLAlchemy | 2.1.1 | SQLite con claves foráneas |
+| PyJWT / pwdlib[argon2] | 2.15.1 / 0.3.1 | Tokens HS256 y contraseñas Argon2id |
+| email-validator | 2.3.0 | Correo del registro |
+| pytest / httpx2 | 9.1.1 / 2.13.1 | Pruebas (solo desarrollo) |
+
+## Integración continua y Release
+
+- `.github/workflows/ci.yml` — en cada push y pull request: Flutter (`pub get --enforce-lockfile`,
+  `flutter analyze`, `flutter test`) y backend (Python 3.12, dependencias fijadas, `pytest`). Sin
+  `.env`, sin claves y sin llamadas reales a IA. Permisos de solo lectura.
+- `.github/workflows/release.yml` — al subir una etiqueta `v*`: vuelve a probar backend y app,
+  comprueba que la etiqueta coincida con la versión de `pubspec.yaml`, compila el APK release con
+  `API_BASE_URL=http://10.0.2.2:8010` y publica una GitHub Release con
+  `agora-joven-vX.Y.Z-emulador.apk` y su `.sha256`. Solo el trabajo que publica tiene permiso de
+  escritura.
+
+## Seguridad
+
+- No hay claves en el repositorio: `.env` está ignorado y solo se versiona `.env.example` con
+  valores vacíos. `JWT_SECRET` y `GEMINI_API_KEY` viven solo en `backend/.env` del equipo que
+  ejecuta el backend; ni GitHub Actions, ni la app, ni el APK los contienen.
+- Contraseñas con Argon2id; ninguna respuesta devuelve contraseña, hash ni correo de otras personas.
+- Solo el token se guarda en la app (`flutter_secure_storage`); no se registran cuerpos, tokens ni
+  la cabecera `Authorization`. Uvicorn registra método, ruta y código.
+- Al proveedor de IA no se envían nombres, correos, identificadores ni tokens; sí el texto de los
+  aportes, que puede contener lo que sus autores escribieron. El backend no registra la clave, los
+  prompts ni las respuestas.
+- `AGENTS.md` y `.claude/settings.json` guían a los agentes de código, pero no son una barrera
+  técnica absoluta ([límites](AGENTS.md#límites-conocidos-de-los-permisos)).
+
+## Limitaciones conocidas
+
+- **Firma del APK:** el build release usa la clave de **depuración** (plantilla de Flutter). En
+  GitHub Actions esa clave se genera en cada ejecución, así que cada Release está firmada con una
+  clave distinta: no se puede actualizar sobre otra versión (hay que desinstalar antes) y no sirve
+  para publicar en una tienda. No hay firma de producción configurada.
+- **APK solo para emulador:** apunta a `http://10.0.2.2:8010` por HTTP sin TLS, permitido solo para
+  hosts locales. Un teléfono físico o un backend público requieren otra compilación y HTTPS.
+- **Hive:** si la apertura de una caja falla por una ruta de almacenamiento inválida, además del
+  mensaje controlado de la app, Hive genera una excepción asíncrona no capturada (reproducido en
+  pruebas; efecto en Android no verificado). Ver `docs/SEGUIMIENTO.md` → Bloque 4.
+- **Errores no previstos:** la app no instala un manejador global de errores no capturados.
+- **Asistente:** depende de la disponibilidad, cuota y coste de Gemini; sus respuestas pueden
+  contener errores aunque se indique en la interfaz. Resume como máximo los 20 aportes más recientes.
+- Sin paginación del catálogo ni de los aportes, sin modo sin conexión (salvo la lista de
+  guardados) y sin recuperación de contraseña.
+
+## Desarrollo
+
+### Backend sin Docker (Windows, PowerShell)
 
 ```powershell
 cd backend
@@ -75,20 +261,9 @@ py -3.11 -m venv .venv
 .venv\Scripts\python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8010
 ```
 
-Usa este modo o Docker, no ambos a la vez: los dos ocupan el puerto 8010.
-
-### Catálogo de debates
-
-Los 20 debates están en `backend/app/datos/debates.json` (material editorial de demostración). Se
-cargan automáticamente al arrancar la API. Para recargarlos a mano tras editar el archivo:
-
-```powershell
-docker compose exec api python -m app.catalogo        # con Docker
-.venv\Scripts\python -m app.catalogo                  # sin Docker
-# Catálogo: 0 insertados, 0 actualizados, 20 en total.
-```
-
-La carga es idempotente: no duplica debates ni borra usuarios.
+Lee `backend/.env` y guarda la base en `backend/data/agora.db` (ignorada). No uses este modo y
+Docker a la vez: los dos ocupan el puerto 8010. Recarga manual del catálogo:
+`docker compose exec api python -m app.catalogo` (o `.venv\Scripts\python -m app.catalogo`).
 
 ### Probar la API a mano (PowerShell)
 
@@ -99,130 +274,29 @@ Invoke-RestMethod "$u/auth/registro" -Method Post -ContentType "application/json
 $login = Invoke-RestMethod "$u/auth/login" -Method Post -ContentType "application/json" `
   -Body (@{ email = $cuenta.email; password = $cuenta.password } | ConvertTo-Json)
 $h = @{ Authorization = "Bearer $($login.access_token)" }
-Invoke-RestMethod "$u/auth/me" -Headers $h
 (Invoke-RestMethod "$u/debates" -Headers $h).Count          # 20
-Invoke-RestMethod "$u/debates/categorias" -Headers $h
 Invoke-RestMethod "$u/debates"                               # sin token: error 401
-
-# Aportes
 $nuevo = @{ tipo = "pregunta"; texto = "¿Qué opinan quienes estudian de noche?" } | ConvertTo-Json
 $a = Invoke-RestMethod "$u/debates/1/aportes" -Method Post -Headers $h -ContentType "application/json" -Body $nuevo
-Invoke-RestMethod "$u/debates/1/aportes" -Headers $h          # incluye autor_nombre y es_propio
-Invoke-RestMethod "$u/aportes/$($a.id)" -Method Patch -Headers $h -ContentType "application/json" `
-  -Body (@{ tipo = "argumento" } | ConvertTo-Json)
 Invoke-RestMethod "$u/aportes/$($a.id)" -Method Delete -Headers $h   # 204
 ```
 
 Con el token de otra cuenta, `PATCH` y `DELETE` sobre ese aporte responden 403.
 
-La documentación interactiva está en `http://localhost:8010/docs`.
-
-### Asistente con Gemini (opcional)
-
-Sin clave, todo funciona salvo el asistente, que responde "no está configurado" (503).
-
-1. Crea una clave en [Google AI Studio](https://aistudio.google.com/app/apikey) con tu cuenta.
-2. Abre `backend/.env` en tu editor y escribe `GEMINI_API_KEY=` seguido de la clave. No la pegues en
-   el chat, en el código ni en otro archivo versionado. Opcional: `GEMINI_MODEL` (por defecto
-   `gemini-3.5-flash-lite`) y `GEMINI_TIMEOUT_SEGUNDOS` (por defecto 25).
-3. Aplica la configuración: `docker compose up -d --force-recreate api` (o reinicia uvicorn).
-4. En la app, abre un debate → "Asistente educativo" → "Explicar el contexto". Para "Resumir
-   perspectivas de los aportes", el debate necesita al menos un aporte.
-
-Cada consulta es una llamada al proveedor y puede contar para la cuota o la facturación de tu
-cuenta de Google.
-
-### Pruebas automáticas del backend
+### Pruebas
 
 ```powershell
-cd backend
-.venv\Scripts\python -m pytest -q
+cd backend; .venv\Scripts\python -m pytest -q     # base temporal, secreto sintético, IA simulada
+cd app; flutter analyze; flutter test               # servidor falso y almacenes simulados
 ```
-
-Usan una base SQLite temporal y un secreto sintético generado en cada ejecución; no necesitan
-`.env` ni Docker.
-
-## App
-
-Requiere el backend en marcha (sección anterior) y un emulador Android abierto.
-
-```powershell
-cd app
-flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8010
-```
-
-`API_BASE_URL` es opcional en el emulador: `http://10.0.2.2:8010` es el valor por defecto
-(10.0.2.2 es el equipo anfitrión visto desde el emulador).
-
-| Entorno | URL base | Notas |
-|---|---|---|
-| Emulador Android | `http://10.0.2.2:8010` | Permitido en `network_security_config.xml` |
-| Dispositivo físico en la misma red | `http://<IP-del-PC>:8010` | Añadir esa IP a `app/android/app/src/main/res/xml/network_security_config.xml` o usar HTTPS |
-
-Qué hace hoy la app: registro, inicio y cierre de sesión, restauración de la sesión al abrir,
-catálogo de debates con filtro por categoría, detalle con contexto y perspectivas, y aportes
-(preguntas, argumentos o propuestas) visibles para todas las cuentas; solo su autor puede
-editarlos o eliminarlos. Cada cuenta puede guardar debates en el dispositivo (marcador en el
-detalle, pantalla "Guardados" desde el catálogo); se conservan al cerrar la app o la sesión.
-
-### Paquetes de la app
-
-| Paquete | Versión | Para qué |
-|---|---|---|
-| `get` | 4.7.3 | Estado (controladores GetX) y navegación |
-| `dio` | 5.11.1 | HTTP con límites de tiempo; en pruebas se sustituye su adaptador por un servidor falso |
-| `flutter_secure_storage` | 11.2.0 | Guardar solo el token, cifrado con el Keystore de Android (minSdk 24) |
-| `hive` | 2.2.3 | Debates guardados en el dispositivo, una caja por cuenta |
-| `hive_flutter` | 1.1.0 | `Hive.initFlutter()`: ubica las cajas en el directorio de la app (trae `path_provider` 2.1.6) |
-| `flutter_markdown_plus` | 1.0.12 | Mostrar con formato el Markdown de las respuestas del asistente (sin HTML, imágenes ni enlaces activos); trae `markdown` 7.3.1 |
-
-Versiones iguales a las del proyecto del curso (ExploraEC), fijadas de forma exacta.
-
-### Configuración Android (práctica)
-
-- `INTERNET` declarado en el manifiesto principal (necesario en el APK de release).
-- HTTP sin TLS permitido **solo** hacia `10.0.2.2`, `localhost` y `127.0.0.1`
-  (`network_security_config.xml`). En producción el backend debe usar HTTPS.
-- Copia de seguridad desactivada (`allowBackup="false"` y `data_extraction_rules.xml`): la sesión
-  no se restaura en otro dispositivo, porque el token cifrado depende de una clave del Keystore.
-
-### Pruebas de la app
-
-```powershell
-cd app
-flutter analyze
-flutter test
-```
-
-Las pruebas no necesitan el backend: usan un servidor falso conectado a Dio y un almacén de token
-en memoria.
-
-## Arquitectura
-
-Pantalla (`screens/`) → controlador GetX (`controllers/`) → repositorio (`repositories/`) →
-fuente de datos (`data/`). Detalle, modelos y contrato de endpoints en
-[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
-
-## Seguridad
-
-- No hay claves en el repositorio. `.env` está ignorado; solo se versiona `.env.example`.
-- `JWT_SECRET` vive solo en `backend/.env` (o en el entorno del servidor); sin él la API no arranca.
-- Contraseñas con Argon2id; ninguna respuesta incluye la contraseña ni su hash.
-- Los registros de Uvicorn muestran método, ruta y código, nunca cabeceras ni tokens.
-- En la app, solo el token se guarda, con `flutter_secure_storage`; nunca la contraseña. La app
-  no registra cuerpos, tokens ni la cabecera `Authorization`, y no contiene claves del servidor.
-- Asistente con Gemini a través del backend propio; la clave vive únicamente en `backend/.env`
-  (`GEMINI_API_KEY`). Al proveedor no se envían nombres, correos, identificadores, credenciales ni
-  tokens; sí el texto de los aportes, que puede incluir datos que sus autores hayan escrito. El
-  backend no registra la clave, los prompts ni las respuestas.
-- `AGENTS.md` y `.claude/settings.json` guían a los agentes de código, pero no son una barrera
-  técnica absoluta; ver sus límites en [AGENTS.md](AGENTS.md#límites-conocidos-de-los-permisos).
 
 ## Créditos y licencias
 
-- Contenido de debates: material editorial de demostración redactado para este proyecto; no
-  representa posiciones oficiales ni contiene datos estadísticos o normativos.
-- Paquetes: Flutter (BSD-3), GetX `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3), `hive` y `hive_flutter` (Apache-2.0), `flutter_markdown_plus` y `markdown` (BSD-3), FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT),
-  PyJWT (MIT), pwdlib (MIT), argon2-cffi (MIT), pydantic-settings (MIT), email-validator
-  (Unlicense). Licencias comprobadas en los metadatos de los paquetes instalados.
+- Debates: material editorial de demostración redactado para este proyecto; no representa
+  posiciones oficiales ni contiene datos estadísticos o normativos.
+- Asistente: Gemini API de Google (servicio externo; requiere clave propia y sus condiciones de uso).
+- Paquetes de la app: Flutter (BSD-3), `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3),
+  `hive` y `hive_flutter` (Apache-2.0), `flutter_markdown_plus` y `markdown` (BSD-3).
+- Paquetes del backend: FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT), PyJWT (MIT), pwdlib (MIT),
+  argon2-cffi (MIT), pydantic-settings (MIT), email-validator (Unlicense).
+- Licencias comprobadas en los archivos `LICENSE` o metadatos de los paquetes instalados.

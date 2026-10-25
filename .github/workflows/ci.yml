@@ -1,0 +1,79 @@
+# CI de Ágora Joven: analiza y prueba la app Flutter y el backend en cada push y pull request.
+#
+# - No necesita .env, JWT_SECRET real ni GEMINI_API_KEY: las pruebas del backend usan una base
+#   SQLite temporal, un secreto sintético generado en cada prueba y un proveedor de IA simulado.
+# - No hace llamadas reales a Gemini ni a otros servicios externos (solo descarga dependencias).
+# - No publica nada: la publicación del APK está en release.yml.
+#
+# Versiones de las acciones comprobadas en sus páginas oficiales de GitHub el 24/10/2026.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Flutter (analyze y test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7
+
+      - name: Instalar Flutter 3.47.5 (Dart 3.13.4)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.5'
+          cache: true
+
+      - name: Dependencias exactas del pubspec.lock
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analizar
+        run: flutter analyze
+
+      - name: Pruebas
+        run: flutter test --timeout 30s
+
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7
+
+      - name: Instalar Python 3.12 (la versión de la imagen Docker)
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Dependencias fijadas
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Pruebas (base temporal, secreto sintético, IA simulada)
+        run: python -m pytest -q
