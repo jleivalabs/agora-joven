@@ -25,6 +25,21 @@ equilibrada; **nunca publica contenido automáticamente**.
 | F7 | Asistente de contexto y perspectivas | Gemini vía backend propio; usa el contexto del debate y una selección acotada de aportes; clave solo en el servidor. |
 | F8 | Calidad | GetX, arquitectura en capas, manejo de errores (401/400/422/5xx/red), pruebas, CI y Release con APK. |
 
+## Versión 1.1 (en desarrollo)
+
+La v1.0.0 (alcance anterior, publicada y validada) no cambia. La v1.1 **amplía el alcance
+original** con cuatro funciones, entregadas por bloques:
+
+| Bloque | Función | Estado |
+|---|---|---|
+| 7A | Dashboard de comunidad y participación personal como inicio de la sesión | Implementado (ver `docs/SEGUIMIENTO.md`) |
+| 7B | Creación de debates por usuarios | Siguiente entrega; no implementada |
+| — | Investigación asistida con fuentes | Prevista; no implementada |
+| — | Construcción de acuerdos | Prevista; no implementada |
+
+Mientras no se implementen, el dashboard no muestra debates creados, borradores ni métricas de
+consenso.
+
 ## Exclusiones
 
 No se implementan: mapas o geolocalización, chat en tiempo real, notificaciones, votaciones o

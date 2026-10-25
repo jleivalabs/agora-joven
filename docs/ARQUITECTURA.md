@@ -3,8 +3,8 @@
 > Estado: el backend implementa `/health`, autenticación y catálogo (Bloque 1). La app implementa
 > sesión (registro, acceso, restauración, cierre) y catálogo con detalle (Bloque 2). Aportes
 > compartidos en backend y app (Bloque 3). Debates guardados con Hive (Bloque 4). Asistente
-> educativo con Gemini vía backend (Bloque 5; validado con proveedor simulado, integración real
-> pendiente).
+> educativo con Gemini vía backend (Bloque 5). CI y Release v1.0.0 (Bloque 6). **v1.1 en
+> desarrollo:** dashboard de inicio (Bloque 7A).
 
 ## Vista general
 
@@ -30,6 +30,8 @@ Regla: una pantalla solo habla con controladores; un controlador solo con reposi
 | Pantalla (`screens/`) | Controlador GetX | Repositorio | Fuente de datos | Estado |
 |---|---|---|---|---|
 | `RaizScreen` (elige según la sesión) | `SesionController` | `AuthRepository` | `ApiClient`, `TokenStorage` | ✅ |
+| `PrincipalScreen` (navegación Inicio · Debates · Guardados) | `PrincipalController` | — | — | ✅ 7A |
+| `InicioScreen` (dashboard) | `InicioController` | `EstadisticasRepository` | `ApiClient` | ✅ 7A |
 | `LoginScreen`, `RegistroScreen` | `SesionController` | `AuthRepository` | `ApiClient`, `TokenStorage` | ✅ |
 | `DebatesScreen` (lista + filtro) | `DebatesController` | `DebatesRepository` | `ApiClient` | ✅ |
 | `DetalleDebateScreen` | `DetalleDebateController` (uno por debate) | `DebatesRepository` | `ApiClient` | ✅ |
@@ -192,6 +194,8 @@ existe, la respuesta es 401 `Sesión no válida o caducada. Inicia sesión de nu
 | `POST /debates/{id}/aportes` | ✅ | Crear `{tipo, texto}`; cualquier otro campo (`autor_id`, `debate_id`…) → 422 | 201 aporte · 401 · 404 debate · 422 |
 | `PATCH /aportes/{id}` | ✅ | Editar el propio `{tipo?, texto?}`: al menos uno, sin `null`, sin campos extra | 200 · 401 · **403 si no es el autor** · 404 · 422 |
 | `DELETE /aportes/{id}` | ✅ | Eliminar el propio | 204 sin cuerpo · 401 · **403** · 404 |
+| `GET /estadisticas/comunidad` | ✅ 7A | Cifras públicas agregadas (ver "Dashboard") | 200 · 401 |
+| `GET /estadisticas/mias` | ✅ 7A | Participación de la cuenta **del token**; no admite identificadores | 200 · 401 |
 | `POST /asistente/debates/{id}` | ✅ | `{accion: "contexto" \| "perspectivas"}` → `{debate_id, accion, estado, texto, aviso, aportes_usados, aportes_totales, parcial, truncado}`; `estado` = `generado` o `sin_aportes` | 200 · 401 · 404 · 422 · 429 límite del proveedor · 502 respuesta vacía o bloqueada · 503 no configurado o no disponible |
 
 Valores de `categoria`: `educacion`, `ambiente`, `movilidad`, `empleo`, `salud`, `tecnologia`,
@@ -288,6 +292,50 @@ sustituidas por un texto (el paquete usaría `Image.network` por defecto), enlac
 pulsar y HTML no interpretado (un bloque HTML se omite). `AsistenteController`
 usa `SesionController.ejecutar`, numera las consultas y deja de aplicar respuestas al cerrarse la
 pantalla. La espera de la app para esta petición es de 40 s (el backend espera hasta 25 s a Gemini).
+
+## Dashboard (Bloque 7A, v1.1)
+
+**Navegación.** Tras iniciar sesión, `PrincipalScreen` muestra una barra inferior con Inicio,
+Debates y Guardados (`IndexedStack`: cada pestaña conserva su estado). El menú de cuenta y el
+cierre de sesión están en la barra superior de las tres pestañas. Cerrar sesión elimina
+`PrincipalController`, `InicioController` y los controladores de las pestañas.
+
+**Qué cuenta cada indicador** (calculado en SQL por `backend/app/repositorios/estadisticas.py`;
+la app no descarga aportes para contar):
+
+| Indicador | Definición |
+|---|---|
+| Debates publicados | Filas de `debates` (los 20 del catálogo editorial). |
+| Por categoría | Debates **publicados del catálogo actual** de cada una de las 8 categorías, incluidas las que tienen 0. En 7A no existe estado abierto/cerrado: cuentan todos los debates de la tabla. El servidor las envía en orden fijo; el dashboard las muestra de más a menos debates y, en empate, por nombre visible en orden alfabético español (sin tildes ni mayúsculas, ñ tras n). |
+| Aportes | Filas de `aportes` existentes (los eliminados no cuentan). |
+| Participantes | Cuentas **distintas** con al menos un aporte existente. No es el número de cuentas registradas. |
+| Debates sin aportes | Total, y los 5 primeros en el orden del catálogo (id ascendente). |
+| Actividad reciente | Hasta 5 debates con aportes, ordenados por la fecha de **creación** de su aporte más reciente (desc) y, a igualdad, por id de debate (desc). Las ediciones no cuentan como actividad. |
+| Mis aportes | Aportes existentes de la cuenta del token, por tipo (pregunta, argumento, propuesta). |
+| Debates en los que participé | Debates **distintos** con al menos un aporte de la cuenta. |
+| Mis aportes recientes | Hasta 5, por fecha de creación (desc) e id (desc), con el debate al que pertenecen. |
+| Mis guardados | Número de debates guardados en el dispositivo (repositorio Hive existente; no viene del servidor). |
+
+**Privacidad.** `/estadisticas/comunidad` solo devuelve cifras y títulos de debates: ni nombres,
+ni correos, ni identificadores de cuentas. `/estadisticas/mias` usa exclusivamente el usuario del
+JWT y no acepta parámetros de usuario.
+
+**Estado.** `InicioController` carga las dos secciones por separado, cada una con carga, error con
+"Reintentar" y datos; un fallo nunca se muestra como cero. Usa `SesionController.ejecutar`,
+numera sus cargas y deja de aplicar respuestas al cerrarse. Se actualiza con el botón "Actualizar
+cifras", deslizando hacia abajo o automáticamente cuando `ActividadAportes` avisa que el servidor
+confirmó publicar, editar o eliminar un aporte.
+
+**Interfaz.** Las cifras usan un componente compartido (`lib/widgets/tarjetas_estadistica.dart`):
+`TarjetaEstadistica` (icono, cifra, título y explicación alineados arriba, sin recortes ni
+tipografía reducida) dentro de `RejillaEstadisticas`, que da a todas las tarjetas de un grupo el
+mismo ancho y la altura de la más alta: "La comunidad" forma una cuadrícula 2×2 y "Mi
+participación" dos tarjetas iguales. Pasa a una columna si cada columna quedaría por debajo de
+140 px escalados con el tamaño de texto (hasta ×1,6), y la altura crece con el texto ampliado;
+distribución por categoría con texto, cantidad y una barra proporcional; cada categoría
+abre el catálogo filtrado, cada debate abre su detalle, "Debates publicados" y "Explorar debates"
+abren el catálogo y "Mis guardados" la pestaña Guardados. Las cifras tienen etiquetas semánticas
+("Aportes: 5. Preguntas, argumentos y propuestas"); la información nunca depende solo del color.
 
 ## Persistencia
 

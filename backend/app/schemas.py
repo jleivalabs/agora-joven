@@ -154,3 +154,59 @@ class AsistenteSalida(BaseModel):
     aportes_totales: int
     parcial: bool = Field(description="True si el resumen usó solo parte de los aportes.")
     truncado: bool = Field(description="True si la respuesta alcanzó el límite de longitud.")
+
+
+class DebateBreve(BaseModel):
+    """Identificación mínima de un debate para listados del dashboard."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    titulo: str
+    categoria: Categoria
+
+
+class DebateConActividad(BaseModel):
+    debate: DebateBreve
+    aportes: int
+    ultimo_aporte_en: datetime
+
+
+class DebatesSinAportes(BaseModel):
+    total: int
+    debates: list[DebateBreve]
+
+
+class EstadisticasComunidad(BaseModel):
+    """Cifras públicas agregadas. No contiene identidades, correos ni nombres."""
+
+    total_debates: int
+    por_categoria: list[CategoriaSalida]
+    total_aportes: int
+    participantes: int = Field(description="Cuentas distintas con al menos un aporte.")
+    sin_aportes: DebatesSinAportes
+    actividad_reciente: list[DebateConActividad]
+
+
+class AportesPorTipo(BaseModel):
+    pregunta: int
+    argumento: int
+    propuesta: int
+
+
+class MiAporteReciente(BaseModel):
+    id: int
+    tipo: TipoAporte
+    texto: str
+    creado_en: datetime
+    editado_en: datetime | None
+    debate: DebateBreve
+
+
+class EstadisticasPersonales(BaseModel):
+    """Participación de la cuenta del token. No acepta identificadores de otras cuentas."""
+
+    total_aportes: int
+    por_tipo: AportesPorTipo
+    debates_participados: int
+    aportes_recientes: list[MiAporteReciente]

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+import 'helpers/navegacion.dart';
 import 'helpers/servidor_falso.dart';
 
 const textoValido = 'Propongo horarios acordados entre estudiantes.';
@@ -35,6 +36,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await irAPestana(tester, 'Debates');
     await tester.tap(find.text('Debate sintético 1'));
     if (esperar) {
       await tester.pumpAndSettle();
@@ -119,7 +121,9 @@ void main() {
     expect(find.text('Texto revisado del argumento.'), findsOneWidget);
     expect(find.text('ARGUMENTO'), findsOneWidget);
     expect(find.text('Editado'), findsOneWidget);
-    expect(ServidorFalso.cuerpo(servidor.peticiones.last), {
+    // Tras editar, el dashboard recarga sus cifras: se busca la última petición PATCH.
+    final patch = servidor.peticiones.lastWhere((p) => p.method == 'PATCH');
+    expect(ServidorFalso.cuerpo(patch), {
       'texto': 'Texto revisado del argumento.',
     });
   });

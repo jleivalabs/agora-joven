@@ -33,7 +33,10 @@ class SeccionAsistente extends StatelessWidget {
                     color: AppColors.acento,
                   ),
                   const SizedBox(width: AppSpacing.s),
-                  Text('Asistente educativo', style: texto.titleLarge),
+                  // Flexible: en pantallas estrechas o con texto ampliado, el título se ajusta.
+                  Flexible(
+                    child: Text('Asistente educativo', style: texto.titleLarge),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),

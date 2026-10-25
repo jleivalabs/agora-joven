@@ -10,6 +10,10 @@ Proyecto Final del curso *Desarrolla Aplicaciones Móviles Robustas con Flutter 
 > **Versión publicada: [v1.0.0](https://github.com/jleivalabs/agora-joven/releases/tag/v1.0.0)** (APK para el emulador Android + SHA-256), generada por
 > GitHub Actions desde el commit `1ce2f37` y validada por la persona autora en el emulador.
 > Estado y evidencias de cada bloque: [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
+>
+> **v1.1 en desarrollo en `main`** (sin publicar): dashboard de inicio (Bloque 7A). Las
+> instrucciones de instalación de abajo corresponden al APK publicado **v1.0.0**, que no incluye
+> el dashboard. Ver [Versión 1.1](#versión-11-en-desarrollo).
 
 ## Capturas de pantalla
 
@@ -252,6 +256,24 @@ Alcance y correspondencia con la rúbrica: [docs/ALCANCE.md](docs/ALCANCE.md).
   contener errores aunque se indique en la interfaz. Resume como máximo los 20 aportes más recientes.
 - Sin paginación del catálogo ni de los aportes, sin modo sin conexión (salvo la lista de
   guardados) y sin recuperación de contraseña.
+
+## Versión 1.1 (en desarrollo)
+
+Cambios en `main` posteriores a la v1.0.0, **sin Release publicada**. Para probarlos hay que
+ejecutar la app desde el código (`flutter run`, sección 5) con el backend actualizado
+(`docker compose up --build -d api`).
+
+- **Bloque 7A — dashboard de inicio.** Tras iniciar sesión, la app abre "Inicio", con navegación
+  inferior entre Inicio, Debates y Guardados:
+  - *La comunidad*: debates publicados, distribución por categoría (abre el catálogo filtrado),
+    aportes, participantes (cuentas con al menos un aporte), debates sin aportes y actividad
+    reciente.
+  - *Mi participación*: mis aportes por tipo, debates en los que participé, mis aportes recientes
+    y acceso a Mis guardados.
+  - Cifras calculadas en el servidor (`GET /estadisticas/comunidad` y `/estadisticas/mias`);
+    definiciones en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#dashboard-bloque-7a-v11).
+- Próximo: Bloque 7B (creación de debates por usuarios). Más adelante: investigación asistida con
+  fuentes y construcción de acuerdos. Alcance en [docs/ALCANCE.md](docs/ALCANCE.md).
 
 ## Desarrollo
 

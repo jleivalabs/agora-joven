@@ -4,6 +4,7 @@ import '../data/api_exception.dart';
 import '../models/aporte.dart';
 import '../repositories/aportes_repository.dart';
 import '../utils/mensajes_error.dart';
+import 'actividad_aportes.dart';
 import 'debates_controller.dart';
 import 'sesion_controller.dart';
 
@@ -12,11 +13,19 @@ import 'sesion_controller.dart';
 /// Toda operación pasa por [SesionController.ejecutar] (contador de sesión y 401). Además,
 /// si la pantalla se cierra, [_activo] impide aplicar respuestas que lleguen después.
 class AportesController extends GetxController {
-  AportesController(this._repositorio, this._sesion, this.debateId);
+  AportesController(
+    this._repositorio,
+    this._sesion,
+    this.debateId, {
+    this.actividad,
+  });
 
   final AportesRepository _repositorio;
   final SesionController _sesion;
   final int debateId;
+
+  /// Avisa al dashboard cuando el servidor confirma un cambio de aportes.
+  final ActividadAportes? actividad;
 
   final estado = EstadoCarga.cargando.obs;
   final aportes = <Aporte>[].obs;
@@ -129,6 +138,7 @@ class AportesController extends GetxController {
       );
       if (!_activo) return null;
       _quitar(aporte.id);
+      actividad?.avisar();
       return 'Aporte eliminado.';
     } on SesionObsoleta {
       return null;
@@ -137,6 +147,7 @@ class AportesController extends GetxController {
       if (e.tipo == TipoError.noEncontrado) {
         // El servidor confirma que ya no existe: se retira de la lista.
         _quitar(aporte.id);
+        actividad?.avisar();
         return 'Este aporte ya no existía.';
       }
       return switch (e.tipo) {
@@ -164,6 +175,7 @@ class AportesController extends GetxController {
       final aporte = await _sesion.ejecutar(operacion);
       if (!_activo) return false;
       _colocar(aporte);
+      actividad?.avisar();
       return true;
     } on SesionObsoleta {
       return false;

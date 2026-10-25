@@ -30,6 +30,7 @@ class ServidorFalso implements HttpClientAdapter {
     _rutasPorDefecto();
     _rutasDeAportes();
     _rutaDelAsistente();
+    _rutasDeEstadisticas();
   }
 
   final _rutas = <String, Manejador>{};
@@ -326,6 +327,93 @@ class ServidorFalso implements HttpClientAdapter {
         'aportes_totales': accion == 'perspectivas' ? total : 0,
         'parcial': usados < (accion == 'perspectivas' ? total : 0),
         'truncado': false,
+      });
+    });
+  }
+
+  /// Estadísticas calculadas a partir de los datos del servidor falso (mismo contrato).
+  void _rutasDeEstadisticas() {
+    Map<String, Object> breve(Map<String, Object?> d) => {
+      'id': d['id']!,
+      'titulo': d['titulo']!,
+      'categoria': d['categoria']!,
+    };
+    Map<String, Object?> debateDe(Object? id) =>
+        debatesFalsos.firstWhere((d) => d['id'] == id);
+
+    cuando('GET /estadisticas/comunidad', (p) {
+      if (usuarioDelToken(p) == null) return _noAutorizado;
+      final conAportes = aportes.map((a) => a['debate_id']).toSet();
+      final sin = [
+        for (final d in debatesFalsos)
+          if (!conAportes.contains(d['id'])) d,
+      ];
+      final actividad =
+          [
+            for (final id in conAportes)
+              {
+                'debate': breve(debateDe(id)),
+                'aportes': aportes.where((a) => a['debate_id'] == id).length,
+                'ultimo_aporte_en':
+                    (aportes
+                            .where((a) => a['debate_id'] == id)
+                            .map((a) => a['creado_en'] as String)
+                            .toList()
+                          ..sort())
+                        .last,
+              },
+          ]..sort(
+            (a, b) => (b['ultimo_aporte_en'] as String).compareTo(
+              a['ultimo_aporte_en'] as String,
+            ),
+          );
+      return RespuestaFalsa(200, {
+        'total_debates': debatesFalsos.length,
+        'por_categoria': [
+          for (final c in categoriasFalsas)
+            {
+              'categoria': c.$1,
+              'etiqueta': c.$2,
+              'total': debatesFalsos
+                  .where((d) => d['categoria'] == c.$1)
+                  .length,
+            },
+        ],
+        'total_aportes': aportes.length,
+        'participantes': aportes.map((a) => a['autor_id']).toSet().length,
+        'sin_aportes': {
+          'total': sin.length,
+          'debates': [for (final d in sin.take(5)) breve(d)],
+        },
+        'actividad_reciente': actividad.take(5).toList(),
+      });
+    });
+
+    cuando('GET /estadisticas/mias', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final mios = aportes.where((a) => a['autor_id'] == usuario).toList()
+        ..sort((a, b) => (b['id'] as int).compareTo(a['id'] as int));
+      int contar(String tipo) => mios.where((a) => a['tipo'] == tipo).length;
+      return RespuestaFalsa(200, {
+        'total_aportes': mios.length,
+        'por_tipo': {
+          'pregunta': contar('pregunta'),
+          'argumento': contar('argumento'),
+          'propuesta': contar('propuesta'),
+        },
+        'debates_participados': mios.map((a) => a['debate_id']).toSet().length,
+        'aportes_recientes': [
+          for (final a in mios.take(5))
+            {
+              'id': a['id'],
+              'tipo': a['tipo'],
+              'texto': a['texto'],
+              'creado_en': a['creado_en'],
+              'editado_en': a['editado_en'],
+              'debate': breve(debateDe(a['debate_id'])),
+            },
+        ],
       });
     });
   }

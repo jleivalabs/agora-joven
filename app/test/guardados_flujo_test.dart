@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+import 'helpers/navegacion.dart';
 import 'helpers/servidor_falso.dart';
 
 /// Flujo visual de guardados con la app completa, servidor falso y almacenes simulados.
@@ -28,12 +29,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    if (find.byType(NavigationBar).evaluate().isNotEmpty) {
+      await irAPestana(tester, 'Debates');
+    }
   }
 
-  Future<void> abrirGuardados(WidgetTester tester) async {
-    await tester.tap(find.byTooltip('Guardados'));
-    await tester.pumpAndSettle();
-  }
+  Future<void> abrirGuardados(WidgetTester tester) =>
+      irAPestana(tester, 'Guardados');
 
   testWidgets(
     'guardar desde el detalle, verlo en Guardados, abrirlo y quitarlo',
@@ -44,8 +46,7 @@ void main() {
         find.textContaining('Aún no has guardado debates'),
         findsOneWidget,
       );
-      await tester.pageBack();
-      await tester.pumpAndSettle();
+      await irAPestana(tester, 'Debates');
 
       await tester.tap(find.text('Debate sintético 1'));
       await tester.pumpAndSettle();

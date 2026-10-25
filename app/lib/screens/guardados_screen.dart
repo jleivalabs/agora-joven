@@ -6,12 +6,16 @@ import '../controllers/guardados_controller.dart';
 import '../models/debate_guardado.dart';
 import '../theme/app_theme.dart';
 import '../widgets/estados.dart';
+import '../widgets/menu_cuenta.dart';
 import 'detalle_debate_screen.dart';
 
 /// Debates guardados en este dispositivo para la cuenta activa. Se leen localmente, así que la
 /// lista está disponible aunque el backend falle; abrir un debate sigue pidiendo su detalle.
 class GuardadosScreen extends StatefulWidget {
-  const GuardadosScreen({super.key});
+  const GuardadosScreen({super.key, this.onIrAlCatalogo});
+
+  /// Acción de "Ir al catálogo". Como pestaña cambia de pestaña; por defecto vuelve atrás.
+  final VoidCallback? onIrAlCatalogo;
 
   @override
   State<GuardadosScreen> createState() => _GuardadosScreenState();
@@ -26,6 +30,11 @@ class _GuardadosScreenState extends State<GuardadosScreen> {
     _guardados.cargar();
   }
 
+  void _irAlCatalogo() {
+    final accion = widget.onIrAlCatalogo;
+    accion != null ? accion() : Get.back<void>();
+  }
+
   Future<void> _quitar(DebateGuardado debate) async {
     final mensaje = await _guardados.quitar(debate.id);
     if (mensaje != null && mounted) {
@@ -38,7 +47,10 @@ class _GuardadosScreenState extends State<GuardadosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Guardados')),
+      appBar: AppBar(
+        title: const Text('Guardados'),
+        actions: const [MenuCuenta()],
+      ),
       body: Obx(() {
         switch (_guardados.estado.value) {
           case EstadoCarga.cargando:
@@ -50,7 +62,7 @@ class _GuardadosScreenState extends State<GuardadosScreen> {
                   'No se pudieron leer tus guardados.',
               onReintentar: _guardados.cargar,
               textoSecundario: 'Volver al catálogo',
-              onSecundario: () => Get.back<void>(),
+              onSecundario: _irAlCatalogo,
             );
           case EstadoCarga.vacio:
             return EstadoVacio(
@@ -58,7 +70,7 @@ class _GuardadosScreenState extends State<GuardadosScreen> {
                   'Aún no has guardado debates. Abre uno del catálogo y pulsa '
                   'el marcador para guardarlo aquí.',
               textoAccion: 'Ir al catálogo',
-              onAccion: () => Get.back<void>(),
+              onAccion: _irAlCatalogo,
             );
           case EstadoCarga.listo:
             return ListView.separated(

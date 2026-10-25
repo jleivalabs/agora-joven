@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+import 'helpers/navegacion.dart';
 import 'helpers/servidor_falso.dart';
 
 /// Pruebas de flujo con la app completa, el ApiClient real, un servidor falso y un almacén
@@ -28,6 +29,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // Con sesión, la app abre en Inicio; estas pruebas son del catálogo.
+    if (find.byType(NavigationBar).evaluate().isNotEmpty) {
+      await irAPestana(tester, 'Debates');
+    }
   }
 
   /// Desplaza la fila horizontal de categorías hasta que el chip sea visible.
@@ -98,7 +103,10 @@ void main() {
     await abrir(tester);
     await entrar(tester);
 
-    expect(find.text('Debates'), findsOneWidget);
+    // La sesión empieza en Inicio, con la navegación principal.
+    expect(find.text('La comunidad'), findsOneWidget);
+    expect(find.text('Hola, Ana'), findsOneWidget);
+    await irAPestana(tester, 'Debates');
     expect(find.text('Hola, Ana'), findsOneWidget);
     expect(find.text('Debate sintético 1'), findsOneWidget);
     expect(almacen.token, 'token-ana');

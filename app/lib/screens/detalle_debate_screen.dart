@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../controllers/actividad_aportes.dart';
 import '../controllers/aportes_controller.dart';
 import '../controllers/asistente_controller.dart';
 import '../controllers/debates_controller.dart';
@@ -44,7 +45,14 @@ class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
       tag: _etiqueta,
     );
     _aportes = Get.put(
-      AportesController(Get.find(), Get.find(), widget.debateId),
+      AportesController(
+        Get.find(),
+        Get.find(),
+        widget.debateId,
+        actividad: Get.isRegistered<ActividadAportes>()
+            ? Get.find<ActividadAportes>()
+            : null,
+      ),
       tag: _etiqueta,
     );
     _asistente = Get.put(

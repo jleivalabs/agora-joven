@@ -6,11 +6,11 @@ import '../controllers/sesion_controller.dart';
 import '../models/debate.dart';
 import '../theme/app_theme.dart';
 import '../widgets/estados.dart';
+import '../widgets/menu_cuenta.dart';
 import 'detalle_debate_screen.dart';
-import 'guardados_screen.dart';
 
-/// Catálogo de debates. Crea su controlador al aparecer y lo elimina al desaparecer
-/// (por ejemplo al cerrar sesión), de modo que no quedan datos del usuario anterior.
+/// Catálogo de debates (pestaña "Debates"). Crea su controlador al aparecer y lo elimina al
+/// desaparecer (por ejemplo al cerrar sesión), de modo que no quedan datos del usuario anterior.
 class DebatesScreen extends StatefulWidget {
   const DebatesScreen({super.key});
 
@@ -39,14 +39,7 @@ class _DebatesScreenState extends State<DebatesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Debates'),
-        actions: [
-          IconButton(
-            tooltip: 'Guardados',
-            icon: const Icon(Icons.bookmarks_outlined),
-            onPressed: () => Get.to<void>(() => const GuardadosScreen()),
-          ),
-          _MenuCuenta(sesion: _sesion),
-        ],
+        actions: const [MenuCuenta()],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -102,43 +95,6 @@ class _DebatesScreenState extends State<DebatesScreen> {
           ),
         );
     }
-  }
-}
-
-class _MenuCuenta extends StatelessWidget {
-  const _MenuCuenta({required this.sesion});
-
-  final SesionController sesion;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: 'Cuenta y cierre de sesión',
-      icon: const Icon(Icons.account_circle_outlined),
-      onSelected: (opcion) {
-        if (opcion == 'salir') sesion.cerrarSesion();
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem<String>(
-          enabled: false,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.person_outline),
-            title: Text(sesion.usuario.value?.nombre ?? ''),
-            subtitle: Text(sesion.usuario.value?.email ?? ''),
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'salir',
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.logout),
-            title: Text('Cerrar sesión'),
-          ),
-        ),
-      ],
-    );
   }
 }
 

@@ -12,6 +12,10 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
   pendiente técnico de Hive.
 - **Solo queda entregar el enlace del repositorio en Moodle** (persona autora). No está
   registrado como realizado.
+- **v1.1 en desarrollo** sobre `c79c9e3`: **Bloque 7A (dashboard) comprobado** (pruebas
+  automáticas del agente; recorrido funcional y revisión visual de los ajustes por la persona
+  autora). Pendiente: **commit y push**. La etiqueta `v1.0.0` y sus archivos publicados no se han
+  tocado. 7B no ha empezado.
 
 ## Bloques
 
@@ -24,6 +28,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 4 | Debates guardados con Hive | ✅ Commit `5df1279`, publicado en `origin/main` (con el pendiente técnico de Hive documentado) |
 | 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ✅ Commit `20fae85`, publicado en `origin/main` |
 | 6 | CI, workflow de Release, README final, auditoría de secretos | ✅ Commit `1ce2f37`; CI en verde; Release `v1.0.0` publicada y validada en emulador (persona autora) |
+| 7A (v1.1) | Dashboard de comunidad y participación personal; navegación Inicio · Debates · Guardados | ✅ Comprobado (pruebas automáticas, recorrido funcional y revisión visual); pendiente de commit y push |
+| 7B (v1.1) | Creación de debates por usuarios | ⏳ Siguiente entrega |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -532,6 +538,136 @@ global de errores y dependencia de Gemini.
 6. ~~Recorrido final con dos cuentas~~ — hecho (persona autora).
 7. **Entregar en Moodle el enlace del repositorio** (https://github.com/jleivalabs/agora-joven)
    antes del lunes 26/10/2026 a las 08:00 — **pendiente**.
+
+## Bloque 7A — dashboard de comunidad y participación (v1.1)
+
+Punto de partida comprobado: `main` = `origin/main` = `c79c9e3`, árbol limpio, `v1.0.0` → `1ce2f37`.
+Sin dependencias nuevas y sin cambios en el esquema de la base.
+
+**Backend.** Nuevos `app/repositorios/estadisticas.py` (consultas agregadas con `COUNT`,
+`COUNT(DISTINCT)`, `GROUP BY` y `MAX`) y `app/routers/estadisticas.py` con
+`GET /estadisticas/comunidad` y `GET /estadisticas/mias` (ambos con JWT). Esquemas en
+`schemas.py`; versión de la API `1.1.0-dev`. Definiciones de cada indicador en
+`docs/ARQUITECTURA.md → Dashboard`.
+
+**App.** Nuevos `PrincipalScreen` (navegación inferior), `InicioScreen`, `InicioController`,
+`PrincipalController`, `ActividadAportes`, `EstadisticasRepository`, `models/estadisticas.dart`,
+`widgets/menu_cuenta.dart` y `utils/formato.dart`. `DebatesScreen` y `GuardadosScreen` pasan a ser
+pestañas (el atajo de Guardados del catálogo se sustituye por la barra inferior);
+`AportesController` avisa al dashboard tras cambios confirmados.
+
+### Pruebas automáticas (ejecutadas por el agente)
+
+| Suite | Resultado |
+|---|---|
+| Backend `pytest -q` | **115 passed** (102 anteriores + 13 de `test_estadisticas.py`) |
+| `flutter analyze` | **No issues found** |
+| `flutter test --timeout 30s` | **133 passed** (114 anteriores, adaptadas a la nueva navegación, + 8 de `inicio_controller_test.dart` + 11 de `inicio_flujo_test.dart`) |
+
+Backend: 401 sin token o con token inválido; `/mias` ignora identificadores en la consulta;
+respuestas sin correos, nombres, `autor` ni tokens; base sin aportes; recuentos exactos con tres
+cuentas (una sin aportes): 6 aportes, 2 participantes, 17 debates sin aportes; una cuenta con tres
+aportes en un debate cuenta una vez como participante y una vez en sus debates participados;
+separación de las cifras de cada cuenta; bajada de cifras al eliminar; orden y límite de actividad
+reciente, de debates sin aportes y de mis aportes recientes, con desempate por id.
+
+Flutter: carga de ambas secciones; la consulta personal sin identificadores; error sin ceros y
+reintento por sección; un fallo al recargar no deja cifras antiguas; actualización tras un cambio
+de aportes; respuestas tardías de una sesión anterior, tras cerrar la pantalla o superadas por
+otra carga. Flujos con widgets: navegación principal y menú de cuenta; cifras exactas;
+estado sin aportes con "Explorar debates"; categoría → catálogo filtrado; actividad y mis aportes →
+detalle; Mis guardados → pestaña; error sin ceros con Reintentar; publicar un aporte actualiza
+Inicio; actualización manual; sin desbordamientos a 320 px y con texto ×2.
+
+**Errores reales encontrados y corregidos por las pruebas:**
+
+- `Get.find()` sin tipo explícito buscaba `ActividadAportes?` y la pantalla principal fallaba al
+  construirse; se indica el tipo.
+- El dashboard no se repintaba si una recarga traía cifras nuevas con el mismo estado (los datos se
+  leían fuera del `Obx`); ahora se leen dentro.
+- El encabezado "Asistente educativo" del detalle (Bloque 5) desbordaba en pantallas estrechas;
+  el título es ahora flexible.
+
+Las pruebas existentes que entraban directamente al catálogo ahora pasan antes por la pestaña
+Debates (`test/helpers/navegacion.dart`); una prueba de aportes busca la última petición `PATCH`
+porque el dashboard recarga sus cifras después.
+
+### Docker (agente)
+
+`docker compose up --build -d api` → *healthy*, versión `1.1.0-dev`. Recuento antes y después
+(sin leer contenido): 3 usuarios, 20 debates, 4 aportes. `/health` 200; las dos rutas de
+estadísticas responden 401 sin token. No se crearon cuentas ni aportes en el volumen real; no se
+leyó `.env` ni se llamó a Gemini.
+
+### Recorrido manual en emulator-5554 (persona autora, no el agente)
+
+Realizado con la app ejecutada desde el código contra el backend actualizado (no con el APK
+v1.0.0). **Confirmación de la persona autora:** pruebas funcionales satisfactorias, en concreto:
+
+- Navegación por categorías y detalles desde el dashboard.
+- Publicación y eliminación de un aporte con actualización de las cifras.
+- Separación de "Mi participación" entre cuentas.
+- El resto del recorrido propuesto (navegación principal, menú de cuenta, Mis guardados, errores
+  con Reintentar, texto ampliado y cierre de sesión con Atrás) también fue satisfactorio.
+
+**Observado en las capturas aportadas** (no publicadas en el repositorio):
+
+- "Aportes": 4 → 5 → 4 (antes de publicar, tras publicar y tras eliminar).
+- "Debates sin aportes": 17 → 16 → 17.
+- "Participantes" permanece en 2.
+- Acceso con las cuentas Jleiva y patu, cada una con sus aportes recientes.
+
+### Ajustes de presentación tras el recorrido (agente)
+
+1. **Tarjetas simétricas.** Componente compartido `TarjetaEstadistica` + `RejillaEstadisticas`
+   (`lib/widgets/tarjetas_estadistica.dart`), usado por las dos secciones: igual ancho y altura
+   dentro de cada grupo (2×2 en "La comunidad", dos iguales en "Mi participación"), icono,
+   cifra, título y explicación alineados; todas las tarjetas llevan explicación ("En el catálogo
+   actual", "Preguntas, argumentos y propuestas", "Con al menos un aporte tuyo"…). Sin recortes
+   ni tipografía reducida: la altura crece con el texto y pasa a una columna cuando no cabe.
+2. **Orden por categoría.** De más a menos debates; en empate, por nombre visible en orden
+   alfabético español. Se mantienen cantidad, barra y navegación al catálogo filtrado. En 7A la
+   cifra cuenta los debates publicados del catálogo actual (no existe estado abierto/cerrado; se
+   revisará en 7B). Con el catálogo actual: Ambiente, Educación, Movilidad y Tecnología (3);
+   Cultura, Empleo, Participación y Salud (2).
+
+Sin cambios en backend, esquema ni dependencias; no se repitieron las pruebas del backend.
+
+| Verificación (agente) | Resultado |
+|---|---|
+| `flutter analyze` | ✅ No issues found |
+| `flutter test --timeout 30s` | ✅ **143 passed** (133 + 5 de `tarjetas_estadistica_test.dart` + 3 de `orden_categorias_test.dart` + 2 en `inicio_flujo_test.dart`) |
+
+Cubren: 2×2 con igual ancho y altura y separación uniforme aunque una explicación sea más larga;
+textos sin `maxLines` ni recorte; una columna a 280 px; texto ×2 que aumenta la altura sin
+desbordar; tarjeta pulsable con etiqueta accesible; orden alfabético español (tildes, mayúsculas,
+ñ); orden exacto con los datos actuales del catálogo; cantidades distintas y empates; orden en el
+dashboard (Ambiente 7, Movilidad 7, Educación 6, Cultura 0 en el servidor falso); tarjetas
+simétricas en ambos grupos del dashboard.
+
+### Revisión visual de los ajustes en emulator-5554 (persona autora, no el agente)
+
+**Confirmación de la persona autora:** todas las comprobaciones finales de 7A fueron
+satisfactorias.
+
+**Observado en las capturas aportadas** (no publicadas en el repositorio):
+
+- Las cuatro tarjetas de "La comunidad" con dimensiones uniformes.
+- Las dos tarjetas de "Mi participación" con dimensiones uniformes.
+- Las categorías ordenadas por cantidad descendente y, en empate, por nombre.
+
+Lo demás (por ejemplo, ausencia de cortes con el texto ampliado) consta por la confirmación de la
+persona autora, no por las capturas. El agente no repitió pruebas ni cambió código para este
+registro.
+
+**Estado de 7A:** comprobado. Pendiente únicamente commit y push (persona autora).
+
+### Siguiente entrega: Bloque 7B (no implementado)
+
+Creación de debates por usuarios. Pendiente de concretar con la persona autora antes de
+implementar: quién puede publicar, borradores, validación y moderación, cómo se distinguen del
+material editorial, y su efecto en el dashboard (debates creados, borradores). Nada de esto existe
+todavía en el código ni en el dashboard.
 
 ## Decisiones registradas (2026-10-22)
 

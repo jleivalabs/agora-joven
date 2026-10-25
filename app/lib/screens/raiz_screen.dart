@@ -3,10 +3,10 @@ import 'package:get/get.dart';
 
 import '../controllers/sesion_controller.dart';
 import '../widgets/estados.dart';
-import 'debates_screen.dart';
+import 'principal_screen.dart';
 import 'login_screen.dart';
 
-/// Primera ruta de la app: muestra acceso o catálogo según el estado de sesión.
+/// Primera ruta de la app: muestra el acceso o la navegación principal según la sesión.
 ///
 /// Al cambiar de estado se reemplaza el contenido (no se apila), así que tras cerrar sesión
 /// el botón Atrás no puede volver a pantallas protegidas.
@@ -39,7 +39,7 @@ class RaizScreen extends StatelessWidget {
         case EstadoSesion.sinSesion:
           return const LoginScreen();
         case EstadoSesion.autenticada:
-          return const DebatesScreen();
+          return const PrincipalScreen();
       }
     });
   }

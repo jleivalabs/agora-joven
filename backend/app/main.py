@@ -14,7 +14,7 @@ from app.config import Settings
 from app.asistente import MAX_TOKENS_SALIDA
 from app.db import Base, crear_fabrica_sesiones, crear_motor
 from app.ia import GeminiProveedor, ProveedorIA
-from app.routers import aportes, asistente, auth, debates
+from app.routers import aportes, asistente, auth, debates, estadisticas
 
 
 def crear_proveedor(settings: Settings) -> ProveedorIA | None:
@@ -49,7 +49,7 @@ def create_app(
         yield
         motor.dispose()
 
-    app = FastAPI(title="Ágora Joven API", version="0.5.0", lifespan=lifespan)
+    app = FastAPI(title="Ágora Joven API", version="1.1.0-dev", lifespan=lifespan)
 
     @app.get("/health", tags=["sistema"])
     def health() -> dict[str, str]:
@@ -60,4 +60,5 @@ def create_app(
     app.include_router(debates.router)
     app.include_router(aportes.router)
     app.include_router(asistente.router)
+    app.include_router(estadisticas.router)
     return app

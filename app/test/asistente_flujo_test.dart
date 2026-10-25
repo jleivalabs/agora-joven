@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+import 'helpers/navegacion.dart';
 import 'helpers/servidor_falso.dart';
 
 /// Flujo visual del asistente con servidor SIMULADO (sin IA real).
@@ -29,6 +30,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await irAPestana(tester, 'Debates');
     await tester.tap(find.text('Debate sintético 1'));
     await tester.pumpAndSettle();
   }
