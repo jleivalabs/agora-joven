@@ -15,6 +15,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en backend/.env (ver .env.example)}
       JWT_EXPIRA_MINUTOS: ${JWT_EXPIRA_MINUTOS:-60}
       DATABASE_URL: sqlite:////srv/data/agora.db
+      # Asistente: la clave es opcional; vacía, el asistente responde 503 y el resto funciona.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      GEMINI_TIMEOUT_SEGUNDOS: ${GEMINI_TIMEOUT_SEGUNDOS:-25}
     volumes:
       - agora_datos:/srv/data
     healthcheck:

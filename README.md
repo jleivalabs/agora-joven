@@ -3,9 +3,10 @@
 App Flutter para **comprender temas públicos**, **consultar debates ciudadanos** y **publicar
 preguntas, argumentos o propuestas**, con un backend propio en FastAPI.
 
-> **Estado: Bloque 4.** Backend con autenticación JWT, catálogo de 20 debates y aportes en SQLite.
-> App con sesión, catálogo con filtro y detalle, aportes compartidos y debates guardados en el
-> dispositivo (Hive). El asistente está **planificado, no implementado**.
+> **Estado: Bloque 5.** Backend con autenticación JWT, catálogo de 20 debates, aportes y asistente
+> educativo con Gemini. App con sesión, catálogo con filtro y detalle, aportes compartidos, debates
+> guardados en el dispositivo (Hive) y asistente. El asistente se validó con un proveedor simulado;
+> **la integración real con Gemini está pendiente de comprobar**.
 > Ver [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 
 ## Estructura
@@ -116,6 +117,21 @@ Con el token de otra cuenta, `PATCH` y `DELETE` sobre ese aporte responden 403.
 
 La documentación interactiva está en `http://localhost:8010/docs`.
 
+### Asistente con Gemini (opcional)
+
+Sin clave, todo funciona salvo el asistente, que responde "no está configurado" (503).
+
+1. Crea una clave en [Google AI Studio](https://aistudio.google.com/app/apikey) con tu cuenta.
+2. Abre `backend/.env` en tu editor y escribe `GEMINI_API_KEY=` seguido de la clave. No la pegues en
+   el chat, en el código ni en otro archivo versionado. Opcional: `GEMINI_MODEL` (por defecto
+   `gemini-3.5-flash-lite`) y `GEMINI_TIMEOUT_SEGUNDOS` (por defecto 25).
+3. Aplica la configuración: `docker compose up -d --force-recreate api` (o reinicia uvicorn).
+4. En la app, abre un debate → "Asistente educativo" → "Explicar el contexto". Para "Resumir
+   perspectivas de los aportes", el debate necesita al menos un aporte.
+
+Cada consulta es una llamada al proveedor y puede contar para la cuota o la facturación de tu
+cuenta de Google.
+
 ### Pruebas automáticas del backend
 
 ```powershell
@@ -159,6 +175,7 @@ detalle, pantalla "Guardados" desde el catálogo); se conservan al cerrar la app
 | `flutter_secure_storage` | 11.2.0 | Guardar solo el token, cifrado con el Keystore de Android (minSdk 24) |
 | `hive` | 2.2.3 | Debates guardados en el dispositivo, una caja por cuenta |
 | `hive_flutter` | 1.1.0 | `Hive.initFlutter()`: ubica las cajas en el directorio de la app (trae `path_provider` 2.1.6) |
+| `flutter_markdown_plus` | 1.0.12 | Mostrar con formato el Markdown de las respuestas del asistente (sin HTML, imágenes ni enlaces activos); trae `markdown` 7.3.1 |
 
 Versiones iguales a las del proyecto del curso (ExploraEC), fijadas de forma exacta.
 
@@ -195,8 +212,10 @@ fuente de datos (`data/`). Detalle, modelos y contrato de endpoints en
 - Los registros de Uvicorn muestran método, ruta y código, nunca cabeceras ni tokens.
 - En la app, solo el token se guarda, con `flutter_secure_storage`; nunca la contraseña. La app
   no registra cuerpos, tokens ni la cabecera `Authorization`, y no contiene claves del servidor.
-- Asistente con Gemini a través del backend propio; la clave vivirá únicamente en el `.env` del
-  servidor (previsto). No se envían correos, credenciales ni tokens al proveedor.
+- Asistente con Gemini a través del backend propio; la clave vive únicamente en `backend/.env`
+  (`GEMINI_API_KEY`). Al proveedor no se envían nombres, correos, identificadores, credenciales ni
+  tokens; sí el texto de los aportes, que puede incluir datos que sus autores hayan escrito. El
+  backend no registra la clave, los prompts ni las respuestas.
 - `AGENTS.md` y `.claude/settings.json` guían a los agentes de código, pero no son una barrera
   técnica absoluta; ver sus límites en [AGENTS.md](AGENTS.md#límites-conocidos-de-los-permisos).
 
@@ -204,6 +223,6 @@ fuente de datos (`data/`). Detalle, modelos y contrato de endpoints en
 
 - Contenido de debates: material editorial de demostración redactado para este proyecto; no
   representa posiciones oficiales ni contiene datos estadísticos o normativos.
-- Paquetes: Flutter (BSD-3), GetX `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3), `hive` y `hive_flutter` (Apache-2.0), FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT),
+- Paquetes: Flutter (BSD-3), GetX `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3), `hive` y `hive_flutter` (Apache-2.0), `flutter_markdown_plus` y `markdown` (BSD-3), FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT),
   PyJWT (MIT), pwdlib (MIT), argon2-cffi (MIT), pydantic-settings (MIT), email-validator
   (Unlicense). Licencias comprobadas en los metadatos de los paquetes instalados.

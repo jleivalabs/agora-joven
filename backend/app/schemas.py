@@ -1,7 +1,7 @@
 """Esquemas de entrada y salida de la API."""
 
 from datetime import datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -13,6 +13,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.asistente import AccionAsistente
 from app.models import Categoria, TipoAporte
 
 
@@ -133,3 +134,23 @@ class AporteSalida(BaseModel):
     creado_en: datetime
     editado_en: datetime | None
     es_propio: bool = Field(description="Calculado en el servidor para quien consulta.")
+
+
+class AsistenteEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    accion: AccionAsistente
+
+
+class AsistenteSalida(BaseModel):
+    """Resultado educativo generado por IA. No se guarda ni se publica como aporte."""
+
+    debate_id: int
+    accion: AccionAsistente
+    estado: Literal["generado", "sin_aportes"]
+    texto: str | None
+    aviso: str | None
+    aportes_usados: int
+    aportes_totales: int
+    parcial: bool = Field(description="True si el resumen usó solo parte de los aportes.")
+    truncado: bool = Field(description="True si la respuesta alcanzó el límite de longitud.")

@@ -29,6 +29,7 @@ class ServidorFalso implements HttpClientAdapter {
   ServidorFalso() {
     _rutasPorDefecto();
     _rutasDeAportes();
+    _rutaDelAsistente();
   }
 
   final _rutas = <String, Manejador>{};
@@ -290,6 +291,42 @@ class ServidorFalso implements HttpClientAdapter {
       }
       aportes.remove(a);
       return const RespuestaFalsa(204);
+    });
+  }
+
+  /// Asistente SIMULADO: respuestas fijas, sin IA. Imita el contrato del backend.
+  void _rutaDelAsistente() {
+    cuando('POST /asistente/debates/{id}', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final debateId = idDe(p);
+      final accion = (cuerpo(p) as Map)['accion'] as String;
+      final total = aportes.where((a) => a['debate_id'] == debateId).length;
+      if (accion == 'perspectivas' && total == 0) {
+        return RespuestaFalsa(200, {
+          'debate_id': debateId,
+          'accion': accion,
+          'estado': 'sin_aportes',
+          'texto': null,
+          'aviso': null,
+          'aportes_usados': 0,
+          'aportes_totales': 0,
+          'parcial': false,
+          'truncado': false,
+        });
+      }
+      final usados = accion == 'perspectivas' ? (total > 2 ? 2 : total) : 0;
+      return RespuestaFalsa(200, {
+        'debate_id': debateId,
+        'accion': accion,
+        'estado': 'generado',
+        'texto': 'Texto simulado de $accion.',
+        'aviso': 'Texto generado por IA con fines educativos.',
+        'aportes_usados': usados,
+        'aportes_totales': accion == 'perspectivas' ? total : 0,
+        'parcial': usados < (accion == 'perspectivas' ? total : 0),
+        'truncado': false,
+      });
     });
   }
 

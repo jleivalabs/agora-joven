@@ -4,14 +4,12 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 
 ## Estado actual (24/10/2026)
 
-- Último commit publicado: `317cf23` (Bloque 3, en `origin/main`).
-- Bloque 4 **comprobado** (92 pruebas Flutter del agente y recorrido manual en emulator-5554 de la
-  persona autora), **sin commit ni push**.
-- Revisión del fallo de disco de Hive: realizada para una condición concreta; queda un **pendiente
-  técnico conocido** (excepción asíncrona no capturada de Hive), sin cambios de código. Ver
-  "Bloque 4 → Revisión del fallo de disco de Hive".
-- Pendiente: revisar los cambios, hacer commit y push del Bloque 4.
-- No comenzar el Bloque 5 hasta cerrar lo anterior.
+- Último commit publicado: `5df1279` (Bloque 4, en `origin/main`).
+- Bloque 5 (asistente con Gemini) **comprobado**: pruebas reales y comprobación visual del Markdown
+  en emulator-5554 por la persona autora; pruebas automáticas del agente en verde. Pendiente:
+  revisión, commit y push.
+- Se mantiene el pendiente técnico conocido de Hive (ver "Bloque 4 → Revisión del fallo de disco").
+- No comenzar el Bloque 6.
 
 ## Bloques
 
@@ -21,8 +19,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 1 | Backend: SQLite, autenticación JWT y catálogo de 20 debates | ✅ Commit `4238dd5` |
 | 2 | App: sesión (registro, acceso, restauración, cierre) y catálogo con filtro y detalle | ✅ Commit `285f020`, publicado en `origin/main` |
 | 3 | Aportes: backend con propiedad comprobada y pantallas en la app | ✅ Commit `317cf23`, publicado en `origin/main` |
-| 4 | Debates guardados con Hive | ✅ Comprobado (92 pruebas automáticas y recorrido manual en emulador); pendiente de commit y push |
-| 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ⏳ |
+| 4 | Debates guardados con Hive | ✅ Commit `5df1279`, publicado en `origin/main` (con el pendiente técnico de Hive documentado) |
+| 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ✅ Comprobado (Gemini real y Markdown en emulador; pruebas automáticas en verde); pendiente de revisión, commit y push |
 | 6 | CI, workflow de Release, README final, auditoría de secretos | ⏳ |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
@@ -55,8 +53,9 @@ cubre el arranque y la pantalla de bienvenida.
 ## Pendientes conocidos
 
 - Commits registrados: Bloque 0 `5a8611d`, Bloque 1 `4238dd5`, Bloque 2 `285f020`, Bloque 3
-  `317cf23` (publicados en `origin/main`).
-- Bloque 4: revisión de cambios, commit y push (los hace la persona autora).
+  `317cf23`, Bloque 4 `5df1279` (publicados en `origin/main`).
+- Bloque 5: revisión, commit y push (persona autora).
+- Pendiente técnico conocido: excepción asíncrona no capturada de Hive (Bloque 4).
 - Versión de Python: local 3.11.9 (no hay 3.12 instalado) para `.venv` y pytest; el contenedor
   usa 3.12.15. Las pruebas locales no sustituyen la validación del contenedor.
 
@@ -314,10 +313,118 @@ caja falla por la condición anterior. El Bloque 4 **no** debe considerarse tole
 fallo de almacenamiento. No se cambió código ni se añadió un manejador global; la decisión sobre su
 tratamiento queda abierta.
 
+## Bloque 5 — asistente educativo con Gemini (24/10/2026)
+
+Sin dependencias nuevas ni actualizadas (backend: `urllib` de la biblioteca estándar; app: paquetes
+existentes). Modelo por defecto `gemini-3.5-flash-lite`, elegido con la documentación oficial de
+ai.google.dev consultada el 24/10/2026 (ver `docs/ARQUITECTURA.md → Asistente`).
+
+Backend nuevo: `app/ia.py`, `app/asistente.py`, `app/routers/asistente.py`; modificados
+`config.py` (variables `GEMINI_*` opcionales), `schemas.py`, `main.py` (versión 0.5.0),
+`.env.example` y `docker-compose.yml` (variables de ejemplo, sin secretos). App nueva:
+`models/asistente.dart`, `repositories/asistente_repository.dart`,
+`controllers/asistente_controller.dart`, `screens/seccion_asistente.dart`; modificados
+`api_client.dart` (espera ampliada por petición), `api_exception.dart` (429), `app_config.dart`,
+`detalle_debate_screen.dart` y `app.dart`.
+
+### Pruebas automáticas con proveedor SIMULADO (agente)
+
+Ninguna prueba llamó a Gemini ni a la red real.
+
+| Suite | Resultado |
+|---|---|
+| Backend `pytest -q` | **102 passed** (68 anteriores + 34 de `test_asistente.py`) |
+| `flutter analyze` | **No issues found** |
+| `flutter test --timeout 30s` | **107 passed** (92 anteriores + 9 de `asistente_controller_test.dart` + 6 de `asistente_flujo_test.dart`) |
+
+Backend: 401 sin token o con token inválido; 422 con acción ausente, inválida, nula o con campos
+extra; 404 de debate; contexto sin aportes en los datos; perspectivas sin aportes sin llamar al
+proveedor (también sin clave); solo tipo y texto de los aportes, sin nombres, correos, contraseña,
+`Bearer`, `autor_id` ni `autor_nombre`; límites de cantidad y longitud con indicador `parcial`;
+selección determinista; texto hostil enviado como dato dentro de un JSON válido; `truncado`; sin
+clave el backend arranca y el asistente responde 503; errores del proveedor → 429, 503 y 502 con
+solo `detail`; clave vacía tratada como ausente. Cliente Gemini con `urlopen` sustituido: URL,
+cabecera `x-goog-api-key`, `systemInstruction`, `maxOutputTokens` y tiempo de espera; 429, 503,
+403, sin red y tiempo agotado clasificados sin exponer la clave; respuestas bloqueadas, vacías o
+inesperadas; `MAX_TOKENS` como truncado; cuerpo no JSON.
+
+Flutter: resultado del contexto (petición con espera de 40 s), sin aportes, parcial, mensajes
+propios para 503, 502, 429 y sin red, reintento solo explícito, sin duplicados, respuestas tardías
+tras cambiar de sesión o cerrar la pantalla, 401 que cierra la sesión, respuesta con forma
+inesperada. Flujos con widgets: dos acciones visibles, resultado marcado como IA y sin crear
+aportes, sin aportes, parcial, error con Reintentar, botones desactivados durante la consulta y
+salida del detalle con consulta pendiente.
+
+Durante el trabajo fallaron tres pruebas por errores de las propias pruebas (una palabra del texto
+de ejemplo, la búsqueda del botón y el momento del recuento de peticiones); se corrigieron sin
+cambiar la app.
+
+### Docker (agente)
+
+`docker compose up --build -d api` → *healthy*, versión 0.5.0. Recuento antes y después (sin leer
+contenido): 3 usuarios, 20 debates, 1 aporte. `/health` 200 y `POST /asistente/debates/1` sin token
+401. **No se llamó al asistente con token**, para no generar llamadas reales a Gemini. No se leyó
+`backend/.env` ni se imprimió la configuración resuelta; `docker compose config` se validó con
+`--env-file /dev/null` y un secreto sintético solo en el proceso.
+
+### Pruebas reales con Gemini (24/10/2026, persona autora, no el agente)
+
+Realizadas en el emulador contra el backend Docker con Gemini configurado por la persona autora.
+El agente no hizo ninguna llamada real a Gemini.
+
+| Comprobación | Resultado aportado |
+|---|---|
+| Explicación real del contexto de "Huertos urbanos en espacios públicos" | ✅ |
+| Estado de carga con los botones desactivados | ✅ |
+| Aviso de ausencia de aportes | ✅ |
+| Resumen real de dos aportes de cuentas distintas, sin nombres en el resultado | ✅ |
+| Los aportes siguen siendo los publicados por las personas; el asistente no publicó contenido | ✅ |
+
+**Problema detectado:** las respuestas mostraban literalmente las marcas Markdown (`**negritas**`,
+`###` encabezados, `*` listas).
+
+### Corrección de la presentación del Markdown (24/10/2026, agente)
+
+Solo Flutter; backend y contrato sin cambios (no se repitieron sus 102 pruebas). Sin nuevas
+llamadas reales a Gemini.
+
+- Dependencia añadida: `flutter_markdown_plus` 1.0.12 (BSD-3-Clause, editor verificado), sucesor
+  que recomienda la página del descontinuado `flutter_markdown` en pub.dev. Trae `markdown` 7.3.1
+  (BSD-3). El `pubspec.lock` solo añadió esas dos entradas.
+- Nuevo `lib/widgets/texto_markdown_seguro.dart`; `seccion_asistente.dart` lo usa en lugar del
+  `SelectableText` plano. Se conservan "Generado por IA", los avisos y todos los estados.
+- Seguridad: imágenes sustituidas por texto (el paquete usaría `Image.network` por defecto),
+  enlaces sin acción al pulsar, HTML no interpretado (un bloque HTML se omite).
+
+Pruebas automáticas del agente con respuestas de ejemplo **locales** que reproducen el formato de
+las capturas: `flutter analyze` → **No issues found**; `flutter test --timeout 30s` → **114 passed**
+(107 anteriores + 6 de `texto_markdown_seguro_test.dart` + 1 en `asistente_flujo_test.dart`).
+Cubren: sin marcas visibles y texto conservado; negrita, cursiva y encabezado con más tamaño que el
+párrafo; viñetas y lista numerada; sin desbordamientos a 320 px de ancho y a 360 px con texto ×2, sin
+scroll propio; sin `Image` ni HTML visible y enlace que no hace nada al pulsarlo; resultado del
+asistente con formato, etiqueta y aviso.
+
+Durante el trabajo se ajustó el estilo de los encabezados (antes `###` tenía el mismo tamaño que
+el párrafo) y se corrigieron errores de las propias pruebas.
+
+### Comprobación visual del Markdown en emulator-5554 (24/10/2026, persona autora, no el agente)
+
+**Confirmación de la persona autora:** comprobación visual satisfactoria.
+
+**Observado en las capturas aportadas:** explicación del contexto y resumen de aportes con
+negritas, títulos y listas correctamente formateados, sin marcas Markdown literales ni
+desbordamientos visibles. Se conserva la etiqueta "Generado por IA"; en la captura de contexto se
+ve además el aviso completo.
+
+**No comprobado manualmente:** el texto del sistema ampliado. Esa comprobación solo consta en las
+pruebas automáticas del agente (360 px con texto ×2).
+
 ## Decisiones registradas (2026-10-22)
 
 - Se mantiene `flutter_lints ^6.0.0`.
 - Debates y aportes requieren sesión; públicos solo `/health`, `/auth/registro`, `/auth/login`.
 - IA: Gemini vía backend propio, clave solo en el servidor, sin modo de demostración.
+- Bloque 5: Gemini por REST con `urllib` (sin SDK); modelo `gemini-3.5-flash-lite`; campo
+  `accion` (antes `modo` en el contrato inicial); 429/502/503 diferenciados.
 - Bloque 1: tablas con `create_all` (sin Alembic); orden del catálogo por `id`; correo duplicado
   → 400 explícito; arranque con `uvicorn app.main:create_app --factory`.

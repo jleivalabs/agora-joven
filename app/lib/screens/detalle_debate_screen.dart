@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/aportes_controller.dart';
+import '../controllers/asistente_controller.dart';
 import '../controllers/debates_controller.dart';
 import '../controllers/detalle_debate_controller.dart';
 import '../controllers/guardados_controller.dart';
@@ -11,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../widgets/estados.dart';
 import '../widgets/marca.dart';
 import 'aporte_form_screen.dart';
+import 'seccion_asistente.dart';
 
 class DetalleDebateScreen extends StatefulWidget {
   const DetalleDebateScreen({
@@ -31,6 +33,7 @@ class DetalleDebateScreen extends StatefulWidget {
 class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
   late final DetalleDebateController _detalle;
   late final AportesController _aportes;
+  late final AsistenteController _asistente;
   late final String _etiqueta = '${widget.debateId}';
 
   @override
@@ -44,12 +47,17 @@ class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
       AportesController(Get.find(), Get.find(), widget.debateId),
       tag: _etiqueta,
     );
+    _asistente = Get.put(
+      AsistenteController(Get.find(), Get.find(), widget.debateId),
+      tag: _etiqueta,
+    );
   }
 
   @override
   void dispose() {
     Get.delete<DetalleDebateController>(tag: _etiqueta);
     Get.delete<AportesController>(tag: _etiqueta);
+    Get.delete<AsistenteController>(tag: _etiqueta);
     super.dispose();
   }
 
@@ -82,6 +90,7 @@ class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
               debate: _detalle.debate.value!,
               etiquetaCategoria: widget.etiquetaCategoria,
               aportes: _aportes,
+              asistente: _asistente,
             );
         }
       }),
@@ -140,11 +149,13 @@ class _Contenido extends StatelessWidget {
     required this.debate,
     required this.etiquetaCategoria,
     required this.aportes,
+    required this.asistente,
   });
 
   final DebateDetalle debate;
   final String etiquetaCategoria;
   final AportesController aportes;
+  final AsistenteController asistente;
 
   @override
   Widget build(BuildContext context) {
@@ -191,6 +202,8 @@ class _Contenido extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s),
           ],
+          const SizedBox(height: AppSpacing.l),
+          SeccionAsistente(asistente: asistente),
           const SizedBox(height: AppSpacing.l),
           _SeccionAportes(debateId: debate.id, aportes: aportes),
         ],

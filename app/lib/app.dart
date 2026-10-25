@@ -8,6 +8,7 @@ import 'data/api_client.dart';
 import 'data/guardados_local.dart';
 import 'data/token_storage.dart';
 import 'repositories/aportes_repository.dart';
+import 'repositories/asistente_repository.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/debates_repository.dart';
 import 'repositories/guardados_repository.dart';
@@ -33,6 +34,7 @@ class AgoraJovenApp extends StatelessWidget {
         Get.put(AuthRepository(cliente, tokens ?? SecureTokenStorage()));
         Get.put(DebatesRepository(cliente));
         Get.put(AportesRepository(cliente));
+        Get.put(AsistenteRepository(cliente));
         Get.put(GuardadosRepository(guardados ?? HiveAlmacenGuardados()));
         Get.put(SesionController(Get.find()));
         Get.put(GuardadosController(Get.find(), Get.find()));

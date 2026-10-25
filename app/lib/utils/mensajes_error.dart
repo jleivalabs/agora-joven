@@ -14,6 +14,8 @@ String mensajeDeError(ApiException e) {
     TipoError.noEncontrado => 'No encontramos lo que buscas.',
     TipoError.validacion =>
       'Algunos datos no son válidos. Revísalos e inténtalo de nuevo.',
+    TipoError.limiteUso =>
+      'Se alcanzó el límite de uso. Inténtalo de nuevo más tarde.',
     TipoError.servidor =>
       'El servidor tuvo un problema. Inténtalo de nuevo más tarde.',
     TipoError.respuestaInvalida =>

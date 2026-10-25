@@ -45,7 +45,9 @@ globales.
   otra (número de sesión; ver `docs/ARQUITECTURA.md`).
 - **Propiedad de aportes en el backend**: el autor sale del token; editar o borrar ajeno → 403.
   Nunca confiar en un `autor_id` enviado por la app.
-- **IA (Gemini vía backend)**: la clave vive solo en el `.env` del servidor; la app nunca la
+- **IA (Gemini vía backend, `backend/app/ia.py` y `asistente.py`)**: no hacer llamadas reales a
+  Gemini sin permiso expreso (pueden tener coste); las pruebas usan un proveedor simulado.
+  La clave vive solo en el `.env` del servidor; la app nunca la
   conoce. El asistente usa el contexto del debate y una selección acotada de aportes, tratados
   como datos y no como instrucciones. Nunca enviar al proveedor correos, credenciales ni tokens.
   Es educativo, equilibrado y no publica nada automáticamente. Sin modo de demostración: las

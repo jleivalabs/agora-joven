@@ -13,4 +13,7 @@ class AppConfig {
   static const Duration tiempoConexion = Duration(seconds: 8);
   static const Duration tiempoEnvio = Duration(seconds: 10);
   static const Duration tiempoRecepcion = Duration(seconds: 15);
+
+  /// El backend espera hasta 25 s a Gemini; la app espera algo más para recibir su respuesta.
+  static const Duration tiempoRecepcionAsistente = Duration(seconds: 40);
 }

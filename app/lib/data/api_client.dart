@@ -38,9 +38,19 @@ class ApiClient {
     );
   }
 
-  Future<dynamic> post(String ruta, Object cuerpo, {String? token}) {
+  /// [tiempoRecepcion] amplía la espera para operaciones lentas (p. ej. el asistente).
+  Future<dynamic> post(
+    String ruta,
+    Object cuerpo, {
+    String? token,
+    Duration? tiempoRecepcion,
+  }) {
     return _enviar(
-      () => _dio.post<dynamic>(ruta, data: cuerpo, options: _opciones(token)),
+      () => _dio.post<dynamic>(
+        ruta,
+        data: cuerpo,
+        options: _opciones(token, tiempoRecepcion),
+      ),
     );
   }
 
@@ -54,9 +64,13 @@ class ApiClient {
     await _enviar(() => _dio.delete<dynamic>(ruta, options: _opciones(token)));
   }
 
-  Options? _opciones(String? token) => token == null
+  Options? _opciones(String? token, [Duration? tiempoRecepcion]) =>
+      token == null && tiempoRecepcion == null
       ? null
-      : Options(headers: {'Authorization': 'Bearer $token'});
+      : Options(
+          headers: {'Authorization': ?(token == null ? null : 'Bearer $token')},
+          receiveTimeout: tiempoRecepcion,
+        );
 
   Future<dynamic> _enviar(Future<Response<dynamic>> Function() peticion) async {
     try {
