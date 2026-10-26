@@ -91,6 +91,35 @@ conservadora. Los aportes indican la versión sobre la que se escribieron y, si 
 mientras se redactaban, no se publican sin confirmación. El autor puede añadir aclaraciones
 fechadas e inmutables. No incluye bifurcaciones ni copias automáticas de debates.
 
+## Limitaciones conocidas
+
+- **Firma del APK:** el build release usa la clave de **depuración** (plantilla de Flutter). En
+  GitHub Actions esa clave se genera en cada ejecución, así que cada Release está firmada con una
+  clave distinta: no se puede actualizar sobre otra versión (hay que desinstalar antes, lo que
+  borra la sesión y los debates guardados del dispositivo) y no sirve para publicar en una tienda.
+  No hay firma de producción configurada.
+- **APK solo para emulador:** apunta a `http://10.0.2.2:8010` por HTTP sin TLS, permitido solo para
+  hosts locales. Un teléfono físico o un backend público requieren otra compilación y HTTPS.
+- **Hive:** si la apertura de una caja falla por una ruta de almacenamiento inválida, además del
+  mensaje controlado de la app, Hive genera una excepción asíncrona no capturada (reproducido en
+  pruebas; efecto en Android no verificado). Ver `docs/SEGUIMIENTO.md` → Bloque 4.
+- **Errores no previstos:** la app no instala un manejador global de errores no capturados.
+- **Asistente educativo:** depende de la disponibilidad, cuota y coste de Gemini; sus respuestas
+  pueden contener errores aunque se indique en la interfaz. Resume como máximo los 20 aportes más
+  recientes. Pendiente revisar el tratamiento de datos de Gemini.
+- Sin paginación del catálogo ni de los aportes, sin modo sin conexión (salvo la lista de
+  guardados) y sin recuperación de contraseña.
+- **Edad:** la mayoría de edad es una declaración de la persona, no una verificación, y por sí
+  sola no garantiza el cumplimiento de las condiciones de los proveedores.
+- **Referencias:** solo metadatos de Crossref; localizar una obra no certifica su calidad ni
+  respalda ninguna afirmación. No se procesan resúmenes (sin política de licencias aprobada). La
+  búsqueda requiere `CROSSREF_MAILTO` y respeta límites por cuenta y hora que viven en memoria del
+  proceso (se reinician con la API).
+- **Redacción con IA del asistente de creación:** desactivada; pendiente de revisar el tratamiento
+  de datos de Gemini (también del asistente educativo existente) antes de activarla.
+- **Compatibilidad entre versiones:** cada APK necesita el backend de su etiqueta; el APK v1.0.0
+  no puede publicar aportes contra el backend de la v1.1 (ver `docs/INSTALACION.md`).
+
 ## Exclusiones
 
 No se implementan: mapas o geolocalización, chat en tiempo real, notificaciones, votaciones o

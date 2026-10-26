@@ -19,8 +19,9 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
   la persona autora en emulator-5554); la redacción con IA sigue desactivada y solo probada con
   proveedor simulado; resúmenes sin procesar. Base real migrada a `0005` con respaldo previo.
   **Versión 1.1.0 cerrada** (decisión del 25/10/2026; `1.1.0+2`), ver "Cierre de la v1.1.0".
-  Pendiente (persona autora): commit, push, etiqueta y Release `v1.1.0`, prueba del APK descargado
-  y envío en Moodle. **El proyecto no está marcado como entregado.** La etiqueta
+  Etiqueta `v1.1.0` (commit `382e5f8`) y Release publicadas por la persona autora y GitHub Actions.
+  Pendiente (persona autora): prueba del APK descargado y envío en Moodle. **El proyecto no está
+  marcado como entregado.** La etiqueta
   `v1.0.0` y sus archivos publicados no se han tocado. 7D no ha empezado.
 
 ## Punto de continuación (actualizado el 25/10/2026)
@@ -42,7 +43,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 - **Release v1.0.0:** el APK `v1.0.0` usa el backend de la etiqueta `v1.0.0` en un entorno
   separado (proyecto, volumen, contenedor e imagen propios; puerto 8010); la app 1.1 usa el backend
   de `main`. Nunca ejecutar el backend antiguo contra la base migrada a `0004`. El requisito de
-  versión de los aportes no se relaja. Instrucciones en README → "Qué código usar con cada app".
+  versión de los aportes no se relaja. Instrucciones en `docs/INSTALACION.md` → "Qué código usar
+  con cada app".
 - **7C comprobado, sin commit ni push.** Resultados del agente: backend 220 pruebas (Python 3.11
   local y 3.12 en contenedor), Flutter 212 y `flutter analyze` sin incidencias. Recorrido manual
   satisfactorio de la persona autora en emulator-5554, con búsqueda real en Crossref
@@ -52,7 +54,7 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 - **Pendiente (persona autora):** decidir la política de licencias de los resúmenes y el
   tratamiento de datos de Gemini (incluido el asistente existente); revisar el archivo
   `respaldos-agora-joven$NOMBRE` (aparte); revisión, commit y push. Opcional: probar el APK
-  `v1.0.0` (pasos A1–A7 del README).
+  `v1.0.0` (pasos A1–A7 de `docs/INSTALACION.md`).
 
 ## Bloques
 
@@ -69,7 +71,7 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 7B (v1.1) | Creación de debates por usuarios: borradores, publicación, edición, Mis debates; archivo con solicitud y revisión administrativa; roles; migraciones 0002–0003 | ✅ Commit `2e82559`, publicado en `origin/main`; CI en verde según la persona autora |
 | 7B.1 (v1.1) | Historial de versiones, bloqueo permanente tras participación, aportes por versión, aclaraciones; migración 0004 | ✅ Commit `cb2de64`, publicado en `origin/main`; CI en verde según la persona autora |
 | 7C (v1.1) | Referencias de Crossref (metadatos), redacción con Gemini sin búsqueda (desactivada), mayoría de edad declarada; migración 0005 | ✅ Commit `afd2e9b`, publicado en `origin/main`. Comprobado: edad y referencias con Crossref real (recorrido manual); redacción solo con proveedor simulado (desactivada) |
-| v1.1.0 | Cierre: versión `1.1.0+2`, notas de Release, documentación del alcance definitivo | 🔶 Preparado por el agente; pendiente commit, push, etiqueta y Release `v1.1.0`, prueba del APK descargado y envío en Moodle |
+| v1.1.0 | Cierre: versión `1.1.0+2`, notas de Release, documentación del alcance definitivo | 🔶 Commit `382e5f8` y etiqueta `v1.1.0` publicados por la persona autora; Release generada por GitHub Actions; pendiente la prueba del APK descargado y el envío en Moodle |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -762,7 +764,7 @@ Errores encontrados y corregidos durante el bloque:
    `/borradores`, `/mis-debates` → 401 sin token. No se mostraron datos personales en las
    comprobaciones.
 
-Restauración: ver `docs/ARQUITECTURA.md` → "Restaurar la copia previa a 7B".
+Restauración: ver `docs/INSTALACION.md` → "Copias de seguridad y restauración".
 
 ### Pendiente: recorrido manual con dos cuentas (persona autora)
 
@@ -1181,7 +1183,7 @@ quedar pendientes de confirmar la edad. Copiar antes la base actual y no usar `d
 4. Solo entonces `docker compose up --build -d api` (sin `down -v`) y repetir las comprobaciones
    sobre el volumen. Tras migrar, **todas las cuentas** (también "Admin") deberán confirmar la
    edad al entrar.
-5. Restauración, si hiciera falta: `docs/ARQUITECTURA.md` → "Restaurar una copia de seguridad".
+5. Restauración, si hiciera falta: `docs/INSTALACION.md` → "Copias de seguridad y restauración".
 
 ### Pendiente: recorrido manual (persona autora)
 
@@ -1290,8 +1292,25 @@ local para el emulador (`flutter build apk --release
 por Git; no se versiona ni se publica). Sin dependencias actualizadas ni llamadas reales a
 proveedores. Revisión del diff: sin secretos, bases, respaldos ni APK.
 
-**Pendiente (persona autora):** commit y push; etiqueta y Release `v1.1.0` (las genera el
-workflow); descargar y probar el APK publicado con el backend de la etiqueta; envío en Moodle.
+**Reorganización de la documentación (25/10/2026, agente; solo documentación):** el README se
+sintetizó para quien descubre o evalúa el proyecto. La instalación por versión, la compatibilidad,
+los volúmenes, la restauración y el procedimiento de v1.0.0 (pasos A1–A7) pasaron a
+`docs/INSTALACION.md`; el desarrollo local, los comandos, los ejemplos de API (corregidos con la
+declaración de edad y la versión del aporte), las pruebas, la seguridad y las tecnologías, a
+`docs/DESARROLLO.md`; la galería de capturas, a `docs/CAPTURAS.md`; la lista completa de
+limitaciones, a `docs/ALCANCE.md`; las decisiones técnicas, a `docs/ARQUITECTURA.md`. Las
+referencias anteriores de este documento a secciones del README (pasos A1–A7, "Limitaciones
+conocidas") corresponden ahora a esas guías.
+
+**Publicación (observada por el agente el 25–26/10/2026, sin validarla):** la persona autora
+publicó el commit `382e5f8` ("chore: cierre de la versión 1.1.0") y la etiqueta `v1.1.0`, que en el
+remoto apunta a `382e5f8`. La página pública de la Release `v1.1.0` existe, publicada por
+`github-actions`, con 4 archivos adjuntos (sus nombres no se pudieron leer). El agente no comprobó
+el resultado del CI ni descargó o probó el APK.
+
+**Pendiente (persona autora):** descargar y probar el APK publicado con el backend de la etiqueta;
+publicar la reorganización de la documentación; envío en Moodle. El proyecto **no está marcado
+como entregado**.
 
 ## Decisiones registradas (2026-10-22)
 

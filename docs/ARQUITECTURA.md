@@ -1,10 +1,10 @@
 # Arquitectura — Ágora Joven
 
-> Estado: el backend implementa `/health`, autenticación y catálogo (Bloque 1). La app implementa
-> sesión (registro, acceso, restauración, cierre) y catálogo con detalle (Bloque 2). Aportes
-> compartidos en backend y app (Bloque 3). Debates guardados con Hive (Bloque 4). Asistente
-> educativo con Gemini vía backend (Bloque 5). CI y Release v1.0.0 (Bloque 6). **v1.1 en
-> desarrollo:** dashboard de inicio (Bloque 7A).
+> Estado (v1.1.0): sesión, catálogo y aportes (Bloques 1–3), guardados con Hive (4), asistente
+> educativo con Gemini vía backend (5), CI y Release (6), dashboard (7A), creación de debates,
+> roles y archivo revisado (7B), historial y protección del contexto (7B.1), mayoría de edad y
+> referencias de Crossref (7C). Instalación: [INSTALACION.md](INSTALACION.md); desarrollo:
+> [DESARROLLO.md](DESARROLLO.md).
 
 ## Vista general
 
@@ -24,6 +24,24 @@
 Regla: una pantalla solo habla con controladores; un controlador solo con repositorios; solo
 `data/` conoce Dio o `flutter_secure_storage`. Comprobado con búsqueda en `lib/screens` y
 `lib/controllers`: no importan Dio ni el almacenamiento seguro.
+
+## Decisiones técnicas principales
+
+- **Contador de sesión contra respuestas tardías.** Cada operación captura el número de sesión al
+  empezar y solo aplica su resultado si no cambió: una respuesta de la cuenta A nunca altera la
+  cuenta B, un 401 antiguo no cierra la sesión nueva y varios 401 simultáneos producen un solo
+  aviso. Se descartó confiar solo en cancelar peticiones, que no cubre escrituras ya enviadas
+  (detalle en "Protección ante respuestas tardías").
+- **Autorización solo en el servidor.** El autor sale del token; los cuerpos rechazan
+  `autor_id`/`debate_id` (422) y editar o borrar lo ajeno da 403. El rol se lee de la base en cada
+  petición. Los botones de la app son solo cortesía visual.
+- **SQLite en un volumen Docker** en lugar de PostgreSQL: un único servicio que levantar para quien
+  evalúa, suficiente para la escala del proyecto; esquema versionado con Alembic desde 7B.
+- **Proveedores por REST con la biblioteca estándar** (Gemini y Crossref) en lugar de SDK: sin
+  dependencias nuevas, tiempo máximo de espera explícito y errores clasificados sin respuestas de
+  reserva. Sin Grounding with Google Search (ver "Investigación asistida").
+- **Contenido protegido tras participar.** Versiones inmutables y bloqueo permanente tras el primer
+  aporte, comprobados con sentencias condicionales dentro de la transacción.
 
 ## Capas de la app
 
@@ -489,20 +507,9 @@ restricciones por otra vía sin recrear la tabla). Los 20 debates existentes que
 `editorial`/`publicado`; la semilla del catálogo nunca sobrescribe un debate que no sea editorial.
 Manual: `python -m app.migrar`.
 
-**Restaurar una copia de seguridad.** Las copias están fuera de Git (rutas en
-`docs/SEGUIMIENTO.md`): la previa a 7B (esquema 7A, revisión `0001`), la previa a los roles
-(revisión `0002`), la previa al historial (revisión `0003`) y la previa a 7C (revisión `0004`). Al arrancar, la API aplica las migraciones pendientes: restaurar una copia con
-el código actual la vuelve a migrar a la última revisión conservando sus datos; para volver de
-verdad a un esquema anterior hay que usar también el código de esa versión. Con la API detenida:
-
-```bash
-cd backend
-docker compose stop api
-docker compose cp <ruta-de-la-copia>.db api:/srv/data/agora.db   # el contenedor detenido admite cp
-docker compose start api
-```
-
-No usar `down -v` (borra el volumen). Antes de restaurar, conviene copiar también la base actual.
+**Restaurar una copia de seguridad:** procedimiento en
+[INSTALACION.md → Copias de seguridad y restauración](INSTALACION.md#copias-de-seguridad-y-restauración);
+rutas de los respaldos en `docs/SEGUIMIENTO.md`.
 
 ## Historial de versiones (Bloque 7B.1, v1.1)
 
@@ -576,7 +583,7 @@ la participación). Los dos entornos necesitan proyecto, volumen, contenedor e i
 el `docker-compose.yml` de la etiqueta tiene nombres fijos iguales a los de `main`, así que se
 separan con `-p agora-joven-v100` y un archivo de anulación local. Desde este bloque, `main`
 construye la imagen `agora-joven-api:1.1-dev` (antes `:dev`, el mismo nombre que la etiqueta).
-Instrucciones en README → "Qué código usar con cada app".
+Instrucciones en [INSTALACION.md → Qué código usar con cada app](INSTALACION.md#qué-código-usar-con-cada-app).
 
 ## Investigación asistida y mayoría de edad (Bloque 7C, v1.1)
 
