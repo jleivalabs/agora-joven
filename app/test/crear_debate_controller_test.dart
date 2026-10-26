@@ -275,7 +275,7 @@ void main() {
       expect(c.modoEdicion, isTrue);
       c.cambiarTitulo('¿Debería ampliarse el horario del bus en exámenes?');
 
-      final editado = await c.guardarEdicion();
+      final editado = await c.guardarEdicion('Motivo de la edición de prueba.');
       expect(
         editado!.titulo,
         '¿Debería ampliarse el horario del bus en exámenes?',
@@ -283,7 +283,7 @@ void main() {
 
       servidor.sembrarAporte(autorId: 2, debateId: detalle.id);
       c.cambiarTitulo('¿Otro título largo para el mismo debate?');
-      expect(await c.guardarEdicion(), isNull);
+      expect(await c.guardarEdicion('Motivo de la edición de prueba.'), isNull);
       expect(c.errorPublicar.value, contains('bloqueado'));
     });
 

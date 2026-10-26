@@ -127,7 +127,7 @@ def mis_debates(db: Db, usuario: UsuarioActual) -> MisDebates:
             publicado_en=debate.publicado_en,
             archivado_en=debate.archivado_en,
             archivo_origen=debate.archivo_origen,
-            editable=debate.estado == EstadoDebate.publicado.value and aportes == 0,
+            editable=repo_debates.es_editable(debate, aportes),
             solicitud_archivo=(
                 None if solicitud is None else SolicitudPropia.model_validate(solicitud)
             ),

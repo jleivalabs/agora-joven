@@ -50,7 +50,7 @@ def consultar(
     debate = repo_debates.obtener(db, debate_id)
     if debate is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Debate no encontrado.")
-    aportes = [aporte for aporte, _ in repo_aportes.listar(db, debate_id)]
+    aportes = [aporte for aporte, _, _ in repo_aportes.listar(db, debate_id)]
 
     if datos.accion is AccionAsistente.perspectivas and not aportes:
         # Nada que resumir: no se llama al proveedor ni se inventa un resumen.

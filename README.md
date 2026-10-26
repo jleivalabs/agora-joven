@@ -11,9 +11,9 @@ Proyecto Final del curso *Desarrolla Aplicaciones Móviles Robustas con Flutter 
 > GitHub Actions desde el commit `1ce2f37` y validada por la persona autora en el emulador.
 > Estado y evidencias de cada bloque: [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 >
-> **v1.1 en desarrollo en `main`** (sin publicar): dashboard de inicio (Bloque 7A). Las
-> instrucciones de instalación de abajo corresponden al APK publicado **v1.0.0**, que no incluye
-> el dashboard. Ver [Versión 1.1](#versión-11-en-desarrollo).
+> **v1.1 en desarrollo en `main`** (sin publicar). Su backend **no es compatible** con el APK
+> v1.0.0: para usar ese APK hay que ejecutar el backend de la etiqueta `v1.0.0` en un entorno
+> separado. Ver [Qué código usar con cada app](#qué-código-usar-con-cada-app).
 
 ## Capturas de pantalla
 
@@ -54,16 +54,46 @@ nombres visibles ("Jleiva", "patu") son cuentas de prueba.
 | Python local (opcional, desarrollo sin Docker) | 3.11.9 |
 | Android | Emulador con API 24 o superior (minSdk 24) |
 
-## Puesta en marcha desde un clon limpio
+## Qué código usar con cada app
 
-### 1. Clonar
+| App | Backend | Proyecto Docker | Volumen | Contenedor | Imagen | Puerto del equipo |
+|---|---|---|---|---|---|---|
+| **APK v1.0.0** (Release) | Etiqueta **`v1.0.0`** (commit `1ce2f37`) | `agora-joven-v100` | `agora-joven-v100_agora_datos` | `agora-joven-api-v100` | `agora-joven-api:v1.0.0` | **8010** (fijo en el APK) |
+| **App 1.1** desde el código (`flutter run`) | Rama **`main`** | `agora-joven` | `agora-joven_agora_datos` | `agora-joven-api` | `agora-joven-api:1.1-dev` | `API_PORT` (8010 por defecto) |
+
+- **No mezcles backends y volúmenes.** El backend de `main` migra su base (revisión `0004`:
+  historial de versiones, aportes ligados a una versión, roles). El backend de v1.0.0 no conoce
+  esas migraciones: si abriera ese volumen, escribiría aportes sin versión y sin marcar la
+  participación, rompiendo las protecciones de la v1.1. Cada entorno usa **su propio volumen**.
+- **El APK v1.0.0 no funciona con el backend de `main`**: no envía la versión del debate al
+  publicar aportes y recibe un error 422. No es un fallo que haya que relajar en el servidor.
+- **Puertos:** el APK v1.0.0 solo llama a `http://10.0.2.2:8010`. Los dos backends no pueden usar
+  el 8010 a la vez: detén el de desarrollo (`docker compose stop api` en su clon; **nunca**
+  `down -v`) mientras pruebas el APK, o mueve el de desarrollo a otro puerto (`API_PORT=8012` en
+  su `backend/.env` y `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8012`).
+- **Secretos:** cada entorno tiene su `backend/.env`, creado y editado a mano a partir de
+  `.env.example`, con un `JWT_SECRET` propio. No se copia entre clones ni se imprime.
+
+## Probar la Release v1.0.0 (APK + backend de la etiqueta)
+
+El `docker-compose.yml` de la etiqueta usa los mismos nombres fijos que el de desarrollo
+(proyecto `agora-joven`, contenedor `agora-joven-api`, volumen `agora-joven_agora_datos`). La
+etiqueta no se modifica; en su lugar, un archivo de anulación local y `-p` separan el entorno.
+**No uses las instrucciones de "Puesta en marcha" del README de la etiqueta**: arrancarían el
+backend antiguo sobre el volumen de desarrollo.
+
+#### A1. Descargar el código de la etiqueta en otra carpeta
 
 ```powershell
-git clone https://github.com/jleivalabs/agora-joven.git
-cd agora-joven
+cd ..        # fuera del clon de desarrollo
+git clone --branch v1.0.0 --depth 1 https://github.com/jleivalabs/agora-joven.git agora-joven-v1.0.0
+cd agora-joven-v1.0.0
+git rev-parse --short HEAD             # debe mostrar 1ce2f37
 ```
 
-### 2. Configurar los secretos del backend (solo en tu equipo)
+También sirve el archivo "Source code" de la [Release v1.0.0](https://github.com/jleivalabs/agora-joven/releases/tag/v1.0.0).
+
+#### A2. Secretos de este entorno (a mano)
 
 ```powershell
 cd backend
@@ -71,31 +101,53 @@ Copy-Item .env.example .env
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-Abre `backend/.env` en tu editor:
+Abre `backend/.env` en tu editor y pega el valor generado en `JWT_SECRET=` (uno **nuevo**, no el del
+entorno de desarrollo). Deja `API_PORT=8010`: es el puerto que usa el APK. `GEMINI_API_KEY` es
+opcional. No muestres el archivo en la terminal para comprobarlo.
 
-- `JWT_SECRET=` → pega el valor generado. **Obligatorio**: sin él, Compose no arranca la API.
-- `GEMINI_API_KEY=` → opcional. Crea la clave en
-  [Google AI Studio](https://aistudio.google.com/app/apikey) y pégala solo aquí. Sin clave todo
-  funciona salvo el asistente, que responde "no está configurado".
+#### A3. Anulación local de nombres (no versionada)
 
-`backend/.env` está en `.gitignore`: no lo compartas, no lo subas y no pegues sus valores en chats
-ni capturas.
-
-### 3. Arrancar el backend con Docker y comprobar /health
+En `agora-joven-v1.0.0\backend`:
 
 ```powershell
-docker compose up --build -d api
-docker compose ps                     # agora-joven-api debe aparecer como (healthy)
-curl.exe http://localhost:8010/health
-# {"status":"ok","servicio":"agora-joven-api"}
+@'
+services:
+  api:
+    image: agora-joven-api:v1.0.0
+    container_name: agora-joven-api-v100
+volumes:
+  agora_datos:
+    name: agora-joven-v100_agora_datos
+'@ | Set-Content -Encoding ascii docker-compose.v1.override.yml
 ```
 
-- Puerto del host: `8010`. La base SQLite vive en el volumen `agora-joven_agora_datos` y sobrevive
-  a `docker compose down` y a recrear el contenedor. **`docker compose down -v` borra el volumen**.
-- Al arrancar se crean las tablas y se cargan los 20 debates (carga idempotente).
-- Documentación interactiva de la API: `http://localhost:8010/docs`.
+Todas las órdenes de este entorno llevan `-p agora-joven-v100` y los dos `-f`. Para no
+olvidarlos, define en esa terminal:
 
-### 4. Instalar el APK de la Release
+```powershell
+function dc100 { docker compose -p agora-joven-v100 -f docker-compose.yml -f docker-compose.v1.override.yml @args }
+```
+
+#### A4. Liberar el puerto 8010 (si el backend de desarrollo está en marcha)
+
+En el clon de desarrollo (`agora-joven\backend`): `docker compose stop api`. Solo lo detiene;
+el volumen de desarrollo no se toca.
+
+#### A5. Crear, comprobar el volumen y arrancar
+
+```powershell
+dc100 create --build api
+docker inspect agora-joven-api-v100 --format "{{range .Mounts}}{{.Name}}{{end}}"
+# Debe mostrar exactamente: agora-joven-v100_agora_datos
+dc100 start api
+dc100 ps                                # agora-joven-api-v100 (healthy)
+curl.exe http://localhost:8010/health
+```
+
+Si `docker inspect` muestra otro volumen (por ejemplo `agora-joven_agora_datos`), **no arranques**:
+elimina solo ese contenedor con `dc100 rm api` (sin `-v`) y revisa los pasos A3 y A5.
+
+#### A6. Instalar el APK y probar
 
 1. Descarga de la [Release v1.0.0](https://github.com/jleivalabs/agora-joven/releases/tag/v1.0.0) los archivos
    `agora-joven-v1.0.0-emulador.apk` y `agora-joven-v1.0.0-emulador.apk.sha256`.
@@ -117,12 +169,70 @@ curl.exe http://localhost:8010/health
    guardados con Hive. **No** borra nada del backend: cuentas, aportes y debates siguen en el
    volumen Docker. Tras reinstalar, inicia sesión de nuevo y vuelve a guardar los debates.
 
+   El volumen `agora-joven-v100_agora_datos` empieza vacío: registra cuentas nuevas en este
+   entorno (las del entorno de desarrollo no están aquí, y no deben copiarse).
+
 **Dirección del backend de ese APK:** `http://10.0.2.2:8010`. `10.0.2.2` es tu equipo visto desde el
-**emulador Android**; por eso el APK de la Release solo funciona en el emulador con el backend del
-paso 3 en marcha. Un teléfono físico necesita compilar otra vez con la IP del equipo (ver
+**emulador Android**; por eso el APK de la Release solo funciona en el emulador con el backend de
+la etiqueta en marcha en el puerto 8010 del equipo. Un teléfono físico necesita compilar otra vez con la IP del equipo (ver
 "Ejecutar desde el código").
 
-### 5. Ejecutar desde el código (alternativa al APK)
+#### A7. Volver al entorno de desarrollo
+
+```powershell
+dc100 stop api                          # en agora-joven-v1.0.0\backend
+```
+
+Después, en el clon de desarrollo: `docker compose start api`. Los dos volúmenes se conservan.
+
+## Desarrollo v1.1 desde un clon limpio (rama `main`)
+
+### 1. Clonar
+
+```powershell
+git clone https://github.com/jleivalabs/agora-joven.git
+cd agora-joven
+```
+
+Esto descarga `main` (v1.1 en desarrollo). **No sirve para el APK v1.0.0**: para él, ver
+[Probar la Release v1.0.0](#probar-la-release-v100-apk--backend-de-la-etiqueta).
+
+### 2. Configurar los secretos del backend (solo en tu equipo)
+
+```powershell
+cd backend
+Copy-Item .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Abre `backend/.env` en tu editor:
+
+- `JWT_SECRET=` → pega el valor generado. **Obligatorio**: sin él, Compose no arranca la API.
+- `GEMINI_API_KEY=` → opcional. Crea la clave en
+  [Google AI Studio](https://aistudio.google.com/app/apikey) y pégala solo aquí. Sin clave todo
+  funciona salvo el asistente, que responde "no está configurado".
+
+`backend/.env` está en `.gitignore`: no lo compartas, no lo subas y no pegues sus valores en chats
+ni capturas. Cada clon (desarrollo y v1.0.0) tiene **su propio** `backend/.env`, creado a mano:
+no se copia de un clon a otro ni se imprime para comprobarlo.
+
+### 3. Arrancar el backend con Docker y comprobar /health
+
+```powershell
+docker compose up --build -d api
+docker compose ps                     # agora-joven-api debe aparecer como (healthy)
+curl.exe http://localhost:8010/health
+# {"status":"ok","servicio":"agora-joven-api"}
+```
+
+- Puerto del host: `8010`. La base SQLite vive en el volumen `agora-joven_agora_datos` y sobrevive
+  a `docker compose down` y a recrear el contenedor. **`docker compose down -v` borra el volumen**.
+- Al arrancar se aplican las migraciones (Alembic) y se carga el catálogo de 20 debates (carga
+  idempotente). Este volumen ya está en el esquema de la v1.1: **no lo abras con el backend de
+  v1.0.0**.
+- Documentación interactiva de la API: `http://localhost:8010/docs`.
+
+### 4. Ejecutar la app desde el código
 
 ```powershell
 cd app
@@ -136,6 +246,9 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8010
 | Teléfono físico en la misma red | `http://<IP-del-PC>:8010` | Añadir esa IP a `app/android/app/src/main/res/xml/network_security_config.xml` o usar HTTPS |
 
 ## Recorrido de prueba (dos cuentas)
+
+Recorrido de la v1.0.0. Con el APK de la Release, el backend es el de la etiqueta: donde dice
+`docker compose`, usa `dc100` (paso A3) en `agora-joven-v1.0.0ackend`.
 
 1. Abre la app → "Crear una cuenta" → registra la cuenta A → inicia sesión.
 2. Catálogo: filtra por una categoría y vuelve a "Todas". Abre un debate: contexto, perspectivas y
@@ -260,8 +373,9 @@ Alcance y correspondencia con la rúbrica: [docs/ALCANCE.md](docs/ALCANCE.md).
 ## Versión 1.1 (en desarrollo)
 
 Cambios en `main` posteriores a la v1.0.0, **sin Release publicada**. Para probarlos hay que
-ejecutar la app desde el código (`flutter run`, sección 5) con el backend actualizado
-(`docker compose up --build -d api`).
+ejecutar la app desde el código (`flutter run`, sección 4 de "Desarrollo v1.1") con el backend de
+`main` (`docker compose up --build -d api`). El APK v1.0.0 necesita el backend de su etiqueta (ver
+[Qué código usar con cada app](#qué-código-usar-con-cada-app)).
 
 - **Bloque 7A — dashboard de inicio.** Tras iniciar sesión, la app abre "Inicio", con navegación
   inferior entre Inicio, Debates y Guardados:
@@ -281,6 +395,13 @@ ejecutar la app desde el código (`flutter run`, sección 5) con el backend actu
   promueve solo con `docker compose exec api python -m app.admin promover <id>`). El backend migra la base existente con Alembic al arrancar, conservando cuentas,
   debates y aportes. Detalles en
   [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#debates-de-usuarios-bloque-7b-v11).
+- **Bloque 7B.1 — historial y protección del contexto.** Cada debate tiene "Historial" con sus
+  versiones publicadas y las diferencias por campo. Editar exige un motivo y crea una versión; tras
+  el primer aporte el contenido queda protegido para siempre. Los aportes indican la versión
+  sobre la que se escribieron y, si el debate cambió mientras se redactaban, la app conserva el
+  texto y pide confirmar. El autor puede añadir aclaraciones fechadas. Requiere la app de este
+  bloque: el APK `v1.0.0` ya no puede publicar aportes contra este backend. Detalles en
+  [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#historial-de-versiones-bloque-7b1-v11).
 - Próximo: investigación asistida con fuentes (7C) y construcción de acuerdos. Alcance en [docs/ALCANCE.md](docs/ALCANCE.md).
 
 ## Desarrollo

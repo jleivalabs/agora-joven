@@ -99,7 +99,11 @@ void main() {
       () async {
         final c = await cargado();
 
-        final ok = await c.publicar(TipoAporte.propuesta, '  $textoValido  ');
+        final ok = await c.publicar(
+          TipoAporte.propuesta,
+          '  $textoValido  ',
+          1,
+        );
         expect(ok, isTrue);
         expect(c.aportes.single.texto, textoValido);
         expect(c.aportes.single.esPropio, isTrue);
@@ -114,8 +118,8 @@ void main() {
       final c = await cargado();
       servidor.cuando('POST /debates/{id}/aportes', (_) => respuesta.future);
 
-      final primero = c.publicar(TipoAporte.pregunta, textoValido);
-      final segundo = c.publicar(TipoAporte.pregunta, textoValido);
+      final primero = c.publicar(TipoAporte.pregunta, textoValido, 1);
+      final segundo = c.publicar(TipoAporte.pregunta, textoValido, 1);
       expect(c.enviando.value, isTrue);
       respuesta.complete(const RespuestaFalsa(500));
       await Future.wait([primero, segundo]);
@@ -130,7 +134,7 @@ void main() {
         final c = await cargado();
         servidor.cuando('POST /debates/{id}/aportes', sinRespuestaATiempo);
 
-        final ok = await c.publicar(TipoAporte.pregunta, textoValido);
+        final ok = await c.publicar(TipoAporte.pregunta, textoValido, 1);
 
         expect(ok, isFalse);
         expect(
@@ -261,7 +265,7 @@ void main() {
         final respuesta = Completer<RespuestaFalsa>();
         servidor.cuando('POST /debates/{id}/aportes', (_) => respuesta.future);
 
-        final publicacion = c.publicar(TipoAporte.pregunta, textoValido);
+        final publicacion = c.publicar(TipoAporte.pregunta, textoValido, 1);
         await sesion.cerrarSesion();
         await sesion.iniciarSesion(emailBeto, passwordAna);
         respuesta.complete(
@@ -306,7 +310,11 @@ void main() {
       servidor.cuando('POST /debates/{id}/aportes', (_) => publicacion.future);
 
       final pendienteCarga = c.cargar();
-      final pendientePublicacion = c.publicar(TipoAporte.pregunta, textoValido);
+      final pendientePublicacion = c.publicar(
+        TipoAporte.pregunta,
+        textoValido,
+        1,
+      );
       c.onClose(); // la pantalla se cierra
       carga.complete(const RespuestaFalsa(500));
       publicacion.complete(const RespuestaFalsa(500));

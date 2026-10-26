@@ -60,7 +60,7 @@ def _sesion(cliente, email, nombre):
 
 def _aportar(cliente, cabecera, texto=TEXTO_APORTE, tipo="argumento", debate_id=1):
     r = cliente.post(
-        f"/debates/{debate_id}/aportes", json={"tipo": tipo, "texto": texto}, headers=cabecera
+        f"/debates/{debate_id}/aportes", json={"tipo": tipo, "texto": texto, "version": 1}, headers=cabecera
     )
     assert r.status_code == 201
     return r.json()

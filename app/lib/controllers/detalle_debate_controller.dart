@@ -52,6 +52,38 @@ class DetalleDebateController extends GetxController {
     estado.value = EstadoCarga.listo;
   }
 
+  /// Aclaración en curso (evita envíos duplicados).
+  final aclarando = false.obs;
+
+  /// Añade una aclaración fechada e inmutable al debate propio. Devuelve el mensaje.
+  Future<String?> aclarar(String texto) async {
+    if (aclarando.value) return null;
+    aclarando.value = true;
+    try {
+      final aclaracion = await _sesion.ejecutar(
+        (t) => _repositorio.aclarar(t, debateId, texto),
+      );
+      if (!_activo) return null;
+      debate.value = debate.value?.conAclaracion(aclaracion);
+      return 'Aclaración publicada.';
+    } on SesionObsoleta {
+      return null;
+    } on ApiException catch (e) {
+      if (!_activo) return null;
+      if (e.tipo == TipoError.conflicto) unawaited(cargar());
+      return switch (e.tipo) {
+        TipoError.conflicto =>
+          'Este debate está archivado: es de solo lectura.',
+        TipoError.prohibido => 'Solo quien creó este debate puede aclararlo.',
+        TipoError.validacion =>
+          'La aclaración debe tener entre 10 y 1000 caracteres.',
+        _ => 'No se pudo publicar la aclaración. ${mensajeDeError(e)}',
+      };
+    } finally {
+      if (_activo) aclarando.value = false;
+    }
+  }
+
   /// Solo decide qué opciones se muestran; el servidor comprueba el rol en cada acción.
   bool get esAdministrador => _sesion.usuario.value?.esAdministrador ?? false;
 

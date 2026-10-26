@@ -41,7 +41,7 @@ def _solicitar(client, cabecera, debate_id, cuerpo=MOTIVO):
 def _aportar(client, cabecera, debate_id):
     return client.post(
         f"/debates/{debate_id}/aportes",
-        json={"tipo": "argumento", "texto": "Un argumento con texto suficiente."},
+        json={"tipo": "argumento", "texto": "Un argumento con texto suficiente.", "version": 1},
         headers=cabecera,
     )
 

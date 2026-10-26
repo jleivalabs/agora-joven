@@ -8,6 +8,7 @@ import '../controllers/sesion_controller.dart';
 import '../models/borrador.dart';
 import '../models/debate.dart';
 import '../theme/app_theme.dart';
+import '../widgets/dialogo_motivo.dart';
 import '../widgets/estados.dart';
 import '../widgets/marca.dart';
 import 'detalle_debate_screen.dart';
@@ -108,9 +109,24 @@ class _CrearDebateScreenState extends State<CrearDebateScreen> {
 
   Future<void> _publicar() async {
     if (_c.modoEdicion) {
-      final editado = await _c.guardarEdicion();
+      final motivo = await pedirMotivo(
+        context,
+        titulo: 'Motivo del cambio',
+        explicacion:
+            'Cada edición crea una versión nueva en el historial, visible para todas las '
+            'cuentas, con tu nombre, la fecha y este motivo. La versión anterior se conserva.',
+        etiqueta: 'Motivo',
+        accion: 'Guardar cambios',
+      );
+      if (motivo == null || !mounted) return;
+      final anterior = _c.debateEditado?.versionActual;
+      final editado = await _c.guardarEdicion(motivo);
       if (editado != null && mounted) {
-        _avisar('Cambios guardados.');
+        _avisar(
+          editado.versionActual == anterior
+              ? 'Sin cambios en el contenido: no se creó una versión nueva.'
+              : 'Cambios guardados como versión ${editado.versionActual}.',
+        );
         Navigator.of(context).pop(editado);
       }
       return;

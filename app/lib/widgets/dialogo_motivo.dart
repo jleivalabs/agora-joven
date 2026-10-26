@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/solicitud_archivo.dart';
 import '../theme/app_theme.dart';
 
-/// Pide un texto obligatorio (motivo o justificación) con los límites del servidor.
+/// Pide un texto obligatorio (motivo, justificación o aclaración) con los límites del servidor.
 /// Devuelve el texto sin espacios exteriores, o null si se cancela.
 Future<String?> pedirMotivo(
   BuildContext context, {
@@ -11,6 +11,8 @@ Future<String?> pedirMotivo(
   required String explicacion,
   required String etiqueta,
   required String accion,
+  int minimo = LimitesMotivo.minimo,
+  int maximo = LimitesMotivo.maximo,
 }) => showDialog<String>(
   context: context,
   builder: (_) => _DialogoMotivo(
@@ -18,6 +20,8 @@ Future<String?> pedirMotivo(
     explicacion: explicacion,
     etiqueta: etiqueta,
     accion: accion,
+    minimo: minimo,
+    maximo: maximo,
   ),
 );
 
@@ -27,12 +31,16 @@ class _DialogoMotivo extends StatefulWidget {
     required this.explicacion,
     required this.etiqueta,
     required this.accion,
+    required this.minimo,
+    required this.maximo,
   });
 
   final String titulo;
   final String explicacion;
   final String etiqueta;
   final String accion;
+  final int minimo;
+  final int maximo;
 
   @override
   State<_DialogoMotivo> createState() => _DialogoMotivoState();
@@ -51,10 +59,8 @@ class _DialogoMotivoState extends State<_DialogoMotivo> {
 
   void _aceptar() {
     final valor = _texto.text.trim();
-    if (valor.length < LimitesMotivo.minimo) {
-      setState(
-        () => _error = 'Escribe al menos ${LimitesMotivo.minimo} caracteres.',
-      );
+    if (valor.length < widget.minimo) {
+      setState(() => _error = 'Escribe al menos ${widget.minimo} caracteres.');
       return;
     }
     Navigator.of(context).pop(valor);
@@ -77,7 +83,7 @@ class _DialogoMotivoState extends State<_DialogoMotivo> {
             autofocus: true,
             minLines: 2,
             maxLines: 5,
-            maxLength: LimitesMotivo.maximo,
+            maxLength: widget.maximo,
             decoration: InputDecoration(
               labelText: widget.etiqueta,
               errorText: _error,

@@ -11,8 +11,10 @@ from app.models import (
     Debate,
     EstadoDebate,
     Procedencia,
+    TipoVersion,
     ahora_utc,
 )
+from app.repositorios import versiones as repo_versiones
 from app.schemas import ContenidoDebate
 
 
@@ -103,5 +105,10 @@ def publicar(db: Session, borrador: Borrador, contenido: ContenidoDebate) -> tup
         db.rollback()  # otra petición lo publicó primero: se descarta este debate
         existente = db.scalar(select(Borrador.debate_id).where(Borrador.id == borrador.id))
         return db.get(Debate, existente), False
+    # Versión 1 inmutable con el contenido publicado (los guardados del borrador no son versiones).
+    debate.version_actual = 1
+    repo_versiones.nueva_version(
+        db, debate, 1, TipoVersion.publicacion, autor_id=borrador.autor_id
+    )
     db.commit()
     return debate, True

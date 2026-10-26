@@ -41,6 +41,7 @@ Regla: una pantalla solo habla con controladores; un controlador solo con reposi
 | `CrearDebateScreen` (asistente de 6 pasos; también edición) | `CrearDebateController` | `BorradoresRepository`, `DebatesRepository` | `ApiClient` | ✅ 7B |
 | `MisDebatesScreen` (borradores, publicados, archivados) | `MisDebatesController` | `DebatesRepository`, `BorradoresRepository`, `SolicitudesRepository` | `ApiClient` | ✅ 7B |
 | `AdminSolicitudesScreen`, `AdminSolicitudScreen` (solo administración) | `AdminSolicitudesController` | `SolicitudesRepository` | `ApiClient` | ✅ 7B (ajuste) |
+| `HistorialScreen`, `VersionScreen` | `HistorialController`, `VersionController` | `DebatesRepository` | `ApiClient` | ✅ 7B.1 |
 
 Widgets comunes: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con reintentar y acción
 secundaria), `Marca` y `Aviso`. `setState` solo se usa para estado local de un formulario
@@ -196,7 +197,10 @@ existe, la respuesta es 401 `Sesión no válida o caducada. Inicia sesión de nu
 | `GET /debates/categorias` | ✅ | Las 8 categorías en orden fijo, con `etiqueta` y `total` de debates **activos** (puede ser 0) | 200 · 401 |
 | `GET /debates?categoria=` | ✅ | Debates **publicados** (no archivados): `{id, titulo, categoria, resumen, origen, procedencia, estado, autor_nombre}`, orden por `id` ascendente | 200 (lista vacía si la categoría no tiene debates) · 401 · 422 categoría desconocida |
 | `GET /debates/{id}` | ✅ | Detalle (también archivados): resumen + `contexto`, `perspectivas[{titulo, descripcion}]`, `actualizado_en`, `ambito`, `objetivo`, `publicado_en`, `archivado_en`, `archivo_origen`, `aportes`, `es_propio`, `editable` y, solo para la cuenta autora, `solicitud_archivo` | 200 · 401 · 404 `Debate no encontrado.` · 422 id no numérico |
-| `PUT /debates/{id}` | ✅ 7B | Editar el propio con el contenido completo; solo publicado y sin aportes | 200 · 401 · 403 no es autor o editorial · 404 · 409 archivado o con aportes · 422 |
+| `PUT /debates/{id}` | ✅ 7B / 7B.1 | Editar el propio: contenido completo + `motivo` (10–500). Crea versión si cambia algo; solo si nunca recibió aportes y sin bloqueo histórico | 200 (también sin cambios, sin versión nueva) · 401 · 403 no es autor, editorial o administración · 404 · 409 archivado, con participación o protegido · 422 |
+| `GET /debates/{id}/versiones` | ✅ 7B.1 | Versiones publicadas (más reciente primero): `{numero, tipo, creada_en, autor_nombre, motivo, campos_cambiados, es_actual}` | 200 · 401 · 404 |
+| `GET /debates/{id}/versiones/{numero}` | ✅ 7B.1 | Contenido de la versión + `cambios[{campo, antes, despues}]` respecto a la anterior | 200 · 401 · 404 |
+| `POST /debates/{id}/aclaraciones` | ✅ 7B.1 | Aclaración del autor `{texto (10–1000)}`; inmutable, no crea versión | 201 · 401 · 403 · 404 · 409 archivado · 422 |
 | `POST /debates/{id}/archivar` | ✅ 7B (ajuste) | **Solo administración**: archivo directo `{motivo (10–500)}` | 200 · 401 · **403 cualquier otra cuenta, también la autora** · 404 · 409 ya archivado · 422 |
 | `POST /debates/{id}/solicitud-archivo` | ✅ 7B (ajuste) | El autor solicita archivar `{motivo}`; no archiva | **201** nueva · **200** ya había una pendiente (la misma) · 401 · 403 no es autor · 404 · 409 archivado · 422 |
 | `GET /solicitudes-archivo` · `GET /solicitudes-archivo/{id}` | ✅ 7B (ajuste) | Solicitudes propias con estado y `respuesta` | 200 · 401 · 404 si es ajena |
@@ -208,8 +212,8 @@ existe, la respuesta es 401 `Sesión no válida o caducada. Inicia sesión de nu
 | `GET` · `PATCH` · `DELETE /borradores/{id}` | ✅ 7B | Leer, guardar cambios parciales, eliminar el propio | 200 · 204 · 401 · **404 si es ajeno** · 409 ya publicado · 422 |
 | `POST /borradores/{id}/publicar` | ✅ 7B | Valida y convierte el borrador en debate | **201** primera vez · **200** repetición (mismo debate) · 401 · 404 · 422 incompleto |
 | `GET /mis-debates` | ✅ 7B | `{borradores, publicados, archivados}` de la cuenta del token | 200 · 401 |
-| `GET /debates/{id}/aportes` | ✅ | Aportes del debate, `creado_en` descendente con desempate por `id` descendente; sin paginación | 200 · 401 · 404 debate |
-| `POST /debates/{id}/aportes` | ✅ | Crear `{tipo, texto}`; cualquier otro campo (`autor_id`, `debate_id`…) → 422 | 201 aporte · 401 · 404 debate · 409 debate archivado (7B) · 422 |
+| `GET /debates/{id}/aportes` | ✅ | Aportes del debate, `creado_en` descendente con desempate por `id` descendente; sin paginación. Incluye `version` (nula si es anterior al historial) | 200 · 401 · 404 debate |
+| `POST /debates/{id}/aportes` | ✅ | Crear `{tipo, texto, version}` (7B.1: `version` obligatoria); cualquier otro campo (`autor_id`, `debate_id`…) → 422 | 201 aporte · 401 · 404 debate · 409 debate archivado (7B) · **409 `version_desactualizada`** (7B.1) · 422 (también versión de otro debate) |
 | `PATCH /aportes/{id}` | ✅ | Editar el propio `{tipo?, texto?}`: al menos uno, sin `null`, sin campos extra | 200 · 401 · **403 si no es el autor** · 404 · 422 |
 | `DELETE /aportes/{id}` | ✅ | Eliminar el propio | 204 sin cuerpo · 401 · **403** · 404 |
 | `GET /estadisticas/comunidad` | ✅ 7A | Cifras públicas agregadas (ver "Dashboard") | 200 · 401 |
@@ -473,7 +477,8 @@ sesión se descarta.
 
 **Migraciones (Alembic).** Al arrancar, `app/migrar.py` aplica las migraciones de
 `app/migraciones/` (`0001` esquema v1/7A, `0002` columnas 7B y tabla `borradores`, `0003` roles,
-origen del archivo y `solicitudes_archivo`). Las migraciones aplicadas no se modifican; cada cambio
+origen del archivo y `solicitudes_archivo`, `0004` historial de versiones, indicadores de
+protección, `aportes.version_id` y `aclaraciones`). Las migraciones aplicadas no se modifican; cada cambio
 de esquema es una revisión nueva. Una base
 anterior sin `alembic_version` pero con las tablas v1 se marca como `0001` y se actualiza. La FK
 `autor_id` se añade con `ALTER TABLE … ADD COLUMN … REFERENCES` (SQLite no admite añadir
@@ -482,8 +487,8 @@ restricciones por otra vía sin recrear la tabla). Los 20 debates existentes que
 Manual: `python -m app.migrar`.
 
 **Restaurar una copia de seguridad.** Las copias están fuera de Git (rutas en
-`docs/SEGUIMIENTO.md`): la previa a 7B (esquema 7A, revisión `0001`) y la previa a los roles
-(revisión `0002`). Al arrancar, la API aplica las migraciones pendientes: restaurar una copia con
+`docs/SEGUIMIENTO.md`): la previa a 7B (esquema 7A, revisión `0001`), la previa a los roles
+(revisión `0002`) y la previa al historial (revisión `0003`). Al arrancar, la API aplica las migraciones pendientes: restaurar una copia con
 el código actual la vuelve a migrar a la última revisión conservando sus datos; para volver de
 verdad a un esquema anterior hay que usar también el código de esa versión. Con la API detenida:
 
@@ -495,6 +500,80 @@ docker compose start api
 ```
 
 No usar `down -v` (borra el volumen). Antes de restaurar, conviene copiar también la base actual.
+
+## Historial de versiones (Bloque 7B.1, v1.1)
+
+Objetivo: conservar qué contenido estaba publicado cuando alguien participó y evitar que cambios
+posteriores desvirtúen su aporte.
+
+**Versiones** (`versiones_debate`, migración `0004`). Cada fila guarda los 7 campos de contenido
+(categoría, ámbito, pregunta, resumen, contexto, perspectivas, objetivo), `numero` consecutivo por
+debate (único), `tipo`, fecha, autor del cambio y motivo. Solo se insertan: no hay ninguna ruta ni
+función que las modifique o borre.
+
+| Tipo | Cuándo | Autor y motivo |
+|---|---|---|
+| `publicacion` | Al publicar un borrador (versión 1). Los guardados del borrador nunca son versiones | Autor; sin motivo |
+| `edicion` | Cada edición efectiva permitida (`PUT /debates/{id}` con `motivo` obligatorio, 10–500) | Autor y motivo |
+| `catalogo` | Alta o cambio de un debate editorial por la semilla | Sin autor ni motivo (material editorial) |
+| `registro_inicial` | Migración `0004`: "Estado registrado al incorporar el historial" de cada debate existente | Sin autor ni motivo: no se conservaron |
+
+Guardar sin cambios (contenido idéntico tras normalizar espacios) responde 200 y no crea versión.
+Archivo y solicitudes de archivo tienen su registro propio y no tocan las versiones.
+
+**Bloqueo permanente.** `debates.con_participacion` se marca al aceptar el primer aporte y nunca se
+desmarca: aunque luego se eliminen todos los aportes, el contenido no se puede reescribir (409).
+`debates.bloqueo_historico` protege de forma conservadora todos los debates publicados antes de
+`0004`: no se puede demostrar que los que hoy no tienen aportes nunca los tuvieron. Solo es
+editable un debate de usuario publicado, de la cuenta autora, sin participación, sin bloqueo
+histórico y sin aportes. Nadie más puede reescribirlo, tampoco la administración (403). Los
+borradores siguen editables y los debates publicados después de `0004` usan solo el indicador
+permanente.
+
+**Concurrencia.** Publicar un aporte empieza con
+`UPDATE debates SET con_participacion = 1 WHERE id = ? AND estado = 'publicado' AND
+version_actual = ?`; editar empieza con un `UPDATE` condicionado a autor, publicado, sin
+participación, sin bloqueo y sin aportes. Ambos escriben primero en la fila del debate, así que el
+primero que llega toma el bloqueo de escritura de SQLite y el otro ve el estado ya confirmado:
+o se edita y el aporte redactado sobre la versión anterior recibe 409, o se publica el aporte y la
+edición queda rechazada. Nunca ambos (prueba con hilos y prueba determinista de los dos órdenes).
+
+**Aportes vinculados a una versión.** `POST /debates/{id}/aportes` exige `version` (la que la
+persona estaba viendo). Si no es del debate → 422; si ya no es la vigente → **409** con
+`detail = {codigo: "version_desactualizada", mensaje, version_actual}` y no se publica. La app
+conserva el texto, explica que el debate cambió, permite abrir la versión vigente y solo publica
+si la persona confirma "Aportar sobre la versión N" y vuelve a pulsar Publicar (sin reintentos
+automáticos). `aportes.version_id` no cambia al editar el texto. Los aportes anteriores al
+historial tienen `version_id` nulo: la app muestra "Versión original desconocida" y ofrece la
+instantánea inicial solo como referencia.
+
+**Aclaraciones** (`aclaraciones`): añadidos fechados del autor a su debate de usuario activo
+(`POST /debates/{id}/aclaraciones`, texto 10–1000, también con el contenido bloqueado). Se
+muestran en una sección aparte con autor y fecha, son inmutables (una rectificación es otra
+aclaración) y no crean versión. En un debate archivado → 409 (solo lectura). Un cambio sustancial
+de tema se publica como otro debate (no hay bifurcaciones automáticas).
+
+**Semilla editorial.** Inserta los debates nuevos con su versión 1 (`catalogo`). Un cambio en el
+archivo solo se aplica si el debate no está protegido (sin participación, sin bloqueo histórico y
+publicado) y crea la versión siguiente; si está protegido se cuenta como `protegidos` y no se toca.
+
+**App.** "Historial" (icono en la barra del detalle, para cualquier cuenta autenticada) →
+`HistorialScreen` (versiones con tipo, fecha, autor, campos cambiados y motivo) →
+`VersionScreen` (aviso de versión vigente o "Versión histórica N … No es el contenido vigente",
+diferencias por campo "Antes"/"Después" respecto a la anterior y el contenido completo). Cada
+aporte enlaza con su versión. El autor edita pidiendo el motivo y ve si se creó versión; añade
+aclaraciones desde el menú. `HistorialController` y `VersionController` usan
+`SesionController.ejecutar` y descartan respuestas tardías.
+
+**Compatibilidad.** El APK `v1.0.0` publica aportes sin `version`: contra este backend recibe 422.
+No se relaja la comprobación ni se asigna una versión supuesta a esas peticiones. Cada app usa su
+backend: APK `v1.0.0` → backend de la etiqueta `v1.0.0`; app 1.1 → backend de `main`. El backend
+antiguo no debe abrir un volumen migrado a `0004` (escribiría aportes sin versión y sin marcar
+la participación). Los dos entornos necesitan proyecto, volumen, contenedor e imagen distintos;
+el `docker-compose.yml` de la etiqueta tiene nombres fijos iguales a los de `main`, así que se
+separan con `-p agora-joven-v100` y un archivo de anulación local. Desde este bloque, `main`
+construye la imagen `agora-joven-api:1.1-dev` (antes `:dev`, el mismo nombre que la etiqueta).
+Instrucciones en README → "Qué código usar con cada app".
 
 ## Persistencia
 

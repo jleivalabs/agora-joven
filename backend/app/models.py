@@ -3,7 +3,18 @@
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -120,6 +131,76 @@ class Debate(Base):
     archivo_origen: Mapped[str | None] = mapped_column(String(20), default=None)
     archivado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), default=None)
     motivo_archivo: Mapped[str | None] = mapped_column(Text, default=None)
+    # Migración 0004 (Bloque 7B.1). Número de la versión publicada vigente (versiones_debate).
+    version_actual: Mapped[int | None] = mapped_column(Integer, default=None)
+    # Se marca al aceptar el primer aporte y **nunca** se desmarca: aunque luego se eliminen
+    # todos los aportes, el contenido ya no se puede reescribir.
+    con_participacion: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0")
+    )
+    # Bloqueo conservador de los debates publicados antes del historial: no se puede demostrar
+    # que nunca tuvieron aportes (eliminados después), así que su contenido no se reescribe.
+    bloqueo_historico: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0")
+    )
+
+
+class TipoVersion(StrEnum):
+    publicacion = "publicacion"  # primera versión de un debate de usuario
+    edicion = "edicion"  # edición permitida por su autor, con motivo
+    catalogo = "catalogo"  # alta o actualización del catálogo editorial (semilla)
+    registro_inicial = "registro_inicial"  # instantánea tomada al incorporar el historial
+
+
+# Campos de contenido que se conservan en cada versión.
+CAMPOS_VERSION = (
+    "categoria",
+    "ambito",
+    "titulo",
+    "resumen",
+    "contexto",
+    "perspectivas",
+    "objetivo",
+)
+
+
+class VersionDebate(Base):
+    """Contenido publicado de un debate en un momento dado. Inmutable: solo se insertan filas.
+
+    Los borradores nunca generan versiones: la primera se crea al publicar.
+    """
+
+    __tablename__ = "versiones_debate"
+    __table_args__ = (UniqueConstraint("debate_id", "numero", name="uq_versiones_debate_numero"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    debate_id: Mapped[int] = mapped_column(ForeignKey("debates.id"), index=True)
+    numero: Mapped[int] = mapped_column(Integer)
+    tipo: Mapped[str] = mapped_column(String(20))
+    categoria: Mapped[str] = mapped_column(String(30))
+    ambito: Mapped[str | None] = mapped_column(Text, default=None)
+    titulo: Mapped[str] = mapped_column(String(160))
+    resumen: Mapped[str] = mapped_column(Text)
+    contexto: Mapped[str] = mapped_column(Text)
+    perspectivas: Mapped[list[dict[str, str]]] = mapped_column(JSON)
+    objetivo: Mapped[str | None] = mapped_column(Text, default=None)
+    creada_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora_utc)
+    # Quién hizo el cambio y por qué. Nulos cuando no se conservó (registro inicial) o en el
+    # catálogo editorial.
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), default=None)
+    motivo: Mapped[str | None] = mapped_column(Text, default=None)
+
+
+class Aclaracion(Base):
+    """Añadido fechado del autor a su debate. Inmutable: una rectificación es otra aclaración."""
+
+    __tablename__ = "aclaraciones"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    debate_id: Mapped[int] = mapped_column(ForeignKey("debates.id"), index=True)
+    autor_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
+    texto: Mapped[str] = mapped_column(Text)
+    creada_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora_utc)
 
 
 class SolicitudArchivo(Base):
@@ -198,3 +279,8 @@ class Aporte(Base):
     texto: Mapped[str] = mapped_column(Text)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora_utc)
     editado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # Versión del debate que se veía al publicar (migración 0004). Nula en los aportes anteriores
+    # al historial: su versión original es desconocida. Editar el texto no la cambia.
+    version_id: Mapped[int | None] = mapped_column(
+        ForeignKey("versiones_debate.id"), default=None
+    )

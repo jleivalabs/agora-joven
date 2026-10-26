@@ -14,6 +14,7 @@ CAMPOS_APORTE = {
     "creado_en",
     "editado_en",
     "es_propio",
+    "version",
 }
 TEXTO = "Propongo horarios acordados entre estudiantes y docentes."
 
@@ -30,7 +31,7 @@ def beto(sesion_de):
 
 def _crear(client, cabecera, debate_id=1, tipo="propuesta", texto=TEXTO):
     return client.post(
-        f"/debates/{debate_id}/aportes", json={"tipo": tipo, "texto": texto}, headers=cabecera
+        f"/debates/{debate_id}/aportes", json={"tipo": tipo, "texto": texto, "version": 1}, headers=cabecera
     )
 
 
@@ -109,7 +110,7 @@ def test_patch_sin_cambios_reales_no_marca_edicion(client, ana):
 def test_el_autor_sale_del_token_y_no_del_cuerpo(client, ana, beto):
     for extra in ({"autor_id": 2}, {"debate_id": 2}, {"id": 99}, {"es_propio": True}):
         respuesta = client.post(
-            "/debates/1/aportes", json={"tipo": "pregunta", "texto": TEXTO, **extra}, headers=ana
+            "/debates/1/aportes", json={"tipo": "pregunta", "texto": TEXTO, "version": 1, **extra}, headers=ana
         )
         assert respuesta.status_code == 422, extra
 
@@ -129,7 +130,7 @@ def test_sin_token_valido_todo_responde_401(client, ana, cabecera):
     aporte = _crear(client, ana).json()
     peticiones = [
         ("get", "/debates/1/aportes", None),
-        ("post", "/debates/1/aportes", {"tipo": "pregunta", "texto": TEXTO}),
+        ("post", "/debates/1/aportes", {"tipo": "pregunta", "texto": TEXTO, "version": 1}),
         ("patch", f"/aportes/{aporte['id']}", {"texto": "Otro texto suficiente."}),
         ("delete", f"/aportes/{aporte['id']}", None),
     ]
@@ -154,11 +155,13 @@ def test_debate_o_aporte_inexistente_responde_404(client, ana):
 @pytest.mark.parametrize(
     "cuerpo",
     [
-        {"tipo": "opinion", "texto": TEXTO},
-        {"tipo": "pregunta", "texto": "corto"},
-        {"tipo": "pregunta", "texto": "   nueve   "},  # 5 caracteres tras quitar espacios
-        {"tipo": "pregunta", "texto": "x" * 1001},
-        {"tipo": "pregunta"},
+        {"tipo": "opinion", "texto": TEXTO, "version": 1},
+        {"tipo": "pregunta", "texto": "corto", "version": 1},
+        {"tipo": "pregunta", "texto": "   nueve   ", "version": 1},  # 5 caracteres tras quitar espacios
+        {"tipo": "pregunta", "texto": "x" * 1001, "version": 1},
+        {"tipo": "pregunta", "version": 1},
+        {"tipo": "pregunta", "texto": TEXTO},  # sin versión (7B.1)
+        {"tipo": "pregunta", "texto": TEXTO, "version": 0},
         {"texto": TEXTO},
         {"tipo": None, "texto": TEXTO},
     ],

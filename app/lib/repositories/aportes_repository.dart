@@ -23,10 +23,14 @@ class AportesRepository {
     int debateId, {
     required TipoAporte tipo,
     required String texto,
+    required int version,
   }) async {
+    // `version`: la que la persona estaba viendo. Si ya no es la vigente, el servidor responde
+    // 409 `version_desactualizada` y no publica.
     final datos = await _api.post('/debates/$debateId/aportes', {
       'tipo': tipo.name,
       'texto': texto,
+      'version': version,
     }, token: token);
     return leerRespuesta(datos, (d) => Aporte.fromJson(d));
   }

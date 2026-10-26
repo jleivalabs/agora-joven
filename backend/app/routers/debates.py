@@ -16,13 +16,19 @@ from app.db import get_db
 from app.models import ETIQUETAS_CATEGORIA, Categoria, Debate, EstadoDebate, Usuario
 from app.repositorios import debates as repo_debates
 from app.repositorios import solicitudes as repo_solicitudes
+from app.repositorios import versiones as repo_versiones
 from app.schemas import (
+    AclaracionEntrada,
+    AclaracionSalida,
     ArchivoDirectoEntrada,
+    CambioCampo,
     CategoriaSalida,
-    ContenidoDebate,
     DebateDetalle,
     DebateResumen,
+    EdicionDebate,
     SolicitudPropia,
+    VersionDetalle,
+    VersionResumen,
 )
 from app.security import AdministradorActual, UsuarioActual, usuario_actual
 
@@ -51,10 +57,21 @@ def _detalle_salida(db: Session, debate_id: int, usuario: Usuario) -> DebateDeta
             "autor_nombre": autor_nombre,
             "aportes": aportes,
             "es_propio": propio,
-            "editable": propio and debate.estado == EstadoDebate.publicado.value and aportes == 0,
+            "editable": propio and repo_debates.es_editable(debate, aportes),
             "solicitud_archivo": (
                 None if solicitud is None else SolicitudPropia.model_validate(solicitud)
             ),
+            "motivo_bloqueo": (
+                "participacion" if debate.con_participacion or aportes
+                else "historico" if debate.bloqueo_historico
+                else None
+            ),
+            "aclaraciones": [
+                AclaracionSalida(
+                    id=a.id, texto=a.texto, autor_nombre=nombre, creada_en=a.creada_en
+                )
+                for a, nombre in repo_versiones.aclaraciones(db, debate.id)
+            ],
         }
     )
 
@@ -91,23 +108,117 @@ def _motivo_rechazo(db: Session, debate_id: int, usuario: Usuario) -> HTTPExcept
         )
     if debate.estado == EstadoDebate.archivado.value:
         return HTTPException(status.HTTP_409_CONFLICT, detail="Este debate está archivado.")
-    if aportes:
+    if aportes or debate.con_participacion:
         return HTTPException(
             status.HTTP_409_CONFLICT,
-            detail="El debate ya tiene aportes: su contenido queda bloqueado.",
+            detail="El debate ya recibió aportes: su contenido queda bloqueado de forma permanente.",
+        )
+    if debate.bloqueo_historico:
+        return HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Debate publicado antes del historial de versiones: su contenido está protegido.",
         )
     return HTTPException(status.HTTP_409_CONFLICT, detail="No se pudo modificar el debate.")
 
 
 @router.put("/{debate_id}", response_model=DebateDetalle)
 def editar(
-    debate_id: int, contenido: ContenidoDebate, db: Db, usuario: UsuarioActual
+    debate_id: int, edicion: EdicionDebate, db: Db, usuario: UsuarioActual
 ) -> DebateDetalle:
-    """Sustituye el contenido de un debate propio publicado que aún no tiene aportes."""
-    valores = contenido.model_dump(mode="json")
-    if not repo_debates.editar_si_permitido(db, debate_id, usuario.id, valores):
+    """Sustituye el contenido de un debate propio que nunca recibió aportes y crea la versión
+    siguiente con el motivo. Si el contenido es idéntico, responde igual sin crear versión.
+    Nadie más puede reescribirlo, tampoco la administración."""
+    valores = edicion.model_dump(mode="json", exclude={"motivo"})
+    resultado = repo_debates.editar_si_permitido(
+        db, debate_id, usuario.id, valores, edicion.motivo
+    )
+    if resultado == repo_debates.ResultadoEdicion.rechazado:
         raise _motivo_rechazo(db, debate_id, usuario)
     return _detalle_salida(db, debate_id, usuario)
+
+
+# --- Historial de versiones y aclaraciones (7B.1) -------------------------------------------
+
+
+def _exigir_debate(db: Session, debate_id: int) -> Debate:
+    debate = repo_debates.obtener(db, debate_id)
+    if debate is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Debate no encontrado.")
+    return debate
+
+
+def _resumen_version(version, autor_nombre, anterior, actual: int | None) -> dict:
+    cambios = repo_versiones.cambios(anterior, version)
+    return {
+        "numero": version.numero,
+        "tipo": version.tipo,
+        "creada_en": version.creada_en,
+        "autor_nombre": autor_nombre,
+        "motivo": version.motivo,
+        "campos_cambiados": [c["campo"] for c in cambios],
+        "es_actual": version.numero == actual,
+        "_cambios": cambios,
+    }
+
+
+@router.get("/{debate_id}/versiones", response_model=list[VersionResumen])
+def versiones(debate_id: int, db: Db) -> list[VersionResumen]:
+    """Versiones publicadas, de la más reciente a la primera. Nunca incluye borradores."""
+    debate = _exigir_debate(db, debate_id)
+    filas = repo_versiones.listar(db, debate_id)
+    salida = []
+    for i, (version, autor) in enumerate(filas):
+        anterior = filas[i + 1][0] if i + 1 < len(filas) else None
+        datos = _resumen_version(version, autor, anterior, debate.version_actual)
+        datos.pop("_cambios")
+        salida.append(VersionResumen(**datos))
+    return salida
+
+
+@router.get("/{debate_id}/versiones/{numero}", response_model=VersionDetalle)
+def version(debate_id: int, numero: int, db: Db) -> VersionDetalle:
+    debate = _exigir_debate(db, debate_id)
+    fila = repo_versiones.obtener(db, debate_id, numero)
+    if fila is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Versión no encontrada.")
+    actual, autor = fila
+    anterior = repo_versiones.obtener(db, debate_id, numero - 1)
+    datos = _resumen_version(
+        actual, autor, None if anterior is None else anterior[0], debate.version_actual
+    )
+    cambios = datos.pop("_cambios")
+    return VersionDetalle(
+        **datos, **repo_versiones.contenido_de(actual), cambios=[CambioCampo(**c) for c in cambios]
+    )
+
+
+@router.post(
+    "/{debate_id}/aclaraciones",
+    response_model=AclaracionSalida,
+    status_code=status.HTTP_201_CREATED,
+)
+def aclarar(
+    debate_id: int, datos: AclaracionEntrada, db: Db, usuario: UsuarioActual
+) -> AclaracionSalida:
+    """Añadido fechado e inmutable del autor; no cambia el contenido ni crea versión."""
+    try:
+        aclaracion = repo_versiones.aclarar(db, debate_id, usuario.id, datos.texto)
+    except repo_versiones.DebateNoEncontrado:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Debate no encontrado.") from None
+    except repo_versiones.NoEsAutor:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail="Solo quien creó este debate puede aclararlo."
+        ) from None
+    except repo_versiones.DebateNoActivo:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="Este debate está archivado: es de solo lectura."
+        ) from None
+    return AclaracionSalida(
+        id=aclaracion.id,
+        texto=aclaracion.texto,
+        autor_nombre=usuario.nombre,
+        creada_en=aclaracion.creada_en,
+    )
 
 
 @router.post("/{debate_id}/archivar", response_model=DebateDetalle)

@@ -22,6 +22,7 @@ from app.models import (
     Procedencia,
     Rol,
     TipoAporte,
+    TipoVersion,
 )
 
 
@@ -121,6 +122,13 @@ class DebateDetalle(DebateResumen):
     )
     # Solo para la cuenta autora: su solicitud de archivo más reciente sobre este debate.
     solicitud_archivo: "SolicitudPropia | None" = None
+    # 7B.1: versión vigente, protección del contenido y aclaraciones del autor.
+    version_actual: int | None = None
+    motivo_bloqueo: Literal["participacion", "historico"] | None = Field(
+        default=None,
+        description="Por qué el contenido ya no se puede reescribir (si aplica).",
+    )
+    aclaraciones: list["AclaracionSalida"] = []
 
 
 # Se quitan los espacios exteriores antes de comprobar la longitud.
@@ -136,6 +144,9 @@ class AporteEntrada(BaseModel):
 
     tipo: TipoAporte
     texto: TextoAporte
+    # Número de la versión del debate que la persona estaba viendo (7B.1). Si ya no es la
+    # vigente, el servidor responde 409 `version_desactualizada` y no publica.
+    version: int = Field(ge=1)
 
 
 class AporteCambios(BaseModel):
@@ -167,6 +178,11 @@ class AporteSalida(BaseModel):
     creado_en: datetime
     editado_en: datetime | None
     es_propio: bool = Field(description="Calculado en el servidor para quien consulta.")
+    version: int | None = Field(
+        default=None,
+        description="Versión del debate al publicar el aporte. None: anterior al historial "
+        "(versión original desconocida).",
+    )
 
 
 class AsistenteEntrada(BaseModel):
@@ -436,6 +452,58 @@ class SolicitudAdmin(BaseModel):
     debate_estado: EstadoDebate
     debate_resumen: str
     debate_aportes: int
+
+
+# --- Bloque 7B.1: historial de versiones y aclaraciones ---------------------------------------
+
+LIMITES_ACLARACION = (10, 1000)
+
+
+class EdicionDebate(ContenidoDebate):
+    """Contenido completo nuevo y motivo obligatorio del cambio (queda en el historial)."""
+
+    motivo: Motivo
+
+
+class AclaracionEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    texto: _texto(*LIMITES_ACLARACION)
+
+
+class AclaracionSalida(BaseModel):
+    id: int
+    texto: str
+    autor_nombre: str
+    creada_en: datetime
+
+
+class VersionResumen(BaseModel):
+    numero: int
+    tipo: TipoVersion
+    creada_en: datetime
+    # Quién hizo el cambio y por qué; None cuando no se conservó (registro inicial, catálogo).
+    autor_nombre: str | None
+    motivo: str | None
+    campos_cambiados: list[str]
+    es_actual: bool
+
+
+class CambioCampo(BaseModel):
+    campo: str
+    antes: object
+    despues: object
+
+
+class VersionDetalle(VersionResumen):
+    categoria: Categoria
+    ambito: str | None
+    titulo: str
+    resumen: str
+    contexto: str
+    perspectivas: list[Perspectiva]
+    objetivo: str | None
+    cambios: list[CambioCampo] = Field(description="Diferencias con la versión anterior.")
 
 
 EstadisticasPersonales.model_rebuild()

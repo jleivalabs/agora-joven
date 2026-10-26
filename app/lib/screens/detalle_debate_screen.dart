@@ -10,6 +10,7 @@ import '../controllers/guardados_controller.dart';
 import '../models/aporte.dart';
 import '../models/debate.dart';
 import '../models/solicitud_archivo.dart';
+import '../models/version_debate.dart';
 import '../repositories/solicitudes_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dialogo_motivo.dart';
@@ -18,6 +19,7 @@ import '../widgets/marca.dart';
 import '../utils/formato.dart';
 import 'aporte_form_screen.dart';
 import 'crear_debate_screen.dart';
+import 'historial_screen.dart';
 import 'seccion_asistente.dart';
 
 class DetalleDebateScreen extends StatefulWidget {
@@ -90,6 +92,18 @@ class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
       appBar: AppBar(
         title: const Text('Debate'),
         actions: [
+          Obx(
+            () => _detalle.debate.value == null
+                ? const SizedBox.shrink()
+                : IconButton(
+                    key: const Key('historial'),
+                    tooltip: 'Historial',
+                    icon: const Icon(Icons.history),
+                    onPressed: () => Get.to<void>(
+                      () => HistorialScreen(debateId: widget.debateId),
+                    ),
+                  ),
+          ),
           _BotonGuardar(
             detalle: _detalle,
             etiquetaCategoria: widget.etiquetaCategoria,
@@ -115,6 +129,7 @@ class _DetalleDebateScreenState extends State<DetalleDebateScreen> {
               etiquetaCategoria: widget.etiquetaCategoria,
               aportes: _aportes,
               asistente: _asistente,
+              detalle: _detalle,
             );
         }
       }),
@@ -193,6 +208,24 @@ class _MenuDebate extends StatelessWidget {
     if (context.mounted) _avisar(context, mensaje);
   }
 
+  Future<void> _aclarar(BuildContext context) async {
+    final texto = await pedirMotivo(
+      context,
+      titulo: 'Añadir aclaración',
+      explicacion:
+          'Se publicará con tu nombre y la fecha, en una sección aparte. No cambia el '
+          'contenido original ni se puede editar después: para rectificar, añade otra '
+          'aclaración. Si quieres cambiar de tema, crea otro debate.',
+      etiqueta: 'Aclaración',
+      accion: 'Publicar aclaración',
+      minimo: LimitesAclaracion.minimo,
+      maximo: LimitesAclaracion.maximo,
+    );
+    if (texto == null) return;
+    final mensaje = await detalle.aclarar(texto);
+    if (context.mounted) _avisar(context, mensaje);
+  }
+
   Future<void> _editar(BuildContext context, DebateDetalle debate) async {
     final editado = await Get.to<DebateDetalle>(
       () => CrearDebateScreen(debateEditado: debate),
@@ -229,6 +262,7 @@ class _MenuDebate extends StatelessWidget {
             : 'Opciones de administración',
         onSelected: (opcion) => switch (opcion) {
           'editar' => _editar(context, debate),
+          'aclarar' => _aclarar(context),
           'solicitar' => _solicitar(context),
           'cancelar' => _cancelar(context),
           _ => _archivarComoAdministracion(context),
@@ -244,7 +278,19 @@ class _MenuDebate extends StatelessWidget {
                 title: const Text('Editar debate'),
                 subtitle: debate.editable
                     ? null
-                    : const Text('Bloqueado: ya tiene aportes'),
+                    : Text(
+                        debate.motivoBloqueo == 'historico'
+                            ? 'Protegido: publicado antes del historial'
+                            : 'Bloqueado: ya recibió aportes',
+                      ),
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'aclarar',
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.add_comment_outlined),
+                title: Text('Añadir aclaración'),
               ),
             ),
             if (pendiente)
@@ -367,12 +413,14 @@ class _Contenido extends StatelessWidget {
     required this.etiquetaCategoria,
     required this.aportes,
     required this.asistente,
+    required this.detalle,
   });
 
   final DebateDetalle debate;
   final String etiquetaCategoria;
   final AportesController aportes;
   final AsistenteController asistente;
+  final DetalleDebateController detalle;
 
   @override
   Widget build(BuildContext context) {
@@ -448,6 +496,19 @@ class _Contenido extends StatelessWidget {
             const SizedBox(height: AppSpacing.s),
             Text(debate.objetivo!, style: texto.bodyLarge),
           ],
+          if (debate.versionActual != null) ...[
+            const SizedBox(height: AppSpacing.s),
+            Text(
+              'Versión ${debate.versionActual} del contenido. Consulta los cambios en '
+              '"Historial".',
+              key: const Key('version-vigente'),
+              style: texto.bodySmall,
+            ),
+          ],
+          if (debate.aclaraciones.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.l),
+            _Aclaraciones(aclaraciones: debate.aclaraciones),
+          ],
           const SizedBox(height: AppSpacing.l),
           SeccionAsistente(asistente: asistente),
           const SizedBox(height: AppSpacing.l),
@@ -458,6 +519,48 @@ class _Contenido extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Aclaraciones del autor: añadidos fechados que no modifican el contenido original.
+class _Aclaraciones extends StatelessWidget {
+  const _Aclaraciones({required this.aclaraciones});
+
+  final List<Aclaracion> aclaraciones;
+
+  @override
+  Widget build(BuildContext context) {
+    final texto = Theme.of(context).textTheme;
+    return Column(
+      key: const Key('aclaraciones'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Aclaraciones del autor', style: texto.titleLarge),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Añadidas después de publicar. No modifican el contenido original.',
+          style: texto.bodySmall,
+        ),
+        const SizedBox(height: AppSpacing.s),
+        for (final a in aclaraciones)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.m),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${a.autorNombre} · ${fechaHora(a.creadaEn)}',
+                    style: texto.labelLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(a.texto),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -627,6 +730,27 @@ class _TarjetaAporte extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Text('Editado', style: texto.bodySmall),
             ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: Key('version-aporte-${aporte.id}'),
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                icon: const Icon(Icons.history, size: 18),
+                label: Text(
+                  aporte.version == null
+                      ? 'Versión original desconocida'
+                      : 'Escrito sobre la versión ${aporte.version}',
+                ),
+                // Aportes anteriores al historial: la instantánea inicial solo como referencia.
+                onPressed: () => Get.to<void>(
+                  () => VersionScreen(
+                    debateId: aporte.debateId,
+                    numero: aporte.version ?? 1,
+                    referenciaDeAporteAntiguo: aporte.version == null,
+                  ),
+                ),
+              ),
+            ),
             // Visibilidad de cortesía: quien autoriza es el servidor (403 si no es el autor).
             if (aporte.esPropio && permiteCambios)
               Obx(() {

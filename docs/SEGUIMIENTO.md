@@ -12,34 +12,32 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
   pendiente técnico de Hive.
 - **Solo queda entregar el enlace del repositorio en Moodle** (persona autora). No está
   registrado como realizado.
-- **v1.1 en desarrollo**: Bloque 7A publicado en `origin/main` (commit `c53367f`). **Bloque 7B
-  (debates de usuarios, con roles y archivo revisado por la administración) comprobado**: pruebas
-  automáticas del agente y recorrido manual completo confirmado por la persona autora. Pendiente:
-  revisión de cambios, commit y push. La etiqueta `v1.0.0` y sus archivos publicados no se han
-  tocado. 7B.1 y 7C no han empezado.
+- **v1.1 en desarrollo**: 7A (`c53367f`) y 7B (`2e82559`) publicados en `origin/main`; CI en verde
+  para `2e82559` según la persona autora. **Bloque 7B.1 (historial y protección del contexto)
+  comprobado**: pruebas automáticas del agente y recorrido manual confirmado por la persona autora,
+  salvo el conflicto entre sesiones simultáneas, que solo tiene cobertura automática. Base real
+  migrada a `0004` con copia previa. Pendiente: revisión, commit y push (persona autora). La etiqueta `v1.0.0` y sus
+  archivos publicados no se han tocado. 7C no ha empezado.
 
 ## Punto de continuación (actualizado el 25/10/2026)
 
-- **Último commit publicado:** `c53367f` (Bloque 7A), en `origin/main`.
-- **7B comprobado, sin commit ni push**, incluidos roles (usuario/administrador), solicitudes de
-  archivo con revisión administrativa y la corrección del desbordamiento del dashboard.
-- **Resultados reportados por el agente:** backend 167 pruebas aprobadas (Python 3.11 local y 3.12
-  en contenedor), Flutter 181 pruebas aprobadas y `flutter analyze` sin incidencias.
-- **Base real migrada a la revisión `0003`**, con respaldos verificados fuera de Git:
-  - Previo a 7B (esquema 7A):
-    `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-20261024-211248.db`
-  - Previo a roles y solicitudes (revisión `0002`):
-    `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-roles-20261024-221206.db`
-- **Recorrido manual con la política anterior**: satisfactorio, según la persona autora.
-- **Cuenta administradora:** la cuenta "Admin" (id 4) fue promovida expresamente por la persona
-  autora con el comando local; la salida de `listar` confirma `administrador`. Las cuentas Jleiva y
-  patu siguen como usuarios normales. (Según la persona autora; el agente no ejecutó el comando.)
-- **Recorrido manual de la política nueva:** confirmado en general por la persona autora; la
-  **aprobación administrativa** está comprobada expresamente con capturas. Cancelación, rechazo,
-  archivo directo y revisión visual del dashboard no tienen evidencia manual específica y los cubren
-  las pruebas automáticas (ver "Ajuste de 7B → Comprobación manual de la persona autora").
-- **Pendiente:** revisar los cambios (`git diff`), commit y push (persona autora).
-- **Siguiente bloque:** 7B.1, historial y protección permanente del contexto. No empezarlo todavía.
+- **Último commit publicado:** `2e82559` (Bloque 7B), en `origin/main`; CI en verde según la
+  persona autora (el agente no pudo consultarlo: `gh` no está instalado).
+- **7B.1 comprobado, sin commit ni push.** Resultados del agente: backend 184 pruebas (Python 3.11
+  local y 3.12 en contenedor; 167 anteriores + 17), Flutter 190 (181 + 9) y `flutter analyze` sin
+  incidencias. Recorrido manual satisfactorio según la persona autora; el conflicto entre dos
+  sesiones simultáneas no se comprobó a mano (ver "Bloque 7B.1 → Comprobación manual").
+- **Base real migrada a la revisión `0004`**, con respaldos verificados fuera de Git:
+  - Previo a 7B (esquema 7A): `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-20261024-211248.db`
+  - Previo a roles y solicitudes (revisión `0002`): `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-roles-20261024-221206.db`
+  - Previo al historial (revisión `0003`): `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b1-20261025-205218.db`
+- **Release v1.0.0:** el APK `v1.0.0` usa el backend de la etiqueta `v1.0.0` en un entorno
+  separado (proyecto, volumen, contenedor e imagen propios; puerto 8010); la app 1.1 usa el backend
+  de `main`. Nunca ejecutar el backend antiguo contra la base migrada a `0004`. El requisito de
+  versión de los aportes no se relaja. Instrucciones en README → "Qué código usar con cada app".
+- **Pendiente (persona autora):** revisión del `git diff`, commit y push. Opcional: probar el APK
+  `v1.0.0` con los pasos A1–A7 del README.
+- **No empezar 7C** hasta que se indique.
 
 ## Bloques
 
@@ -53,8 +51,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ✅ Commit `20fae85`, publicado en `origin/main` |
 | 6 | CI, workflow de Release, README final, auditoría de secretos | ✅ Commit `1ce2f37`; CI en verde; Release `v1.0.0` publicada y validada en emulador (persona autora) |
 | 7A (v1.1) | Dashboard de comunidad y participación personal; navegación Inicio · Debates · Guardados | ✅ Commit `c53367f`, publicado en `origin/main` |
-| 7B (v1.1) | Creación de debates por usuarios: borradores, publicación, edición, Mis debates; archivo con solicitud y revisión administrativa; roles; migraciones 0002–0003 | ✅ Comprobado (pruebas automáticas y recorridos manuales de ambas políticas por la persona autora); pendiente revisión, commit y push |
-| 7B.1 (v1.1) | Historial y protección permanente del contexto | ⏳ Siguiente bloque |
+| 7B (v1.1) | Creación de debates por usuarios: borradores, publicación, edición, Mis debates; archivo con solicitud y revisión administrativa; roles; migraciones 0002–0003 | ✅ Commit `2e82559`, publicado en `origin/main`; CI en verde según la persona autora |
+| 7B.1 (v1.1) | Historial de versiones, bloqueo permanente tras participación, aportes por versión, aclaraciones; migración 0004 | ✅ Comprobado (pruebas automáticas y recorrido manual de la persona autora; conflicto entre sesiones solo con pruebas automáticas); pendiente revisión, commit y push |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -882,9 +880,157 @@ desde Guardados; ese comportamiento lo cubren las pruebas automáticas.
 descrita (aprobación verificada expresamente). Pendiente: revisión de cambios, commit y push
 (persona autora); opcionalmente, evidencia manual específica de los casos anteriores.
 
-#### Siguiente bloque: 7B.1 (no implementado)
+## Bloque 7B.1 — historial de versiones y protección del contexto (2026-10-25)
 
-Historial de cambios y protección permanente del contexto de un debate. No se ha empezado.
+Punto de partida: `2e82559` (7B) en `origin/main`, árbol limpio; CI en verde comunicado por la
+persona autora. Sin subagentes, sin llamadas a Gemini, sin commit, push, etiquetas ni Releases.
+Diseño en `docs/ARQUITECTURA.md` → "Historial de versiones".
+
+### Acciones realizadas (agente)
+
+- Backend: tabla `versiones_debate` (inmutable), indicadores `con_participacion` (permanente) y
+  `bloqueo_historico` (conservador), `aportes.version_id`, tabla `aclaraciones`; rutas
+  `GET /debates/{id}/versiones[/{numero}]` y `POST /debates/{id}/aclaraciones`; `PUT
+  /debates/{id}` con motivo obligatorio; aportes con `version` obligatoria y 409
+  `version_desactualizada`; semilla editorial que no reescribe contenido protegido.
+- Migración `0004` (nueva; `0001`–`0003` sin cambios).
+- App: Historial, vista de versión con diferencias, enlace de cada aporte a su versión, conflicto
+  de versión que conserva el texto y pide confirmar, motivo al editar, aclaraciones del autor.
+- **Cambio incompatible documentado:** el APK `v1.0.0` ya no puede publicar aportes (422 por falta
+  de `version`); el resto de funciones sigue respondiendo. No se relaja la comprobación: ese APK
+  debe usar el backend de su etiqueta (ver "Reproducibilidad de la Release v1.0.0").
+
+### Resultados verificados (agente)
+
+| Comprobación | Resultado |
+|---|---|
+| `pytest -q` (Python 3.11 local) | 184 passed |
+| `pytest -q` en contenedor desechable `python:3.12-slim` | 184 passed |
+| `flutter analyze` | No issues found |
+| `flutter test` | 190 passed |
+
+Recuento del backend: 184 = 167 anteriores + 17. Las 17 son 15 funciones de prueba nuevas (13 en
+`tests/test_historial.py` y 2 de la migración `0004` en `tests/test_migracion.py`) y 2 casos
+nuevos añadidos a la parametrización de validación ya existente en `tests/test_aportes.py`
+(aporte sin `version` y con `version` 0). En el informe anterior se habló de "15 nuevas", que
+eran solo las funciones nuevas. En Flutter, 190 = 181 + 9 pruebas nuevas
+(`test/historial_test.dart`).
+
+Pruebas nuevas del backend (`tests/test_historial.py`, 13, y 2 de migración): publicación (versión
+1) sin versiones por guardar borradores; edición válida con motivo y diferencias; motivo
+obligatorio y guardado sin cambios; inmutabilidad (sin rutas de modificación) y permisos (otra
+cuenta y administración → 403; lectura para cuentas autenticadas; 401 sin sesión); bloqueo tras el
+primer aporte incluso después de eliminarlo; conflicto `version_desactualizada` y versión ajena
+(422); editar un aporte no cambia su versión; carreras edición/aporte con hilos (8 rondas, se
+observaron ambos órdenes) y los dos órdenes forzados; aclaraciones y restricciones (ajenas,
+editoriales, longitudes, archivado); archivo sin alterar el historial; semilla que versiona cambios
+y omite protegidos; migración sin pérdida de datos ni versiones, autores o fechas inventadas.
+
+Pruebas nuevas en Flutter (`test/historial_test.dart`, 9): historial, versión vigente e histórica
+con diferencias; pantalla estrecha y texto ×2; respuesta tardía tras cambiar de sesión; conflicto
+de versión que conserva el texto, no reintenta y publica solo tras confirmar; aporte anterior al
+historial con versión desconocida; aclaración del autor; cuenta ajena sin opciones; edición con
+motivo, sin cambios y bloqueo tras participación. Las suites existentes (catálogo, dashboard,
+guardados, administración, asistente) siguen en verde con los cambios de contrato.
+
+### Migración de la base real
+
+1. **Copia de seguridad** consistente (API de copia de SQLite, origen en solo lectura), fuera de
+   Git: `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b1-20261025-205218.db`.
+   Verificada: `integrity_check` ok, revisión `0003`, 4 cuentas (1 `administrador`), 22 debates (20
+   editoriales publicados, 2 de usuario archivados), 6 aportes, 3 borradores, 1 solicitud.
+2. Ensayo sobre una copia temporal: revisión `0004`, mismas huellas SHA-256 de cuentas (con roles),
+   aportes, borradores, solicitudes y debates; 22 versiones `registro_inicial` (una por debate,
+   sin autor ni motivo); la instantánea coincide con el contenido de cada debate;
+   `con_participacion` coincide con los debates que tienen aportes (5); `bloqueo_historico` en los
+   22; 0 aportes con versión asignada; `integrity_check` ok y `foreign_key_check` vacío. Copia
+   temporal eliminada.
+3. Migración real con `docker compose up --build -d api` (sin `down -v`): servicio sano, mismos
+   resultados que el ensayo. `/health` 200; `/debates/1/versiones` → 401 sin token. Volumen
+   conservado. Solo se mostraron recuentos, estados y huellas, sin datos personales.
+
+### Reproducibilidad de la Release v1.0.0 (revisión del agente, 2026-10-25)
+
+Comprobado en los archivos reales, sin detener el entorno actual, sin restaurar copias y sin
+ejecutar el backend antiguo:
+
+- El README de `main` indicaba clonar `main` y después instalar el APK `v1.0.0`: con 7B.1 ese APK
+  no puede publicar aportes contra ese backend. **Corregido**: el README separa "Probar la Release
+  v1.0.0" (código de la etiqueta) de "Desarrollo v1.1" (`main`) e incluye una tabla de qué usar.
+- La etiqueta `v1.0.0` apunta a `1ce2f37` y contiene `backend/` completo (`Dockerfile`,
+  `docker-compose.yml`, `.env.example` con `API_PORT`), así que `git clone --branch v1.0.0` permite
+  ejecutar su backend. La etiqueta y la Release no se modificaron.
+- El `docker-compose.yml` de la etiqueta y el de `main` usaban los mismos nombres fijos: proyecto
+  `agora-joven`, volumen `agora-joven_agora_datos`, contenedor `agora-joven-api`, imagen
+  `agora-joven-api:dev` y puerto 8010. Sin separar, el backend antiguo podía recrear el contenedor
+  de desarrollo sobre el volumen migrado a `0004`, y compilar uno sustituía la imagen del otro.
+- Solución documentada (README, pasos A1–A7): clon aparte de la etiqueta, `backend/.env` propio
+  creado a mano, archivo de anulación local (`image: agora-joven-api:v1.0.0`, `container_name:
+  agora-joven-api-v100`, volumen `agora-joven-v100_agora_datos`), `-p agora-joven-v100`, crear
+  sin arrancar y comprobar el volumen con `docker inspect` antes de `start`.
+- Verificado en seco: `docker compose config` sobre una extracción temporal de `backend/` de la
+  etiqueta (con un `JWT_SECRET` ficticio por variable de entorno, sin `.env`) resolvió proyecto
+  `agora-joven-v100`, contenedor `agora-joven-api-v100`, imagen `agora-joven-api:v1.0.0` y volumen
+  `agora-joven-v100_agora_datos`. `docker compose create --build` existe en Compose v5.6.0. No se
+  construyó ni arrancó nada; la carpeta temporal se eliminó.
+- Puerto: el APK `v1.0.0` usa `http://10.0.2.2:8010` (fijado en `release.yml`). Los dos backends no
+  pueden usar el 8010 a la vez: se detiene el de desarrollo (`stop`, nunca `down -v`) o se mueve
+  a otro puerto con `API_PORT` y `--dart-define`.
+- `main` construye ahora `agora-joven-api:1.1-dev` (cambio en `backend/docker-compose.yml`,
+  validado con `docker compose config` sobre una copia con secreto ficticio). El contenedor actual
+  no se recreó: sigue con la imagen que tenía; el cambio se aplicará en el próximo
+  `docker compose up --build -d api`.
+- Pendiente (persona autora, opcional): ejecutar los pasos A1–A7 y probar el APK `v1.0.0` contra su
+  backend en el volumen separado.
+
+### Recorrido manual previsto (dos cuentas)
+
+No ejecutado por el agente en emulador. Requiere la app compilada con este bloque.
+
+1. Cuenta A publica un debate nuevo. Abre "Historial": versión 1 (Publicación, su nombre).
+2. A edita la pregunta: se pide el motivo; mensaje "Cambios guardados como versión 2". En el
+   historial, la versión 2 muestra el motivo y "Antes/Después" de la pregunta; la versión 1 indica
+   que es histórica. Editar sin cambiar nada: "no se creó una versión nueva".
+3. Cuenta B abre el debate y empieza un aporte (el formulario indica "versión 2"). Sin enviarlo,
+   A edita de nuevo (versión 3). B envía: aviso de que el debate cambió, el texto se conserva y no
+   se publica. B abre "Ver la versión 3", vuelve, pulsa "Aportar sobre la versión 3" y publica. El
+   aporte indica "Escrito sobre la versión 3".
+4. A intenta editar: "Bloqueado: ya recibió aportes". B elimina su aporte; A sigue sin poder editar.
+5. A añade una aclaración (prueba una muy corta: error). Aparece en "Aclaraciones del autor" con
+   nombre y fecha; el contenido y el historial no cambian.
+6. Un debate anterior (editorial o archivado) muestra en Historial la versión "Estado registrado al
+   incorporar el historial"; un aporte antiguo indica "Versión original desconocida" y abre la
+   instantánea como referencia.
+7. Revisión visual de Historial y Versión con texto ampliado y pantalla estrecha.
+
+### Comprobación manual de la persona autora (2026-10-25)
+
+La persona autora confirma **satisfactorio** el recorrido manual de 7B.1. Es evidencia de la
+persona autora, no del agente.
+
+**Visible en las capturas aportadas:**
+
+- Publicación de un debate.
+- Edición con motivo.
+- Versiones 1 y 2 en el historial, con identificación de la vigente.
+- Diferencias por campo entre versiones.
+
+**Por confirmación de la persona autora** (no se ven en las capturas): el resto de comprobaciones
+del recorrido, es decir, editar sin cambios sin crear versión, bloqueo tras el primer aporte
+también después de eliminarlo, aclaraciones (incluida la validación de longitud), instantánea
+inicial y "Versión original desconocida" en datos anteriores, y revisión visual con texto
+ampliado y pantalla estrecha.
+
+**No comprobado manualmente:** el conflicto entre dos sesiones simultáneas (paso 3: un aporte
+redactado sobre una versión que cambia antes de enviarlo). Su cobertura es solo automática:
+`test_aportar_sobre_version_desactualizada_es_un_conflicto_controlado`,
+`test_carreras_entre_edicion_y_aporte_dan_resultados_coherentes` y
+`test_ordenes_deterministas_de_la_carrera` en `backend/tests/test_historial.py`, y la prueba de
+conflicto que conserva el texto y no reintenta en `app/test/historial_test.dart`. No se le
+atribuye ninguna prueba manual.
+
+**Estado de 7B.1:** comprobado con esos límites. Pendiente: revisión de cambios, commit y push
+(persona autora). 7C no ha empezado.
 
 ## Decisiones registradas (2026-10-22)
 

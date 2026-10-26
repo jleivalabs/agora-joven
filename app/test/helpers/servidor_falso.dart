@@ -30,6 +30,8 @@ typedef Manejador = FutureOr<RespuestaFalsa> Function(RequestOptions peticion);
 /// Cada ruta se puede sustituir con [cuando] para forzar errores o retrasos.
 class ServidorFalso implements HttpClientAdapter {
   ServidorFalso() {
+    // Versión 1 de cada debate editorial (antes de que una prueba añada otros).
+    versiones.addAll([for (final d in debates) _versionDe(d, 1, 'catalogo')]);
     _rutasPorDefecto();
     _rutasDeAportes();
     _rutaDelAsistente();
@@ -74,8 +76,32 @@ class ServidorFalso implements HttpClientAdapter {
         'procedencia': 'editorial',
         'estado': 'publicado',
         'autor_id': null,
+        'version_actual': 1,
+        'con_participacion': false,
       },
   ];
+
+  /// Versiones publicadas (7B.1): solo se insertan.
+  final versiones = <Map<String, Object?>>[];
+
+  /// Aclaraciones de los autores (7B.1): solo se insertan.
+  final aclaraciones = <Map<String, Object?>>[];
+
+  Map<String, Object?> _versionDe(
+    Map<String, Object?> d,
+    int numero,
+    String tipo, {
+    int? autorId,
+    String? motivo,
+  }) => {
+    'debate_id': d['id'],
+    'numero': numero,
+    'tipo': tipo,
+    for (final c in _camposContenido) c: d[c],
+    'creada_en': '2026-10-24T12:0$numero:00Z',
+    'autor_id': autorId,
+    'motivo': motivo,
+  };
 
   /// Borradores privados (con `autor_id`, que nunca se envía al cliente).
   final borradores = <Map<String, Object?>>[];
@@ -141,8 +167,14 @@ class ServidorFalso implements HttpClientAdapter {
     int debateId = 1,
     String tipo = 'pregunta',
     String texto = 'Aporte sembrado para la prueba.',
+    int? version = 1,
   }) {
+    // Un aporte marca la participación permanente del debate (como el backend).
+    debates
+        .where((d) => d['id'] == debateId)
+        .forEach((d) => d['con_participacion'] = true);
     final aporte = <String, Object?>{
+      'version': version,
       'id': ++_siguienteAporte,
       'debate_id': debateId,
       'autor_id': autorId,
@@ -170,6 +202,7 @@ class ServidorFalso implements HttpClientAdapter {
         k: a[k],
       'autor_nombre': autor['nombre'],
       'es_propio': a['autor_id'] == usuarioId,
+      'version': a['version'],
     };
   }
 
@@ -286,14 +319,26 @@ class ServidorFalso implements HttpClientAdapter {
       if (_archivado(idDe(p))) return _conflicto;
       final datos = cuerpo(p) as Map;
       final texto = (datos['texto'] as String).trim();
-      if (texto.length < 10 || texto.length > 1000) {
+      final version = datos['version'] as int?;
+      if (texto.length < 10 || texto.length > 1000 || version == null) {
         return const RespuestaFalsa(422, {'detail': []});
+      }
+      final debate = debates.firstWhere((d) => d['id'] == idDe(p));
+      if (debate['version_actual'] != version) {
+        return RespuestaFalsa(409, {
+          'detail': {
+            'codigo': 'version_desactualizada',
+            'mensaje': 'x',
+            'version_actual': debate['version_actual'],
+          },
+        });
       }
       final a = sembrarAporte(
         autorId: usuario,
         debateId: idDe(p),
         tipo: datos['tipo'] as String,
         texto: texto,
+        version: version,
       );
       return RespuestaFalsa(201, _aporteSalida(a, usuario));
     });
@@ -500,9 +545,30 @@ class ServidorFalso implements HttpClientAdapter {
       'archivado_en': d['archivado_en'],
       'aportes': nAportes,
       'es_propio': propio,
-      'editable': propio && d['estado'] == 'publicado' && nAportes == 0,
+      'editable':
+          propio &&
+          d['estado'] == 'publicado' &&
+          nAportes == 0 &&
+          d['con_participacion'] != true &&
+          d['bloqueo_historico'] != true,
       'archivo_origen': d['archivo_origen'],
       'solicitud_archivo': propio ? _ultimaSolicitud(d['id'], usuario) : null,
+      'version_actual': d['version_actual'],
+      'motivo_bloqueo': d['con_participacion'] == true || nAportes > 0
+          ? 'participacion'
+          : d['bloqueo_historico'] == true
+          ? 'historico'
+          : null,
+      'aclaraciones': [
+        for (final a in aclaraciones)
+          if (a['debate_id'] == d['id'])
+            {
+              'id': a['id'],
+              'texto': a['texto'],
+              'autor_nombre': _nombre(a['autor_id']),
+              'creada_en': a['creada_en'],
+            },
+      ],
     };
   }
 
@@ -755,8 +821,11 @@ class ServidorFalso implements HttpClientAdapter {
         'actualizado_en': '2026-10-24T12:00:00Z',
         'publicado_en': '2026-10-24T12:00:00Z',
         'archivado_en': null,
+        'version_actual': 1,
+        'con_participacion': false,
       };
       debates.add(d);
+      versiones.add(_versionDe(d, 1, 'publicacion', autorId: usuario));
       b['debate_id'] = d['id'];
       return RespuestaFalsa(201, resumenDe(d));
     });
@@ -768,12 +837,98 @@ class ServidorFalso implements HttpClientAdapter {
       if (d['autor_id'] != usuario) {
         return const RespuestaFalsa(403, {'detail': 'x'});
       }
+      final datos = (cuerpo(p) as Map).cast<String, Object?>();
+      final motivo = (datos.remove('motivo') as String?)?.trim() ?? '';
+      if (motivo.length < 10) return const RespuestaFalsa(422, {'detail': []});
       if (d['estado'] != 'publicado' ||
+          d['con_participacion'] == true ||
+          d['bloqueo_historico'] == true ||
           aportes.any((a) => a['debate_id'] == d['id'])) {
         return _conflicto;
       }
-      d.addAll((cuerpo(p) as Map).cast<String, Object?>());
+      final cambia = _camposContenido.any(
+        (c) => jsonEncode(d[c]) != jsonEncode(datos[c]),
+      );
+      if (cambia) {
+        d.addAll(datos);
+        final numero = (d['version_actual'] as int) + 1;
+        d['version_actual'] = numero;
+        versiones.add(
+          _versionDe(d, numero, 'edicion', autorId: usuario, motivo: motivo),
+        );
+      }
       return RespuestaFalsa(200, detalleDe(d, usuario));
+    });
+    Map<String, Object?> versionSalida(Map<String, Object?> v) {
+      final anterior = versiones
+          .where(
+            (w) =>
+                w['debate_id'] == v['debate_id'] &&
+                w['numero'] == (v['numero'] as int) - 1,
+          )
+          .firstOrNull;
+      final cambios = [
+        if (anterior != null)
+          for (final c in _camposContenido)
+            if (jsonEncode(anterior[c]) != jsonEncode(v[c]))
+              {'campo': c, 'antes': anterior[c], 'despues': v[c]},
+      ];
+      final debate = debates.firstWhere((d) => d['id'] == v['debate_id']);
+      return {
+        ...v,
+        'autor_nombre': _nombre(v['autor_id']),
+        'campos_cambiados': [for (final c in cambios) c['campo']],
+        'es_actual': debate['version_actual'] == v['numero'],
+        'cambios': cambios,
+      };
+    }
+
+    cuando('GET /debates/{id}/versiones', (p) {
+      if (usuarioDelToken(p) == null) return _noAutorizado;
+      final id = idDe(p);
+      if (!debates.any((d) => d['id'] == id)) {
+        return const RespuestaFalsa(404, {'detail': 'x'});
+      }
+      final propias = versiones.where((v) => v['debate_id'] == id).toList()
+        ..sort((a, b) => (b['numero'] as int).compareTo(a['numero'] as int));
+      return RespuestaFalsa(200, [for (final v in propias) versionSalida(v)]);
+    });
+    cuando('GET /debates/{id}/versiones/{id}', (p) {
+      if (usuarioDelToken(p) == null) return _noAutorizado;
+      final numero = int.parse(p.path.split('/').last);
+      final v = versiones
+          .where((v) => v['debate_id'] == idDe(p) && v['numero'] == numero)
+          .firstOrNull;
+      if (v == null) return const RespuestaFalsa(404, {'detail': 'x'});
+      return RespuestaFalsa(200, versionSalida(v));
+    });
+    cuando('POST /debates/{id}/aclaraciones', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final d = debates.where((d) => d['id'] == idDe(p)).firstOrNull;
+      if (d == null) return const RespuestaFalsa(404, {'detail': 'x'});
+      if (d['autor_id'] != usuario) {
+        return const RespuestaFalsa(403, {'detail': 'x'});
+      }
+      final texto = ((cuerpo(p) as Map)['texto'] as String? ?? '').trim();
+      if (texto.length < 10 || texto.length > 1000) {
+        return const RespuestaFalsa(422, {'detail': []});
+      }
+      if (d['estado'] != 'publicado') return _conflicto;
+      final a = <String, Object?>{
+        'id': aclaraciones.length + 1,
+        'debate_id': d['id'],
+        'autor_id': usuario,
+        'texto': texto,
+        'creada_en': '2026-10-24T16:00:00Z',
+      };
+      aclaraciones.add(a);
+      return RespuestaFalsa(201, {
+        'id': a['id'],
+        'texto': texto,
+        'autor_nombre': _nombre(usuario),
+        'creada_en': a['creada_en'],
+      });
     });
     // Archivo directo: solo administración (también 403 para la cuenta autora).
     cuando('POST /debates/{id}/archivar', (p) {

@@ -19,7 +19,7 @@ def beto(sesion_de):
 
 def _aportar(client, cabecera, debate_id, tipo="pregunta", texto=TEXTO):
     r = client.post(
-        f"/debates/{debate_id}/aportes", json={"tipo": tipo, "texto": texto}, headers=cabecera
+        f"/debates/{debate_id}/aportes", json={"tipo": tipo, "texto": texto, "version": 1}, headers=cabecera
     )
     assert r.status_code == 201
     return r.json()

@@ -455,7 +455,9 @@ class CrearDebateController extends GetxController {
   }
 
   /// Guarda la edición de un debate publicado (solo si sigue sin aportes).
-  Future<DebateDetalle?> guardarEdicion() async {
+  /// Guarda la edición con [motivo] (queda en el historial). Si no hay cambios reales, el
+  /// servidor no crea versión nueva.
+  Future<DebateDetalle?> guardarEdicion(String motivo) async {
     final debate = debateEditado;
     errorPublicar.value = null;
     if (debate == null || publicando.value || !_validarParaEnviar()) {
@@ -464,7 +466,7 @@ class CrearDebateController extends GetxController {
     publicando.value = true;
     try {
       final editado = await _sesion.ejecutar(
-        (t) => _debates.editar(t, debate.id, _contenido()),
+        (t) => _debates.editar(t, debate.id, _contenido(), motivo),
       );
       if (!_activo) return null;
       _sucio = false;
@@ -475,7 +477,7 @@ class CrearDebateController extends GetxController {
     } on ApiException catch (e) {
       if (!_activo) return null;
       errorPublicar.value = switch (e.tipo) {
-        TipoError.conflicto => 'El debate ya tiene aportes o está archivado: su contenido quedó bloqueado.',
+        TipoError.conflicto => 'El debate ya recibió aportes, está protegido o archivado: su contenido quedó bloqueado.',
         TipoError.prohibido => 'Solo quien creó este debate puede editarlo.',
         _ => 'No se pudieron guardar los cambios. ${mensajeDeError(e)}',
       };

@@ -24,6 +24,9 @@ CONTENIDO = {
 }
 
 
+MOTIVO_EDICION = "Corrijo la redacción de la pregunta."
+
+
 @pytest.fixture
 def ana(auth):
     return auth
@@ -203,7 +206,7 @@ def test_otras_cuentas_aportan_y_la_autora_no_controla_aportes_ajenos(client, an
     _, debate = _publicado(client, ana)
     aporte = client.post(
         f"/debates/{debate['id']}/aportes",
-        json={"tipo": "pregunta", "texto": "¿Cuánto costaría ampliar el horario?"},
+        json={"tipo": "pregunta", "texto": "¿Cuánto costaría ampliar el horario?", "version": 1},
         headers=beto,
     ).json()
 
@@ -219,7 +222,11 @@ def test_otras_cuentas_aportan_y_la_autora_no_controla_aportes_ajenos(client, an
 def test_editar_propio_sin_aportes_y_bloqueo_con_aportes(client, ana, beto):
     _, debate = _publicado(client, ana)
     ruta = f"/debates/{debate['id']}"
-    nuevo = {**CONTENIDO, "titulo": "¿Debería ampliarse el horario del bus en época de exámenes?"}
+    nuevo = {
+        **CONTENIDO,
+        "titulo": "¿Debería ampliarse el horario del bus en época de exámenes?",
+        "motivo": MOTIVO_EDICION,
+    }
 
     assert client.put(ruta, json=nuevo, headers=beto).status_code == 403
     r = client.put(ruta, json=nuevo, headers=ana)
@@ -227,9 +234,9 @@ def test_editar_propio_sin_aportes_y_bloqueo_con_aportes(client, ana, beto):
     assert r.json()["titulo"] == nuevo["titulo"]
 
     client.post(
-        f"{ruta}/aportes", json={"tipo": "argumento", "texto": "Ya hay un aporte aquí."}, headers=beto
+        f"{ruta}/aportes", json={"tipo": "argumento", "texto": "Ya hay un aporte aquí.", "version": 2}, headers=beto
     )
-    bloqueado = client.put(ruta, json=CONTENIDO, headers=ana)
+    bloqueado = client.put(ruta, json={**CONTENIDO, "motivo": MOTIVO_EDICION}, headers=ana)
     assert bloqueado.status_code == 409
     assert "bloqueado" in bloqueado.json()["detail"]
     assert client.get(ruta, headers=ana).json()["titulo"] == nuevo["titulo"]
@@ -238,16 +245,21 @@ def test_editar_propio_sin_aportes_y_bloqueo_con_aportes(client, ana, beto):
 def test_edicion_rechaza_campos_internos_e_invalidos(client, ana):
     _, debate = _publicado(client, ana)
     ruta = f"/debates/{debate['id']}"
-    for extra in ({"autor_id": 2}, {"estado": "archivado"}, {"procedencia": "editorial"}):
-        assert client.put(ruta, json={**CONTENIDO, **extra}, headers=ana).status_code == 422
-    assert client.put(ruta, json={**CONTENIDO, "resumen": "corto"}, headers=ana).status_code == 422
+    valido = {**CONTENIDO, "motivo": MOTIVO_EDICION}
+    for extra in (
+        {"autor_id": 2}, {"estado": "archivado"}, {"procedencia": "editorial"},
+        {"version_actual": 9}, {"con_participacion": False},
+    ):
+        assert client.put(ruta, json={**valido, **extra}, headers=ana).status_code == 422
+    assert client.put(ruta, json={**valido, "resumen": "corto"}, headers=ana).status_code == 422
+    assert client.put(ruta, json=CONTENIDO, headers=ana).status_code == 422  # sin motivo
 
 
 def test_nadie_edita_ni_archiva_debates_editoriales(client, ana):
-    assert client.put("/debates/1", json=CONTENIDO, headers=ana).status_code == 403
+    assert client.put("/debates/1", json={**CONTENIDO, "motivo": MOTIVO_EDICION}, headers=ana).status_code == 403
     motivo = {"motivo": "Motivo suficientemente largo."}
     assert client.post("/debates/1/archivar", json=motivo, headers=ana).status_code == 403
-    assert client.put("/debates/999", json=CONTENIDO, headers=ana).status_code == 404
+    assert client.put("/debates/999", json={**CONTENIDO, "motivo": MOTIVO_EDICION}, headers=ana).status_code == 404
 
 
 # --- Archivo --------------------------------------------------------------------------------
@@ -257,7 +269,7 @@ def test_archivar_conserva_contenido_y_bloquea_cambios(client, ana, beto, admin)
     _, debate = _publicado(client, ana)
     ruta = f"/debates/{debate['id']}"
     aporte = client.post(
-        f"{ruta}/aportes", json={"tipo": "propuesta", "texto": "Propuesta antes del archivo."},
+        f"{ruta}/aportes", json={"tipo": "propuesta", "texto": "Propuesta antes del archivo.", "version": 1},
         headers=beto,
     ).json()
 
@@ -276,13 +288,13 @@ def test_archivar_conserva_contenido_y_bloquea_cambios(client, ana, beto, admin)
     assert detalle["estado"] == "archivado" and detalle["titulo"] == CONTENIDO["titulo"]
     assert [a["id"] for a in client.get(f"{ruta}/aportes", headers=beto).json()] == [aporte["id"]]
     # Sin cambios nuevos.
-    nuevo = {"tipo": "pregunta", "texto": "Aporte después del archivo."}
+    nuevo = {"tipo": "pregunta", "texto": "Aporte después del archivo.", "version": 1}
     assert client.post(f"{ruta}/aportes", json=nuevo, headers=beto).status_code == 409
     assert client.patch(
         f"/aportes/{aporte['id']}", json={"texto": "Edición tras el archivo."}, headers=beto
     ).status_code == 409
     assert client.delete(f"/aportes/{aporte['id']}", headers=beto).status_code == 409
-    assert client.put(ruta, json=CONTENIDO, headers=ana).status_code == 409
+    assert client.put(ruta, json={**CONTENIDO, "motivo": MOTIVO_EDICION}, headers=ana).status_code == 409
     # Fuera del catálogo.
     assert debate["id"] not in [d["id"] for d in _catalogo(client, beto)]
 
@@ -314,7 +326,7 @@ def test_cifras_tras_publicar_y_archivar(client, ana, beto, admin):
     _, debate = _publicado(client, ana)
     client.post(
         f"/debates/{debate['id']}/aportes",
-        json={"tipo": "pregunta", "texto": "Aporte en el debate de Ana."},
+        json={"tipo": "pregunta", "texto": "Aporte en el debate de Ana.", "version": 1},
         headers=beto,
     )
     comunidad = client.get("/estadisticas/comunidad", headers=beto).json()

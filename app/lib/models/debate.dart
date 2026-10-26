@@ -1,4 +1,5 @@
 import 'solicitud_archivo.dart';
+import 'version_debate.dart';
 
 class Categoria {
   const Categoria({
@@ -120,6 +121,9 @@ class DebateDetalle extends DebateResumen {
     this.editable = false,
     this.archivoOrigen,
     this.solicitudArchivo,
+    this.versionActual,
+    this.motivoBloqueo,
+    this.aclaraciones = const [],
   });
 
   final String contexto;
@@ -141,6 +145,15 @@ class DebateDetalle extends DebateResumen {
   /// Última solicitud de archivo de la cuenta autora (solo llega en debates propios).
   final SolicitudArchivo? solicitudArchivo;
 
+  /// Versión publicada vigente (7B.1). Los aportes nuevos se publican sobre ella.
+  final int? versionActual;
+
+  /// `participacion` o `historico` si el contenido ya no se puede reescribir.
+  final String? motivoBloqueo;
+
+  /// Añadidos fechados del autor, en orden cronológico.
+  final List<Aclaracion> aclaraciones;
+
   /// Mismo detalle con otra solicitud (tras solicitar o cancelar, sin recargar todo).
   DebateDetalle conSolicitud(SolicitudArchivo? solicitud) => DebateDetalle(
     id: id,
@@ -161,6 +174,34 @@ class DebateDetalle extends DebateResumen {
     editable: editable,
     archivoOrigen: archivoOrigen,
     solicitudArchivo: solicitud,
+    versionActual: versionActual,
+    motivoBloqueo: motivoBloqueo,
+    aclaraciones: aclaraciones,
+  );
+
+  /// Mismo detalle con una aclaración más (tras confirmarla el servidor).
+  DebateDetalle conAclaracion(Aclaracion aclaracion) => DebateDetalle(
+    id: id,
+    titulo: titulo,
+    categoria: categoria,
+    resumen: resumen,
+    origen: origen,
+    procedencia: procedencia,
+    estado: estado,
+    autorNombre: autorNombre,
+    contexto: contexto,
+    perspectivas: perspectivas,
+    ambito: ambito,
+    objetivo: objetivo,
+    archivadoEn: archivadoEn,
+    aportes: aportes,
+    esPropio: esPropio,
+    editable: editable,
+    archivoOrigen: archivoOrigen,
+    solicitudArchivo: solicitudArchivo,
+    versionActual: versionActual,
+    motivoBloqueo: motivoBloqueo,
+    aclaraciones: [...aclaraciones, aclaracion],
   );
 
   factory DebateDetalle.fromJson(Map<String, dynamic> json) {
@@ -191,6 +232,12 @@ class DebateDetalle extends DebateResumen {
       solicitudArchivo: SolicitudArchivo.fromJsonONulo(
         json['solicitud_archivo'],
       ),
+      versionActual: json['version_actual'] as int?,
+      motivoBloqueo: json['motivo_bloqueo'] as String?,
+      aclaraciones: [
+        for (final a in (json['aclaraciones'] as List?) ?? const [])
+          Aclaracion.fromJson(a as Map<String, dynamic>),
+      ],
     );
   }
 }

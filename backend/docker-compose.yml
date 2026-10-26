@@ -3,7 +3,10 @@ name: agora-joven
 services:
   api:
     build: .
-    image: agora-joven-api:dev
+    # Etiqueta propia de la v1.1: el docker-compose.yml de la etiqueta v1.0.0 (inmutable) construye
+    # `agora-joven-api:dev`; con nombres distintos, compilar uno no sustituye la imagen del otro.
+    # Para ejecutar el backend de v1.0.0 a la vez, ver README → "Probar la Release v1.0.0".
+    image: agora-joven-api:1.1-dev
     container_name: agora-joven-api
     # Puerto del host configurable; 8010 por defecto para no chocar con otros
     # backends del curso que usan 8000.

@@ -35,6 +35,10 @@ class AportesController extends GetxController {
   final enviando = false.obs;
   final errorFormulario = RxnString();
 
+  /// Versión vigente si el debate cambió mientras se redactaba (409 `version_desactualizada`).
+  /// El formulario conserva el texto y pide confirmar de nuevo: nunca se reintenta solo.
+  final conflictoVersion = RxnInt();
+
   /// Aportes cuya eliminación espera confirmación del servidor.
   final eliminando = <int>{}.obs;
 
@@ -77,16 +81,33 @@ class AportesController extends GetxController {
   }
 
   void prepararFormulario() {
-    if (!enviando.value) errorFormulario.value = null;
+    if (!enviando.value) {
+      errorFormulario.value = null;
+      conflictoVersion.value = null;
+    }
   }
 
   /// Publica un aporte. No se reintenta solo: si la respuesta se pierde, el servidor pudo
   /// haberlo guardado, así que se pide actualizar la lista antes de repetir.
-  Future<bool> publicar(TipoAporte tipo, String texto) {
+  ///
+  /// [version] es la que la persona estaba viendo. Si ya no es la vigente, no se publica:
+  /// queda [conflictoVersion] y el texto sigue en el formulario.
+  Future<bool> publicar(TipoAporte tipo, String texto, int version) {
+    conflictoVersion.value = null;
     return _enviarFormulario(
-      (token) =>
-          _repositorio.crear(token, debateId, tipo: tipo, texto: texto.trim()),
+      (token) => _repositorio.crear(
+        token,
+        debateId,
+        tipo: tipo,
+        texto: texto.trim(),
+        version: version,
+      ),
       mensajeError: (e) => switch (e.tipo) {
+        TipoError.conflicto
+            when e.codigoConflicto == 'version_desactualizada' =>
+          _avisarConflicto(e.versionActual),
+        TipoError.conflicto =>
+          'Este debate está archivado: ya no admite nuevos aportes.',
         TipoError.sinConexion || TipoError.tiempoAgotado =>
           'No se pudo confirmar la publicación. Es posible que se haya guardado: '
               'actualiza los aportes antes de volver a intentarlo.',
@@ -189,6 +210,13 @@ class AportesController extends GetxController {
     } finally {
       if (_activo) enviando.value = false;
     }
+  }
+
+  String _avisarConflicto(int? versionActual) {
+    conflictoVersion.value = versionActual;
+    return 'El debate cambió mientras redactabas'
+        '${versionActual == null ? '' : ' (ahora es la versión $versionActual)'}. '
+        'Tu texto se conserva y no se publicó. Revisa la versión actual y confirma de nuevo.';
   }
 
   /// Reemplaza por id o inserta al principio: nunca duplica.

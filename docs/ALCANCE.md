@@ -34,7 +34,7 @@ original** con cuatro funciones, entregadas por bloques:
 |---|---|---|
 | 7A | Dashboard de comunidad y participación personal como inicio de la sesión | Implementado (ver `docs/SEGUIMIENTO.md`) |
 | 7B | Creación de debates por usuarios: borradores privados, publicación, edición sin aportes; archivo mediante solicitud revisada por la administración (roles usuario/administrador) | Implementado; recorrido manual de la política nueva pendiente (ver `docs/SEGUIMIENTO.md`) |
-| 7B.1 | Historial de cambios y protección permanente del contexto de un debate | Siguiente bloque; no implementado |
+| 7B.1 | Historial de versiones publicadas, protección permanente del contenido tras el primer aporte, aportes vinculados a su versión y aclaraciones del autor | Implementado y comprobado (ver `docs/SEGUIMIENTO.md`) |
 | — | Investigación asistida con fuentes | Prevista; no implementada |
 | — | Construcción de acuerdos | Prevista; no implementada |
 
@@ -44,6 +44,13 @@ verificado. Quien lo creó puede editarlo solo mientras no tenga aportes y **sol
 motivo; la administración aprueba o rechaza con una justificación, o archiva directamente con un
 motivo. No hay borrado físico. El rol de administración solo se concede con un comando local. No incluye moderación, investigación con fuentes ni ayuda de redacción con IA (previstas
 para 7C). El dashboard aún no muestra métricas de consenso.
+
+En 7B.1: cada publicación y edición permitida queda como versión inmutable consultable desde
+"Historial", con diferencias por campo. Tras el primer aporte el contenido no se puede reescribir
+(aunque se borren los aportes); los debates anteriores al historial quedan protegidos de forma
+conservadora. Los aportes indican la versión sobre la que se escribieron y, si el debate cambió
+mientras se redactaban, no se publican sin confirmación. El autor puede añadir aclaraciones
+fechadas e inmutables. No incluye bifurcaciones ni copias automáticas de debates.
 
 ## Exclusiones
 

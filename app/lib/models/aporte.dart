@@ -24,6 +24,7 @@ class Aporte {
     required this.creadoEn,
     required this.editadoEn,
     required this.esPropio,
+    this.version,
   });
 
   final int id;
@@ -34,6 +35,10 @@ class Aporte {
   final DateTime creadoEn;
   final DateTime? editadoEn;
   final bool esPropio;
+
+  /// Versión del debate que se veía al publicarlo. Nula si es anterior al historial: su
+  /// versión original es desconocida.
+  final int? version;
 
   bool get editado => editadoEn != null;
 
@@ -48,5 +53,6 @@ class Aporte {
         ? null
         : DateTime.parse(json['editado_en'] as String),
     esPropio: json['es_propio'] as bool,
+    version: json['version'] as int?,
   );
 }
