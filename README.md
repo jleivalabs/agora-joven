@@ -17,9 +17,9 @@ Proyecto Final del curso *Desarrolla Aplicaciones Móviles Robustas con Flutter 
 > GitHub Actions desde el commit `1ce2f37` y validada por la persona autora en el emulador.
 > Estado y evidencias de cada bloque: [docs/SEGUIMIENTO.md](docs/SEGUIMIENTO.md).
 >
-> **v1.1 en desarrollo en `main`** (sin publicar). Su backend **no es compatible** con el APK
-> v1.0.0: para usar ese APK hay que ejecutar el backend de la etiqueta `v1.0.0` en un entorno
-> separado. Ver [Qué código usar con cada app](#qué-código-usar-con-cada-app).
+> **v1.1.0 preparada en `main`** (versión `1.1.0+2`), **pendiente de publicar** la etiqueta y la
+> Release. Su backend **no es compatible** con el APK v1.0.0: cada APK usa el backend de su
+> propia etiqueta. Ver [Qué código usar con cada app](#qué-código-usar-con-cada-app).
 
 ## Capturas de pantalla
 
@@ -50,6 +50,24 @@ nombres visibles ("Jleiva", "patu") son cuentas de prueba.
 - [x] Estado compartido con GetX y arquitectura en capas.
 - [x] CI y Release del APK con GitHub Actions (`.github/workflows/`).
 
+Añadido en la v1.1.0:
+
+- [x] Inicio con dashboard de la comunidad y de la participación propia.
+- [x] Creación guiada de debates en 6 pasos, con borradores privados y publicación.
+- [x] Roles usuario/administrador y archivo de debates mediante solicitud revisada por la
+      administración.
+- [x] Historial de versiones y protección del contexto: tras el primer aporte el contenido no se
+      reescribe; cada aporte indica la versión sobre la que se escribió.
+- [x] Declaración de 18 años o más en el registro y confirmación de las cuentas existentes
+      (declaración, no verificación de edad).
+- [x] Referencias bibliográficas de Crossref (metadatos) en los debates creados por usuarios.
+- [x] El asistente educativo de la v1.0.0 se mantiene.
+
+No incluido en la v1.1.0: la **redacción con IA del asistente de creación está desactivada**
+(`REDACCION_IA_ACTIVA=false`; solo probada con un proveedor simulado), **no se procesan resúmenes**
+de las obras, no hay investigación científica automatizada ni verificación de afirmaciones, y no
+hay métricas de consenso ni construcción de acuerdos.
+
 ## Requisitos y versiones comprobadas
 
 | Herramienta | Versión |
@@ -64,13 +82,17 @@ nombres visibles ("Jleiva", "patu") son cuentas de prueba.
 
 | App | Backend | Proyecto Docker | Volumen | Contenedor | Imagen | Puerto del equipo |
 |---|---|---|---|---|---|---|
+| **APK v1.1.0** (Release, cuando se publique) | Etiqueta **`v1.1.0`** | `agora-joven` | `agora-joven_agora_datos` (revisión `0005`) | `agora-joven-api` | `agora-joven-api:1.1-dev` | **8010** (fijo en el APK) |
 | **APK v1.0.0** (Release) | Etiqueta **`v1.0.0`** (commit `1ce2f37`) | `agora-joven-v100` | `agora-joven-v100_agora_datos` | `agora-joven-api-v100` | `agora-joven-api:v1.0.0` | **8010** (fijo en el APK) |
 | **App 1.1** desde el código (`flutter run`) | Rama **`main`** | `agora-joven` | `agora-joven_agora_datos` | `agora-joven-api` | `agora-joven-api:1.1-dev` | `API_PORT` (8010 por defecto) |
 
-- **No mezcles backends y volúmenes.** El backend de `main` migra su base (revisión `0004`:
-  historial de versiones, aportes ligados a una versión, roles). El backend de v1.0.0 no conoce
+- **No mezcles backends y volúmenes.** El backend de la v1.1.0 (y de `main`) migra su base a la
+  revisión `0005` (roles, historial de versiones, aportes ligados a una versión, mayoría de edad,
+  referencias). El backend de v1.0.0 no conoce
   esas migraciones: si abriera ese volumen, escribiría aportes sin versión y sin marcar la
   participación, rompiendo las protecciones de la v1.1. Cada entorno usa **su propio volumen**.
+  Si `main` añade migraciones después de la v1.1.0, el backend de la etiqueta v1.1.0 tampoco debe
+  abrir un volumen ya migrado por `main`: usa otro proyecto y volumen, como en los pasos A3–A5.
 - **El APK v1.0.0 no funciona con el backend de `main`**: no envía la versión del debate al
   publicar aportes y recibe un error 422. No es un fallo que haya que relajar en el servidor.
 - **Puertos:** el APK v1.0.0 solo llama a `http://10.0.2.2:8010`. Los dos backends no pueden usar
@@ -79,6 +101,57 @@ nombres visibles ("Jleiva", "patu") son cuentas de prueba.
   su `backend/.env` y `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8012`).
 - **Secretos:** cada entorno tiene su `backend/.env`, creado y editado a mano a partir de
   `.env.example`, con un `JWT_SECRET` propio. No se copia entre clones ni se imprime.
+
+## Probar la Release v1.1.0 (APK + backend de la etiqueta)
+
+Cuando la persona autora publique la etiqueta `v1.1.0`, su APK se usa con el backend de **esa
+misma etiqueta**, con la base en la revisión `0005`.
+
+#### B1. Código de la etiqueta
+
+```powershell
+git clone --branch v1.1.0 --depth 1 https://github.com/jleivalabs/agora-joven.git agora-joven-v1.1.0
+cd agora-joven-v1.1.0\backend
+```
+
+#### B2. Secretos y configuración (a mano)
+
+```powershell
+Copy-Item .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+En `backend/.env`, con tu editor y sin mostrarlo en la terminal: `JWT_SECRET=` (obligatorio, valor
+nuevo), `API_PORT=8010` (el del APK), `GEMINI_API_KEY=` (opcional, asistente educativo),
+`CROSSREF_MAILTO=` (opcional: correo de contacto para buscar referencias en Crossref; vacío, la
+búsqueda aparece como no configurada) y `REDACCION_IA_ACTIVA=false` (la redacción con IA no forma
+parte de la v1.1.0).
+
+#### B3. Backend y revisión de la base
+
+```powershell
+docker compose up --build -d api
+docker compose ps                         # agora-joven-api (healthy)
+curl.exe http://localhost:8010/health
+docker compose exec api python -m app.migrar   # "Esquema en la revisión 0005."
+```
+
+El arranque aplica las migraciones: una base nueva se crea en `0005` y una base de desarrollo
+v1.1 anterior se actualiza conservando sus datos. Las cuentas que no hayan declarado la edad
+deben confirmarla al entrar. Un volumen de v1.0.0 (`agora-joven-v100_agora_datos`) no se toca.
+
+#### B4. Instalar el APK
+
+Descarga `agora-joven-v1.1.0-emulador.apk` y su `.sha256` de la Release, verifica el SHA-256 como
+en el paso A6 y, con el emulador abierto:
+
+```powershell
+adb uninstall ec.edu.ute.agora_joven      # obligatorio si había otra versión (firma distinta)
+adb install .\agora-joven-v1.1.0-emulador.apk
+```
+
+Desinstalar borra lo guardado en el dispositivo (sesión y debates guardados con Hive); las cuentas,
+debates y aportes siguen en el volumen Docker.
 
 ## Probar la Release v1.0.0 (APK + backend de la etiqueta)
 
@@ -254,7 +327,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8010
 ## Recorrido de prueba (dos cuentas)
 
 Recorrido de la v1.0.0. Con el APK de la Release, el backend es el de la etiqueta: donde dice
-`docker compose`, usa `dc100` (paso A3) en `agora-joven-v1.0.0ackend`.
+`docker compose`, usa `dc100` (paso A3) en `agora-joven-v1.0.0\backend`.
 
 1. Abre la app → "Crear una cuenta" → registra la cuenta A → inicia sesión.
 2. Catálogo: filtra por una categoría y vuelve a "Todas". Abre un debate: contexto, perspectivas y
@@ -342,8 +415,9 @@ Alcance y correspondencia con la rúbrica: [docs/ALCANCE.md](docs/ALCANCE.md).
 - `.github/workflows/release.yml` — al subir una etiqueta `v*`: vuelve a probar backend y app,
   comprueba que la etiqueta coincida con la versión de `pubspec.yaml`, compila el APK release con
   `API_BASE_URL=http://10.0.2.2:8010` y publica una GitHub Release con
-  `agora-joven-vX.Y.Z-emulador.apk` y su `.sha256`. Solo el trabajo que publica tiene permiso de
-  escritura.
+  `agora-joven-vX.Y.Z-emulador.apk` y su `.sha256`. Las notas de la Release indican usar el backend
+  de la misma etiqueta, la configuración opcional de Crossref, la firma de depuración y que
+  desinstalar borra los datos locales. Solo el trabajo que publica tiene permiso de escritura.
 
 ## Seguridad
 
@@ -375,13 +449,20 @@ Alcance y correspondencia con la rúbrica: [docs/ALCANCE.md](docs/ALCANCE.md).
   contener errores aunque se indique en la interfaz. Resume como máximo los 20 aportes más recientes.
 - Sin paginación del catálogo ni de los aportes, sin modo sin conexión (salvo la lista de
   guardados) y sin recuperación de contraseña.
+- **Edad:** la mayoría de edad es una declaración de la persona, no una verificación, y por sí
+  sola no garantiza el cumplimiento de las condiciones de los proveedores.
+- **Referencias:** solo metadatos de Crossref; localizar una obra no certifica su calidad ni
+  respalda ninguna afirmación. No se procesan resúmenes (sin política de licencias aprobada). La
+  búsqueda requiere `CROSSREF_MAILTO` y respeta límites por cuenta y hora que viven en memoria del
+  proceso (se reinician con la API).
+- **Redacción con IA del asistente de creación:** desactivada; pendiente de revisar el tratamiento
+  de datos de Gemini (también del asistente educativo existente) antes de activarla.
 
-## Versión 1.1 (en desarrollo)
+## Versión 1.1.0 (alcance definitivo)
 
-Cambios en `main` posteriores a la v1.0.0, **sin Release publicada**. Para probarlos hay que
-ejecutar la app desde el código (`flutter run`, sección 4 de "Desarrollo v1.1") con el backend de
-`main` (`docker compose up --build -d api`). El APK v1.0.0 necesita el backend de su etiqueta (ver
-[Qué código usar con cada app](#qué-código-usar-con-cada-app)).
+Versión `1.1.0+2`, cerrada con las funciones de los bloques 7A, 7B, 7B.1 y 7C. La etiqueta y la
+Release `v1.1.0` están **pendientes de publicar** por la persona autora. El APK v1.0.0 necesita el
+backend de su etiqueta (ver [Qué código usar con cada app](#qué-código-usar-con-cada-app)).
 
 - **Bloque 7A — dashboard de inicio.** Tras iniciar sesión, la app abre "Inicio", con navegación
   inferior entre Inicio, Debates y Guardados:
@@ -419,7 +500,10 @@ ejecutar la app desde el código (`flutter run`, sección 4 de "Desarrollo v1.1"
   Crossref real en el recorrido manual.
   Registro con declaración de 18 años o más; las cuentas existentes la confirman al entrar.
   Detalles en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#investigación-asistida-y-mayoría-de-edad-bloque-7c-v11).
-- Próximo: construcción de acuerdos. Alcance en [docs/ALCANCE.md](docs/ALCANCE.md).
+- **Fuera de la v1.1.0:** redacción con IA del asistente de creación (implementada pero
+  desactivada, solo probada con un proveedor simulado), procesamiento de resúmenes, investigación
+  científica automatizada, métricas de consenso y construcción de acuerdos. Alcance en
+  [docs/ALCANCE.md](docs/ALCANCE.md).
 
 ## Desarrollo
 
@@ -467,7 +551,9 @@ cd app; flutter analyze; flutter test               # servidor falso y almacenes
   posiciones oficiales ni contiene datos estadísticos o normativos.
 - Asistente: Gemini API de Google (servicio externo; requiere clave propia y sus condiciones de uso).
 - Paquetes de la app: Flutter (BSD-3), `get` (MIT), `dio` (MIT), `flutter_secure_storage` (BSD-3),
-  `hive` y `hive_flutter` (Apache-2.0), `flutter_markdown_plus` y `markdown` (BSD-3).
+  `hive` y `hive_flutter` (Apache-2.0), `flutter_markdown_plus` y `markdown` (BSD-3),
+  `url_launcher` (BSD-3).
+- Referencias: metadatos de [Crossref](https://www.crossref.org/) (REST API pública).
 - Paquetes del backend: FastAPI (MIT), Uvicorn (BSD-3), SQLAlchemy (MIT), PyJWT (MIT), pwdlib (MIT),
-  argon2-cffi (MIT), pydantic-settings (MIT), email-validator (Unlicense).
+  argon2-cffi (MIT), pydantic-settings (MIT), email-validator (Unlicense), Alembic (MIT).
 - Licencias comprobadas en los archivos `LICENSE` o metadatos de los paquetes instalados.

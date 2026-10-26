@@ -47,25 +47,42 @@ La v1.0.0 publicada (etiqueta y Release, que no se modifican) se describía como
 | F7 | Asistente de contexto y perspectivas | Gemini vía backend propio; usa el contexto del debate y una selección acotada de aportes; clave solo en el servidor. |
 | F8 | Calidad | GetX, arquitectura en capas, manejo de errores (401/400/422/5xx/red), pruebas, CI y Release con APK. |
 
-## Versión 1.1 (en desarrollo)
+## Versión 1.1.0 (alcance definitivo, decisión del 25/10/2026)
 
-La v1.0.0 (alcance anterior, publicada y validada) no cambia. La v1.1 **amplía el alcance
-original** con cuatro funciones, entregadas por bloques:
+La v1.0.0 (alcance anterior, publicada y validada) no cambia. La v1.1.0 (`1.1.0+2`) **cierra con
+las funciones actuales**; no se implementan 7D ni funciones nuevas. Alcance entregado:
+
+- Dashboard de comunidad y participación (7A).
+- Creación guiada, borradores privados y publicación de debates (7B).
+- Roles usuario/administrador y archivo mediante revisión administrativa (7B).
+- Historial de versiones y protección del contexto de los aportes (7B.1).
+- Declaración de 18 años o más (7C).
+- Referencias bibliográficas de Crossref, solo metadatos (7C).
+- Asistente educativo existente (F7, sin cambios).
+
+**No entregado en la v1.1.0:** la redacción con IA del asistente de creación (implementada pero
+**desactivada**, `REDACCION_IA_ACTIVA=false`, probada solo con un proveedor simulado); el
+procesamiento de resúmenes de las obras (**no se procesan** hasta aprobar una política de
+licencias); la investigación científica automatizada o la verificación de afirmaciones; las
+métricas de consenso y la construcción de acuerdos. Sigue pendiente revisar el tratamiento de
+datos de Gemini (también del asistente educativo) antes de activar la redacción.
+
+Detalle por bloques:
 
 | Bloque | Función | Estado |
 |---|---|---|
-| 7A | Dashboard de comunidad y participación personal como inicio de la sesión | Implementado (ver `docs/SEGUIMIENTO.md`) |
+| 7A | Dashboard de comunidad y participación personal como inicio de la sesión | Implementado y comprobado (ver `docs/SEGUIMIENTO.md`) |
 | 7B | Creación de debates por usuarios: borradores privados, publicación, edición sin aportes; archivo mediante solicitud revisada por la administración (roles usuario/administrador) | Implementado y comprobado (ver `docs/SEGUIMIENTO.md`) |
 | 7B.1 | Historial de versiones publicadas, protección permanente del contenido tras el primer aporte, aportes vinculados a su versión y aclaraciones del autor | Implementado y comprobado (ver `docs/SEGUIMIENTO.md`) |
 | 7C | Referencias bibliográficas localizadas en Crossref (búsqueda, selección y publicación de metadatos) y redacción con Gemini **sin** búsqueda de Google (desactivada por defecto); confirmación de mayoría de edad | Comprobado: declaración de edad y referencias con Crossref real (pruebas automáticas y recorrido manual). Redacción con IA desactivada y probada solo con proveedor simulado; resúmenes sin procesar hasta aprobar una política de licencias (ver `docs/SEGUIMIENTO.md`) |
-| — | Construcción de acuerdos | Prevista; no implementada |
+| — | Construcción de acuerdos y métricas de consenso | Fuera de la v1.1.0; no implementada |
 
 En 7B: cualquier cuenta crea debates con un asistente de 6 pasos; los borradores son privados y
 se pueden retomar; publicar los muestra en el catálogo, marcados como contenido de la comunidad no
 verificado. Quien lo creó puede editarlo solo mientras no tenga aportes y **solicitar** su archivo con un
 motivo; la administración aprueba o rechaza con una justificación, o archiva directamente con un
-motivo. No hay borrado físico. El rol de administración solo se concede con un comando local. No incluye moderación, investigación con fuentes ni ayuda de redacción con IA (previstas
-para 7C). El dashboard aún no muestra métricas de consenso.
+motivo. No hay borrado físico. El rol de administración solo se concede con un comando local. No incluye
+moderación. El dashboard no muestra métricas de consenso.
 
 En 7B.1: cada publicación y edición permitida queda como versión inmutable consultable desde
 "Historial", con diferencias por campo. Tras el primer aporte el contenido no se puede reescribir

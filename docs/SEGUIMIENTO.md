@@ -12,18 +12,21 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
   pendiente técnico de Hive.
 - **Solo queda entregar el enlace del repositorio en Moodle** (persona autora). No está
   registrado como realizado.
-- **v1.1 en desarrollo**: 7A (`c53367f`), 7B (`2e82559`) y 7B.1 (`cb2de64`) publicados en
-  `origin/main`; CI en verde para `cb2de64` según la persona autora. **Bloque 7C comprobado**
+- **v1.1.0 en cierre**: 7A (`c53367f`), 7B (`2e82559`), 7B.1 (`cb2de64`) y 7C (`afd2e9b`)
+  publicados en `origin/main`; CI en verde para `cb2de64` según la persona autora (el estado del
+  CI de `afd2e9b` no lo ha comprobado el agente). **Bloque 7C comprobado**
   para la declaración de edad y la gestión de referencias con Crossref real (recorrido manual de
   la persona autora en emulator-5554); la redacción con IA sigue desactivada y solo probada con
   proveedor simulado; resúmenes sin procesar. Base real migrada a `0005` con respaldo previo.
-  Pendiente: revisión, commit y push. La etiqueta
+  **Versión 1.1.0 cerrada** (decisión del 25/10/2026; `1.1.0+2`), ver "Cierre de la v1.1.0".
+  Pendiente (persona autora): commit, push, etiqueta y Release `v1.1.0`, prueba del APK descargado
+  y envío en Moodle. **El proyecto no está marcado como entregado.** La etiqueta
   `v1.0.0` y sus archivos publicados no se han tocado. 7D no ha empezado.
 
 ## Punto de continuación (actualizado el 25/10/2026)
 
-- **Último commit publicado:** `cb2de64` (Bloque 7B.1), en `origin/main`; CI en verde según la
-  persona autora (el agente no pudo consultarlo: `gh` no está instalado).
+- **Último commit publicado:** `afd2e9b` (Bloque 7C), en `origin/main`, publicado por la persona
+  autora. El agente no pudo consultar el CI (`gh` no está instalado).
 - **Público (decisión del 25/10/2026):** solo personas de 18 años o más. Declaración en el registro
   y confirmación de las cuentas existentes implementadas en 7C. Tras migrar, las 4 cuentas
   existentes (también "Admin") están pendientes de confirmar.
@@ -65,7 +68,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 7A (v1.1) | Dashboard de comunidad y participación personal; navegación Inicio · Debates · Guardados | ✅ Commit `c53367f`, publicado en `origin/main` |
 | 7B (v1.1) | Creación de debates por usuarios: borradores, publicación, edición, Mis debates; archivo con solicitud y revisión administrativa; roles; migraciones 0002–0003 | ✅ Commit `2e82559`, publicado en `origin/main`; CI en verde según la persona autora |
 | 7B.1 (v1.1) | Historial de versiones, bloqueo permanente tras participación, aportes por versión, aclaraciones; migración 0004 | ✅ Commit `cb2de64`, publicado en `origin/main`; CI en verde según la persona autora |
-| 7C (v1.1) | Referencias de Crossref (metadatos), redacción con Gemini sin búsqueda (desactivada), mayoría de edad declarada; migración 0005 | ✅ Comprobado: edad y referencias con Crossref real (recorrido manual); redacción solo con proveedor simulado (desactivada); pendiente commit y push |
+| 7C (v1.1) | Referencias de Crossref (metadatos), redacción con Gemini sin búsqueda (desactivada), mayoría de edad declarada; migración 0005 | ✅ Commit `afd2e9b`, publicado en `origin/main`. Comprobado: edad y referencias con Crossref real (recorrido manual); redacción solo con proveedor simulado (desactivada) |
+| v1.1.0 | Cierre: versión `1.1.0+2`, notas de Release, documentación del alcance definitivo | 🔶 Preparado por el agente; pendiente commit, push, etiqueta y Release `v1.1.0`, prueba del APK descargado y envío en Moodle |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -1244,6 +1248,50 @@ otra cuenta, el historial y la revisión visual (texto ampliado y pantalla estre
 - Política de licencias para procesar y publicar resúmenes.
 - Tratamiento de datos según la configuración de Gemini (nivel gratuito o de pago), también para
   el asistente existente, antes de activar `REDACCION_IA_ACTIVA`.
+
+## Cierre de la v1.1.0 (25/10/2026)
+
+Decisión de la persona autora: la v1.1 se cierra con las funciones actuales; no se implementan 7D
+ni funciones nuevas. Versión de la app: `1.1.0+2`; versión de la API: `1.1.0`.
+
+**Alcance definitivo:** dashboard de comunidad y participación; creación guiada, borradores y
+publicación; roles y archivo mediante revisión administrativa; historial y protección del
+contexto de los aportes; declaración de 18 años o más; referencias bibliográficas de Crossref
+(metadatos); asistente educativo existente.
+
+**No entregado:** redacción con IA del asistente de creación (desactivada,
+`REDACCION_IA_ACTIVA=false`, probada solo con proveedor simulado); procesamiento de resúmenes;
+investigación científica automatizada; métricas de consenso. **Pendiente de revisión:** el
+tratamiento de datos de Gemini (también del asistente educativo) y la política de licencias.
+
+**Evidencias de 7C** (detalle en "Bloque 7C"):
+
+- Pruebas automáticas del agente: backend 220, Flutter 212 (proveedores simulados).
+- Capturas de la persona autora (emulator-5554): confirmación de edad con botón desactivado y
+  activado; funciones sin configurar; publicación sin fuentes; búsqueda real en Crossref con
+  diálogo previo; resultados; selección de dos referencias; retirada de una; debate publicado con
+  la referencia restante.
+- Confirmación de la persona autora: apertura y comparación de metadatos, persistencia del
+  borrador, consulta desde otra cuenta, historial y revisión visual.
+- Migración real a `0005` con respaldo previo
+  `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7c-20261025-230538.db`.
+
+**Cambios de cierre (agente):** versión `1.1.0+2`; API `1.1.0`; notas de la Release en
+`release.yml` (backend de la misma etiqueta, configuración de Crossref, firma de depuración,
+pérdida de datos locales al desinstalar, 18+); README (alcance definitivo, instrucciones de la
+v1.1.0 separadas de las de v1.0.0, limitaciones) y ALCANCE. Corregido en el README un carácter de
+control introducido en una edición anterior (`agora-joven-v1.0.0\backend`).
+
+**Validación final del agente (25/10/2026, sobre `afd2e9b` + cambios de cierre):**
+`flutter pub get --enforce-lockfile` sin cambios; `flutter analyze` sin incidencias; `flutter test`
+212 passed; backend en contenedor `python:3.12-slim` (Python 3.12.15) 220 passed; APK release
+local para el emulador (`flutter build apk --release
+--dart-define=API_BASE_URL=http://10.0.2.2:8010`) compilado, 53,9 MB, en `app/build/` (ignorado
+por Git; no se versiona ni se publica). Sin dependencias actualizadas ni llamadas reales a
+proveedores. Revisión del diff: sin secretos, bases, respaldos ni APK.
+
+**Pendiente (persona autora):** commit y push; etiqueta y Release `v1.1.0` (las genera el
+workflow); descargar y probar el APK publicado con el backend de la etiqueta; envío en Moodle.
 
 ## Decisiones registradas (2026-10-22)
 

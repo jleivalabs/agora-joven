@@ -118,9 +118,18 @@ jobs:
             app/agora-joven-${{ github.ref_name }}-emulador.apk.sha256
           body: |
             APK para el **emulador Android**: usa el backend en `http://10.0.2.2:8010`.
-            Antes de abrirlo, levanta el backend con Docker (ver README).
 
-            - Firma: clave de depuración generada en el runner (no es una firma de producción).
-              Si ya tenías otra versión instalada, desinstálala antes.
+            - **Backend:** usa el de **esta misma etiqueta** (`git clone --branch ${{ github.ref_name }}`)
+              con Docker (ver README). Cada versión tiene su backend: no mezcles volúmenes entre
+              versiones; un backend antiguo no debe abrir una base ya migrada por uno más nuevo.
+            - **Configuración del servidor** (`backend/.env`, creado a mano, nunca compartido):
+              `JWT_SECRET` obligatorio; `GEMINI_API_KEY` opcional (asistente educativo);
+              `CROSSREF_MAILTO` opcional (búsqueda de referencias en Crossref; sin él aparece como
+              no configurada); `REDACCION_IA_ACTIVA=false` (la redacción con IA no forma parte de
+              esta versión). Solo para personas de 18 años o más (declaración, no verificación).
+            - **Firma:** clave de depuración generada en el runner (no es una firma de producción).
+              Si ya tenías otra versión instalada, desinstálala antes: **desinstalar borra los datos
+              locales** (sesión y debates guardados); cuentas, debates y aportes siguen en el
+              backend.
             - Verifica la descarga con el archivo `.sha256` adjunto.
             - Un teléfono físico necesita otra compilación con la IP del equipo (ver README).

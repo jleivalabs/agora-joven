@@ -95,7 +95,7 @@ def create_app(
         yield
         motor.dispose()
 
-    app = FastAPI(title="Ágora Joven API", version="1.1.0-dev", lifespan=lifespan)
+    app = FastAPI(title="Ágora Joven API", version="1.1.0", lifespan=lifespan)
 
     @app.get("/health", tags=["sistema"])
     def health() -> dict[str, str]:
