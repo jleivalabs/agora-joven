@@ -30,6 +30,15 @@ def _salida(aporte: Aporte, autor_nombre: str, usuario: Usuario) -> AporteSalida
     )
 
 
+MENSAJE_ARCHIVADO = (
+    "Este debate está archivado: se puede consultar, pero no admite cambios en sus aportes."
+)
+
+
+def _archivado() -> HTTPException:
+    return HTTPException(status.HTTP_409_CONFLICT, detail=MENSAJE_ARCHIVADO)
+
+
 def _exigir_debate(db: Session, debate_id: int) -> None:
     if repo_debates.obtener(db, debate_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Debate no encontrado.")
@@ -61,7 +70,10 @@ def crear(
     debate_id: int, datos: AporteEntrada, db: Db, usuario: UsuarioActual
 ) -> AporteSalida:
     _exigir_debate(db, debate_id)
-    aporte = repo_aportes.crear(db, debate_id, usuario.id, datos.tipo.value, datos.texto)
+    try:
+        aporte = repo_aportes.crear(db, debate_id, usuario.id, datos.tipo.value, datos.texto)
+    except repo_aportes.DebateArchivado:
+        raise _archivado() from None
     return _salida(aporte, usuario.nombre, usuario)
 
 
@@ -71,11 +83,17 @@ def editar(
 ) -> AporteSalida:
     aporte = _aporte_propio(db, aporte_id, usuario)
     valores = cambios.model_dump(mode="json", exclude_unset=True)
-    repo_aportes.actualizar(db, aporte, valores)
+    try:
+        repo_aportes.actualizar(db, aporte, valores)
+    except repo_aportes.DebateArchivado:
+        raise _archivado() from None
     return _salida(aporte, usuario.nombre, usuario)
 
 
 @router.delete("/aportes/{aporte_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar(aporte_id: int, db: Db, usuario: UsuarioActual) -> Response:
-    repo_aportes.eliminar(db, _aporte_propio(db, aporte_id, usuario))
+    try:
+        repo_aportes.eliminar(db, _aporte_propio(db, aporte_id, usuario))
+    except repo_aportes.DebateArchivado:
+        raise _archivado() from None
     return Response(status_code=status.HTTP_204_NO_CONTENT)

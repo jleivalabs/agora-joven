@@ -60,3 +60,17 @@ def sesion_de(client, registrar) -> Callable[[str, str], dict[str, str]]:
         return {"Authorization": f"Bearer {respuesta.json()['access_token']}"}
 
     return _sesion
+
+
+@pytest.fixture
+def admin(client, sesion_de) -> dict[str, str]:
+    """Cabecera de una cuenta registrada como usuario y promovida en la base de prueba, igual
+    que haría el comando local `python -m app.admin promover`."""
+    from app.admin import cambiar_rol
+    from app.models import Rol
+
+    cabecera = sesion_de("admin@example.com", "Revisora")
+    with client.app.state.fabrica_sesiones() as db:
+        id_ = client.get("/auth/me", headers=cabecera).json()["id"]
+        cambiar_rol(db, id_, Rol.administrador)
+    return cabecera

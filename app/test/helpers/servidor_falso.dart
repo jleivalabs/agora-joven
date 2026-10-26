@@ -12,6 +12,9 @@ const emailAna = 'ana@example.com';
 const passwordAna = 'clave-de-prueba-123';
 const emailBeto = 'beto@example.com';
 
+/// Cuenta con rol de administración en el servidor falso (misma contraseña de prueba).
+const emailRosa = 'rosa@example.com';
+
 class RespuestaFalsa {
   const RespuestaFalsa(this.codigo, [this.cuerpo]);
 
@@ -31,6 +34,8 @@ class ServidorFalso implements HttpClientAdapter {
     _rutasDeAportes();
     _rutaDelAsistente();
     _rutasDeEstadisticas();
+    _rutasDeBorradores();
+    _rutasDeSolicitudes();
   }
 
   final _rutas = <String, Manejador>{};
@@ -49,7 +54,32 @@ class ServidorFalso implements HttpClientAdapter {
       'email': emailBeto,
       'password': passwordAna,
     },
+    emailRosa: {
+      'id': 3,
+      'nombre': 'Rosa',
+      'email': emailRosa,
+      'password': passwordAna,
+      'rol': 'administrador',
+    },
   };
+
+  /// Solicitudes de archivo (con `solicitante_id` y `revisor_id`, que no ve el solicitante).
+  final solicitudes = <Map<String, Object?>>[];
+
+  /// Debates de esta instancia: copia de [debatesFalsos] más los que se publiquen.
+  final debates = [
+    for (final d in debatesFalsos)
+      {
+        ...d,
+        'procedencia': 'editorial',
+        'estado': 'publicado',
+        'autor_id': null,
+      },
+  ];
+
+  /// Borradores privados (con `autor_id`, que nunca se envía al cliente).
+  final borradores = <Map<String, Object?>>[];
+  int _siguienteBorrador = 0;
 
   /// Aportes guardados en el servidor falso (con `autor_id`, que nunca se envía al cliente).
   final aportes = <Map<String, Object?>>[];
@@ -62,6 +92,9 @@ class ServidorFalso implements HttpClientAdapter {
   /// Sustituye el manejador de una ruta, por ejemplo `cuando('GET /debates', ...)`.
   /// Las rutas con id usan `{id}`: `GET /debates/{id}`, `PATCH /aportes/{id}`.
   void cuando(String ruta, Manejador manejador) => _rutas[ruta] = manejador;
+
+  /// Manejador actual de una ruta (para restaurarlo tras simular un fallo).
+  Manejador? manejador(String ruta) => _rutas[ruta];
 
   int contar(String ruta) => peticiones.where((p) => _clave(p) == ruta).length;
 
@@ -193,6 +226,7 @@ class ServidorFalso implements HttpClientAdapter {
         'nombre': u['nombre'],
         'email': u['email'],
         'creado_en': '2026-10-22T00:00:00Z',
+        'rol': u['rol'] ?? 'usuario',
       });
     });
     cuando('GET /debates/categorias', (p) {
@@ -202,7 +236,11 @@ class ServidorFalso implements HttpClientAdapter {
           {
             'categoria': c.$1,
             'etiqueta': c.$2,
-            'total': debatesFalsos.where((d) => d['categoria'] == c.$1).length,
+            'total': debates
+                .where(
+                  (d) => d['categoria'] == c.$1 && d['estado'] == 'publicado',
+                )
+                .length,
           },
       ]);
     });
@@ -214,28 +252,20 @@ class ServidorFalso implements HttpClientAdapter {
         return const RespuestaFalsa(422, {'detail': []});
       }
       return RespuestaFalsa(200, [
-        for (final d in debatesFalsos)
-          if (categoria == null || d['categoria'] == categoria)
-            {
-              for (final k in [
-                'id',
-                'titulo',
-                'categoria',
-                'resumen',
-                'origen',
-              ])
-                k: d[k],
-            },
+        for (final d in debates)
+          if (d['estado'] == 'publicado' &&
+              (categoria == null || d['categoria'] == categoria))
+            resumenDe(d),
       ]);
     });
     cuando('GET /debates/{id}', (p) {
       if (usuarioDelToken(p) == null) return _noAutorizado;
       final id = idDe(p);
-      final d = debatesFalsos.where((d) => d['id'] == id);
-      if (d.isEmpty) {
+      final d = debates.where((d) => d['id'] == id).firstOrNull;
+      if (d == null) {
         return const RespuestaFalsa(404, {'detail': 'Debate no encontrado.'});
       }
-      return RespuestaFalsa(200, d.first);
+      return RespuestaFalsa(200, detalleDe(d, usuarioDelToken(p)!));
     });
   }
 
@@ -253,6 +283,7 @@ class ServidorFalso implements HttpClientAdapter {
     cuando('POST /debates/{id}/aportes', (p) {
       final usuario = usuarioDelToken(p);
       if (usuario == null) return _noAutorizado;
+      if (_archivado(idDe(p))) return _conflicto;
       final datos = cuerpo(p) as Map;
       final texto = (datos['texto'] as String).trim();
       if (texto.length < 10 || texto.length > 1000) {
@@ -339,13 +370,14 @@ class ServidorFalso implements HttpClientAdapter {
       'categoria': d['categoria']!,
     };
     Map<String, Object?> debateDe(Object? id) =>
-        debatesFalsos.firstWhere((d) => d['id'] == id);
+        debates.firstWhere((d) => d['id'] == id);
+    final activos = debates.where((d) => d['estado'] == 'publicado');
 
     cuando('GET /estadisticas/comunidad', (p) {
       if (usuarioDelToken(p) == null) return _noAutorizado;
       final conAportes = aportes.map((a) => a['debate_id']).toSet();
       final sin = [
-        for (final d in debatesFalsos)
+        for (final d in activos)
           if (!conAportes.contains(d['id'])) d,
       ];
       final actividad =
@@ -368,15 +400,14 @@ class ServidorFalso implements HttpClientAdapter {
             ),
           );
       return RespuestaFalsa(200, {
-        'total_debates': debatesFalsos.length,
+        'total_debates': activos.length,
+        'debates_archivados': debates.length - activos.length,
         'por_categoria': [
           for (final c in categoriasFalsas)
             {
               'categoria': c.$1,
               'etiqueta': c.$2,
-              'total': debatesFalsos
-                  .where((d) => d['categoria'] == c.$1)
-                  .length,
+              'total': activos.where((d) => d['categoria'] == c.$1).length,
             },
         ],
         'total_aportes': aportes.length,
@@ -403,6 +434,21 @@ class ServidorFalso implements HttpClientAdapter {
           'propuesta': contar('propuesta'),
         },
         'debates_participados': mios.map((a) => a['debate_id']).toSet().length,
+        'mis_debates': {
+          'borradores': borradores
+              .where((b) => b['autor_id'] == usuario && b['debate_id'] == null)
+              .length,
+          'publicados': debates
+              .where(
+                (d) => d['autor_id'] == usuario && d['estado'] == 'publicado',
+              )
+              .length,
+          'archivados': debates
+              .where(
+                (d) => d['autor_id'] == usuario && d['estado'] == 'archivado',
+              )
+              .length,
+        },
         'aportes_recientes': [
           for (final a in mios.take(5))
             {
@@ -417,6 +463,387 @@ class ServidorFalso implements HttpClientAdapter {
       });
     });
   }
+
+  bool _archivado(int debateId) =>
+      debates.any((d) => d['id'] == debateId && d['estado'] == 'archivado');
+
+  String? _nombre(Object? usuarioId) => usuarioId == null
+      ? null
+      : usuarios.values.firstWhere((u) => u['id'] == usuarioId)['nombre']
+            as String;
+
+  Map<String, Object?> resumenDe(Map<String, Object?> d) => {
+    for (final k in [
+      'id',
+      'titulo',
+      'categoria',
+      'resumen',
+      'origen',
+      'procedencia',
+      'estado',
+    ])
+      k: d[k],
+    'autor_nombre': _nombre(d['autor_id']),
+  };
+
+  Map<String, Object?> detalleDe(Map<String, Object?> d, int usuario) {
+    final propio = d['autor_id'] == usuario;
+    final nAportes = aportes.where((a) => a['debate_id'] == d['id']).length;
+    return {
+      ...resumenDe(d),
+      'contexto': d['contexto'],
+      'perspectivas': d['perspectivas'],
+      'actualizado_en': d['actualizado_en'],
+      'ambito': d['ambito'],
+      'objetivo': d['objetivo'],
+      'publicado_en': d['publicado_en'],
+      'archivado_en': d['archivado_en'],
+      'aportes': nAportes,
+      'es_propio': propio,
+      'editable': propio && d['estado'] == 'publicado' && nAportes == 0,
+      'archivo_origen': d['archivo_origen'],
+      'solicitud_archivo': propio ? _ultimaSolicitud(d['id'], usuario) : null,
+    };
+  }
+
+  bool _esAdmin(int usuario) => usuarios.values.any(
+    (u) => u['id'] == usuario && u['rol'] == 'administrador',
+  );
+
+  Map<String, Object?> _solicitudPropia(Map<String, Object?> s) => {
+    for (final k in [
+      'id',
+      'debate_id',
+      'motivo',
+      'estado',
+      'creada_en',
+      'resuelta_en',
+    ])
+      k: s[k],
+    'respuesta': s['justificacion'],
+  };
+
+  Map<String, Object?>? _ultimaSolicitud(Object? debateId, int usuario) {
+    final propias = solicitudes.where(
+      (s) => s['debate_id'] == debateId && s['solicitante_id'] == usuario,
+    );
+    return propias.isEmpty ? null : _solicitudPropia(propias.last);
+  }
+
+  Map<String, Object?> _solicitudAdmin(Map<String, Object?> s) {
+    final d = debates.firstWhere((d) => d['id'] == s['debate_id']);
+    return {
+      for (final k in [
+        'id',
+        'estado',
+        'motivo',
+        'creada_en',
+        'resuelta_en',
+        'justificacion',
+      ])
+        k: s[k],
+      'solicitante_nombre': _nombre(s['solicitante_id']),
+      'revisor_nombre': _nombre(s['revisor_id']),
+      'debate': {
+        'id': d['id'],
+        'titulo': d['titulo'],
+        'categoria': d['categoria'],
+      },
+      'debate_estado': d['estado'],
+      'debate_resumen': d['resumen'],
+      'debate_aportes': aportes.where((a) => a['debate_id'] == d['id']).length,
+    };
+  }
+
+  /// Rutas de solicitudes de archivo y administración (mismas reglas que el backend).
+  void _rutasDeSolicitudes() {
+    const prohibido = RespuestaFalsa(403, {'detail': 'x'});
+    const noEncontrada = RespuestaFalsa(404, {'detail': 'x'});
+    String? motivoValido(RequestOptions p, String campo) {
+      final datos = cuerpo(p);
+      final valor = datos is Map ? (datos[campo] as String?)?.trim() : null;
+      return valor == null || valor.length < 10 ? null : valor;
+    }
+
+    cuando('POST /debates/{id}/solicitud-archivo', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final d = debates.where((d) => d['id'] == idDe(p)).firstOrNull;
+      if (d == null) return noEncontrada;
+      if (d['autor_id'] != usuario) return prohibido;
+      if (d['estado'] != 'publicado') return _conflicto;
+      final motivo = motivoValido(p, 'motivo');
+      if (motivo == null) return const RespuestaFalsa(422, {'detail': []});
+      final pendiente = solicitudes
+          .where((s) => s['debate_id'] == d['id'] && s['estado'] == 'pendiente')
+          .firstOrNull;
+      if (pendiente != null) {
+        return RespuestaFalsa(200, _solicitudPropia(pendiente));
+      }
+      final nueva = <String, Object?>{
+        'id': solicitudes.length + 1,
+        'debate_id': d['id'],
+        'solicitante_id': usuario,
+        'motivo': motivo,
+        'estado': 'pendiente',
+        'creada_en': '2026-10-24T14:00:00Z',
+        'resuelta_en': null,
+        'revisor_id': null,
+        'justificacion': null,
+      };
+      solicitudes.add(nueva);
+      return RespuestaFalsa(201, _solicitudPropia(nueva));
+    });
+    cuando('POST /solicitudes-archivo/{id}/cancelar', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final s = solicitudes
+          .where((s) => s['id'] == idDe(p) && s['solicitante_id'] == usuario)
+          .firstOrNull;
+      if (s == null) return noEncontrada;
+      if (s['estado'] == 'pendiente') {
+        s['estado'] = 'cancelada';
+        s['resuelta_en'] = '2026-10-24T14:30:00Z';
+      } else if (s['estado'] != 'cancelada') {
+        return _conflicto;
+      }
+      return RespuestaFalsa(200, _solicitudPropia(s));
+    });
+    cuando('GET /admin/solicitudes-archivo', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      if (!_esAdmin(usuario)) return prohibido;
+      return RespuestaFalsa(200, [
+        for (final s in solicitudes)
+          if (s['estado'] == 'pendiente') _solicitudAdmin(s),
+      ]);
+    });
+    for (final accion in ['aprobar', 'rechazar']) {
+      cuando('POST /admin/solicitudes-archivo/{id}/$accion', (p) {
+        final usuario = usuarioDelToken(p);
+        if (usuario == null) return _noAutorizado;
+        if (!_esAdmin(usuario)) return prohibido;
+        final s = solicitudes.where((s) => s['id'] == idDe(p)).firstOrNull;
+        if (s == null) return noEncontrada;
+        final justificacion = motivoValido(p, 'justificacion');
+        if (justificacion == null) {
+          return const RespuestaFalsa(422, {'detail': []});
+        }
+        if (s['estado'] != 'pendiente') return _conflicto;
+        s
+          ..['estado'] = accion == 'aprobar' ? 'aprobada' : 'rechazada'
+          ..['revisor_id'] = usuario
+          ..['justificacion'] = justificacion
+          ..['resuelta_en'] = '2026-10-24T15:00:00Z';
+        if (accion == 'aprobar') {
+          debates.firstWhere((d) => d['id'] == s['debate_id'])
+            ..['estado'] = 'archivado'
+            ..['archivado_en'] = '2026-10-24T15:00:00Z'
+            ..['archivo_origen'] = 'solicitud';
+        }
+        return RespuestaFalsa(200, _solicitudAdmin(s));
+      });
+    }
+  }
+
+  Map<String, Object?> _borradorSalida(Map<String, Object?> b) => {
+    for (final e in b.entries)
+      if (e.key != 'autor_id') e.key: e.value,
+  };
+
+  static const _camposContenido = [
+    'categoria',
+    'ambito',
+    'titulo',
+    'resumen',
+    'contexto',
+    'perspectivas',
+    'objetivo',
+  ];
+
+  /// Validación mínima del contenido completo (los límites exactos se prueban en el backend).
+  List<String> _faltantes(Map b) => [
+    for (final c in _camposContenido)
+      if (b[c] == null || (b[c] is String && (b[c] as String).trim().isEmpty))
+        c,
+    if ((b['perspectivas'] as List? ?? const []).length < 2) 'perspectivas',
+  ];
+
+  /// Rutas del Bloque 7B: borradores privados, publicación idempotente, edición y archivo.
+  void _rutasDeBorradores() {
+    Map<String, Object?>? propio(RequestOptions p, int usuario) => borradores
+        .where((b) => b['id'] == idDe(p) && b['autor_id'] == usuario)
+        .firstOrNull;
+    const noEncontrado = RespuestaFalsa(404, {
+      'detail': 'Borrador no encontrado.',
+    });
+
+    cuando('POST /borradores', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final b = <String, Object?>{
+        for (final c in _camposContenido) c: null,
+        'perspectivas': null,
+        'paso': 1,
+        'creado_en': '2026-10-24T10:00:00Z',
+        'debate_id': null,
+        ...(cuerpo(p) as Map).cast<String, Object?>(),
+        'id': ++_siguienteBorrador,
+        'autor_id': usuario,
+        'actualizado_en':
+            '2026-10-24T10:00:${_siguienteBorrador.toString().padLeft(2, '0')}Z',
+      };
+      borradores.add(b);
+      return RespuestaFalsa(201, _borradorSalida(b));
+    });
+    cuando('GET /borradores/{id}', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final b = propio(p, usuario);
+      return b == null ? noEncontrado : RespuestaFalsa(200, _borradorSalida(b));
+    });
+    cuando('PATCH /borradores/{id}', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final b = propio(p, usuario);
+      if (b == null) return noEncontrado;
+      if (b['debate_id'] != null) return _conflicto;
+      b.addAll((cuerpo(p) as Map).cast<String, Object?>());
+      return RespuestaFalsa(200, _borradorSalida(b));
+    });
+    cuando('DELETE /borradores/{id}', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final b = propio(p, usuario);
+      if (b == null) return noEncontrado;
+      if (b['debate_id'] != null) return _conflicto;
+      borradores.remove(b);
+      return const RespuestaFalsa(204);
+    });
+    cuando('POST /borradores/{id}/publicar', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final b = propio(p, usuario);
+      if (b == null) return noEncontrado;
+      final existente = b['debate_id'];
+      if (existente != null) {
+        return RespuestaFalsa(
+          200,
+          resumenDe(debates.firstWhere((d) => d['id'] == existente)),
+        );
+      }
+      final faltan = _faltantes(b);
+      if (faltan.isNotEmpty) {
+        return RespuestaFalsa(422, {
+          'detail': [
+            for (final c in faltan)
+              {
+                'loc': ['body', c],
+                'msg': 'x',
+                'type': 'missing',
+              },
+          ],
+        });
+      }
+      final d = <String, Object?>{
+        for (final c in _camposContenido) c: b[c],
+        'id': 100 + debates.length,
+        'origen': 'Debate creado por una persona usuaria',
+        'procedencia': 'usuario',
+        'estado': 'publicado',
+        'autor_id': usuario,
+        'actualizado_en': '2026-10-24T12:00:00Z',
+        'publicado_en': '2026-10-24T12:00:00Z',
+        'archivado_en': null,
+      };
+      debates.add(d);
+      b['debate_id'] = d['id'];
+      return RespuestaFalsa(201, resumenDe(d));
+    });
+    cuando('PUT /debates/{id}', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      final d = debates.where((d) => d['id'] == idDe(p)).firstOrNull;
+      if (d == null) return const RespuestaFalsa(404, {'detail': 'x'});
+      if (d['autor_id'] != usuario) {
+        return const RespuestaFalsa(403, {'detail': 'x'});
+      }
+      if (d['estado'] != 'publicado' ||
+          aportes.any((a) => a['debate_id'] == d['id'])) {
+        return _conflicto;
+      }
+      d.addAll((cuerpo(p) as Map).cast<String, Object?>());
+      return RespuestaFalsa(200, detalleDe(d, usuario));
+    });
+    // Archivo directo: solo administración (también 403 para la cuenta autora).
+    cuando('POST /debates/{id}/archivar', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      if (!_esAdmin(usuario)) return const RespuestaFalsa(403, {'detail': 'x'});
+      final d = debates.where((d) => d['id'] == idDe(p)).firstOrNull;
+      if (d == null) return const RespuestaFalsa(404, {'detail': 'x'});
+      final datos = cuerpo(p);
+      final motivo = datos is Map ? (datos['motivo'] as String?) ?? '' : '';
+      if (motivo.trim().length < 10) {
+        return const RespuestaFalsa(422, {'detail': []});
+      }
+      if (d['estado'] != 'publicado') return _conflicto;
+      d['estado'] = 'archivado';
+      d['archivado_en'] = '2026-10-24T13:00:00Z';
+      d['archivo_origen'] = 'administracion';
+      for (final s in solicitudes) {
+        if (s['debate_id'] == d['id'] && s['estado'] == 'pendiente') {
+          s
+            ..['estado'] = 'aprobada'
+            ..['revisor_id'] = usuario
+            ..['justificacion'] =
+                'La administración archivó el debate directamente.';
+        }
+      }
+      return RespuestaFalsa(200, detalleDe(d, usuario));
+    });
+    cuando('GET /mis-debates', (p) {
+      final usuario = usuarioDelToken(p);
+      if (usuario == null) return _noAutorizado;
+      Map<String, Object?> mio(Map<String, Object?> d) {
+        final n = aportes.where((a) => a['debate_id'] == d['id']).length;
+        return {
+          for (final k in [
+            'id',
+            'titulo',
+            'categoria',
+            'estado',
+            'publicado_en',
+            'archivado_en',
+          ])
+            k: d[k],
+          'aportes': n,
+          'editable': d['estado'] == 'publicado' && n == 0,
+          'archivo_origen': d['archivo_origen'],
+          'solicitud_archivo': _ultimaSolicitud(d['id'], usuario),
+        };
+      }
+
+      final propios = debates.where((d) => d['autor_id'] == usuario);
+      return RespuestaFalsa(200, {
+        'borradores': [
+          for (final b in borradores.reversed)
+            if (b['autor_id'] == usuario && b['debate_id'] == null)
+              _borradorSalida(b),
+        ],
+        'publicados': [
+          for (final d in propios)
+            if (d['estado'] == 'publicado') mio(d),
+        ],
+        'archivados': [
+          for (final d in propios)
+            if (d['estado'] == 'archivado') mio(d),
+        ],
+      });
+    });
+  }
+
+  static const _conflicto = RespuestaFalsa(409, {'detail': 'Conflicto.'});
 
   static const _noAutorizado = RespuestaFalsa(401, {
     'detail': 'Sesión no válida o caducada. Inicia sesión de nuevo.',

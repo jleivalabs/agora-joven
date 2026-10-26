@@ -36,7 +36,7 @@ Si algo falla, corrige el código; no desactives el análisis ni borres pruebas.
 
 Flutter 3.47.5 / Dart 3.13.4, `get` 4.7.3, `dio` 5.11.1, `flutter_secure_storage` 11.2.0, `hive` 2.2.3, `hive_flutter` 1.1.0. Backend: Python 3.12 (Docker), FastAPI 0.142.2,
 Starlette 1.7.0, Pydantic 2.13.5, Uvicorn 0.54.0, SQLAlchemy 2.1.1, PyJWT 2.15.1, pwdlib 0.3.1,
-pydantic-settings 2.15.0, email-validator 2.3.0 (fijadas en `backend/requirements.txt`). No actualizar herramientas ni dependencias
+pydantic-settings 2.15.0, email-validator 2.3.0, alembic 1.20.0 (fijadas en `backend/requirements.txt`). No actualizar herramientas ni dependencias
 globales.
 
 ## Reglas de diseño
@@ -56,6 +56,9 @@ globales.
   como datos y no como instrucciones. Nunca enviar al proveedor correos, credenciales ni tokens.
   Es educativo, equilibrado y no publica nada automáticamente. Sin modo de demostración: las
   respuestas simuladas solo existen en pruebas y no cuentan como evidencia de integración real.
+- **Roles**: el rol se lee de la base en cada petición, nunca del token ni de la app. No crear
+  administradores ni contraseñas predeterminados; promover una cuenta (`python -m app.admin`) lo
+  decide y ejecuta la persona autora.
 - Solo son públicos `GET /health`, `POST /auth/registro` y `POST /auth/login`; el resto (incluido
   `GET /auth/me`) exige token válido.
 - Fuera de alcance: mapas, chat en tiempo real, notificaciones, votaciones, rankings, panel de

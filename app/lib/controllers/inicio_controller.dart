@@ -4,7 +4,7 @@ import '../data/api_exception.dart';
 import '../models/estadisticas.dart';
 import '../repositories/estadisticas_repository.dart';
 import '../utils/mensajes_error.dart';
-import 'actividad_aportes.dart';
+import 'actividad_comunidad.dart';
 import 'debates_controller.dart';
 import 'sesion_controller.dart';
 
@@ -18,7 +18,7 @@ class InicioController extends GetxController {
 
   final EstadisticasRepository _repositorio;
   final SesionController _sesion;
-  final ActividadAportes? _actividad;
+  final ActividadComunidad? _actividad;
 
   final estadoComunidad = EstadoCarga.cargando.obs;
   final comunidad = Rxn<EstadisticasComunidad>();

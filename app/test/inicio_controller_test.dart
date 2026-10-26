@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:agora_joven/controllers/actividad_aportes.dart';
+import 'package:agora_joven/controllers/actividad_comunidad.dart';
 import 'package:agora_joven/controllers/debates_controller.dart';
 import 'package:agora_joven/controllers/inicio_controller.dart';
 import 'package:agora_joven/controllers/sesion_controller.dart';
@@ -29,7 +29,7 @@ void main() {
   });
   tearDown(Get.reset);
 
-  Future<InicioController> cargado([ActividadAportes? actividad]) async {
+  Future<InicioController> cargado([ActividadComunidad? actividad]) async {
     final c = InicioController(repositorio, sesion, actividad)..onInit();
     await pumpEventQueue();
     return c;
@@ -127,7 +127,7 @@ void main() {
   );
 
   test('se actualiza al confirmarse un cambio de aportes', () async {
-    final actividad = ActividadAportes();
+    final actividad = ActividadComunidad();
     final c = await cargado(actividad);
     expect(c.mias.value!.totalAportes, 0);
 

@@ -44,6 +44,7 @@ class DebateConActividad {
 class EstadisticasComunidad {
   const EstadisticasComunidad({
     required this.totalDebates,
+    this.debatesArchivados = 0,
     required this.porCategoria,
     required this.totalAportes,
     required this.participantes,
@@ -52,7 +53,11 @@ class EstadisticasComunidad {
     required this.actividadReciente,
   });
 
+  /// Debates publicados activos (sin archivados ni borradores).
   final int totalDebates;
+  final int debatesArchivados;
+
+  /// Debates publicados activos por categoría.
   final List<Categoria> porCategoria;
   final int totalAportes;
 
@@ -85,6 +90,7 @@ class EstadisticasComunidad {
     final sin = json['sin_aportes'] as Map<String, dynamic>;
     return EstadisticasComunidad(
       totalDebates: json['total_debates'] as int,
+      debatesArchivados: (json['debates_archivados'] as int?) ?? 0,
       porCategoria: [
         for (final c in json['por_categoria'] as List)
           Categoria.fromJson(c as Map<String, dynamic>),
@@ -136,12 +142,14 @@ class EstadisticasPersonales {
     required this.porTipo,
     required this.debatesParticipados,
     required this.aportesRecientes,
+    this.misDebates = const MisDebatesTotales(),
   });
 
   final int totalAportes;
   final Map<TipoAporte, int> porTipo;
   final int debatesParticipados;
   final List<MiAporteReciente> aportesRecientes;
+  final MisDebatesTotales misDebates;
 
   factory EstadisticasPersonales.fromJson(Map<String, dynamic> json) {
     final tipos = json['por_tipo'] as Map<String, dynamic>;
@@ -153,6 +161,31 @@ class EstadisticasPersonales {
         for (final a in json['aportes_recientes'] as List)
           MiAporteReciente.fromJson(a as Map<String, dynamic>),
       ],
+      misDebates: json['mis_debates'] == null
+          ? const MisDebatesTotales()
+          : MisDebatesTotales.fromJson(
+              json['mis_debates'] as Map<String, dynamic>,
+            ),
     );
   }
+}
+
+/// Cuántos debates propios hay en cada estado (borradores privados incluidos).
+class MisDebatesTotales {
+  const MisDebatesTotales({
+    this.borradores = 0,
+    this.publicados = 0,
+    this.archivados = 0,
+  });
+
+  final int borradores;
+  final int publicados;
+  final int archivados;
+
+  factory MisDebatesTotales.fromJson(Map<String, dynamic> json) =>
+      MisDebatesTotales(
+        borradores: json['borradores'] as int,
+        publicados: json['publicados'] as int,
+        archivados: json['archivados'] as int,
+      );
 }

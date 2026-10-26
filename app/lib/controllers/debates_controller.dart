@@ -4,13 +4,18 @@ import '../data/api_exception.dart';
 import '../models/debate.dart';
 import '../repositories/debates_repository.dart';
 import '../utils/mensajes_error.dart';
+import 'actividad_comunidad.dart';
 import 'sesion_controller.dart';
 
 enum EstadoCarga { cargando, listo, vacio, error }
 
 /// Catálogo de debates con filtro por categoría.
 class DebatesController extends GetxController {
-  DebatesController(this._repositorio, this._sesion);
+  DebatesController(this._repositorio, this._sesion, [this._actividad]);
+
+  /// Si se indica, el catálogo se recarga al publicarse, editarse o archivarse un debate.
+  final ActividadComunidad? _actividad;
+  Worker? _cambios;
 
   final DebatesRepository _repositorio;
   final SesionController _sesion;
@@ -30,6 +35,16 @@ class DebatesController extends GetxController {
   void onInit() {
     super.onInit();
     cargar();
+    final actividad = _actividad;
+    if (actividad != null) {
+      _cambios = ever<int>(actividad.cambios, (_) => cargar());
+    }
+  }
+
+  @override
+  void onClose() {
+    _cambios?.dispose();
+    super.onClose();
   }
 
   Future<void> cargar() => Future.wait([_cargarCategorias(), _cargarDebates()]);

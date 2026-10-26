@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'config/app_config.dart';
-import 'controllers/actividad_aportes.dart';
+import 'controllers/actividad_comunidad.dart';
 import 'controllers/guardados_controller.dart';
 import 'controllers/sesion_controller.dart';
 import 'data/api_client.dart';
@@ -11,6 +11,8 @@ import 'data/token_storage.dart';
 import 'repositories/aportes_repository.dart';
 import 'repositories/asistente_repository.dart';
 import 'repositories/auth_repository.dart';
+import 'repositories/borradores_repository.dart';
+import 'repositories/solicitudes_repository.dart';
 import 'repositories/debates_repository.dart';
 import 'repositories/estadisticas_repository.dart';
 import 'repositories/guardados_repository.dart';
@@ -38,7 +40,9 @@ class AgoraJovenApp extends StatelessWidget {
         Get.put(AportesRepository(cliente));
         Get.put(AsistenteRepository(cliente));
         Get.put(EstadisticasRepository(cliente));
-        Get.put(ActividadAportes());
+        Get.put(BorradoresRepository(cliente));
+        Get.put(SolicitudesRepository(cliente));
+        Get.put(ActividadComunidad());
         Get.put(GuardadosRepository(guardados ?? HiveAlmacenGuardados()));
         Get.put(SesionController(Get.find()));
         Get.put(GuardadosController(Get.find(), Get.find()));

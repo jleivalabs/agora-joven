@@ -96,7 +96,9 @@ def test_sin_aportes(client, ana):
         "por_tipo": {"pregunta": 0, "argumento": 0, "propuesta": 0},
         "debates_participados": 0,
         "aportes_recientes": [],
+        "mis_debates": {"borradores": 0, "publicados": 0, "archivados": 0},
     }
+    assert comunidad["debates_archivados"] == 0
 
 
 # --- Recuentos exactos -------------------------------------------------------------------

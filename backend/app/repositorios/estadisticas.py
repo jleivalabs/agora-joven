@@ -5,7 +5,9 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Aporte, Debate
+from app.models import Aporte, Debate, EstadoDebate
+
+ACTIVO = Debate.estado == EstadoDebate.publicado.value
 
 # Límites de los listados (documentados en docs/ARQUITECTURA.md → Dashboard).
 LIMITE_RECIENTES = 5
@@ -13,15 +15,30 @@ LIMITE_SIN_APORTES = 5
 
 
 def total_debates(db: Session) -> int:
-    return db.scalar(select(func.count()).select_from(Debate)) or 0
+    """Debates publicados activos (excluye archivados; los borradores no están en esta tabla)."""
+    return db.scalar(select(func.count()).select_from(Debate).where(ACTIVO)) or 0
+
+
+def total_archivados(db: Session) -> int:
+    return (
+        db.scalar(
+            select(func.count())
+            .select_from(Debate)
+            .where(Debate.estado == EstadoDebate.archivado.value)
+        )
+        or 0
+    )
 
 
 def debates_por_categoria(db: Session) -> dict[str, int]:
-    filas = db.execute(select(Debate.categoria, func.count()).group_by(Debate.categoria))
+    filas = db.execute(
+        select(Debate.categoria, func.count()).where(ACTIVO).group_by(Debate.categoria)
+    )
     return {categoria: total for categoria, total in filas}
 
 
 def total_aportes(db: Session) -> int:
+    """Todos los aportes existentes, también los de debates archivados (se conservan)."""
     return db.scalar(select(func.count()).select_from(Aporte)) or 0
 
 
@@ -31,8 +48,8 @@ def participantes(db: Session) -> int:
 
 
 def debates_sin_aportes(db: Session) -> tuple[int, list[Debate]]:
-    """Total y los primeros en el orden del catálogo (id ascendente)."""
-    sin_aportes = ~select(Aporte.id).where(Aporte.debate_id == Debate.id).exists()
+    """Debates activos sin aportes: total y los primeros en orden del catálogo (id asc)."""
+    sin_aportes = (~select(Aporte.id).where(Aporte.debate_id == Debate.id).exists()) & ACTIVO
     total = db.scalar(select(func.count()).select_from(Debate).where(sin_aportes)) or 0
     debates = list(
         db.scalars(select(Debate).where(sin_aportes).order_by(Debate.id).limit(LIMITE_SIN_APORTES))
@@ -41,7 +58,7 @@ def debates_sin_aportes(db: Session) -> tuple[int, list[Debate]]:
 
 
 def debates_con_actividad_reciente(db: Session) -> list[tuple[Debate, int, datetime]]:
-    """Debates con aportes, por la fecha de su aporte más reciente (desc) y luego id (desc)."""
+    """Debates activos con aportes, por la fecha de su aporte más reciente (desc) y luego id."""
     actividad = (
         select(
             Aporte.debate_id,
@@ -54,6 +71,7 @@ def debates_con_actividad_reciente(db: Session) -> list[tuple[Debate, int, datet
     filas = db.execute(
         select(Debate, actividad.c.aportes, actividad.c.ultimo)
         .join(actividad, actividad.c.debate_id == Debate.id)
+        .where(ACTIVO)
         .order_by(actividad.c.ultimo.desc(), Debate.id.desc())
         .limit(LIMITE_RECIENTES)
     )
@@ -89,3 +107,12 @@ def mis_aportes_recientes(db: Session, usuario_id: int) -> list[tuple[Aporte, De
         .limit(LIMITE_RECIENTES)
     )
     return [(aporte, debate) for aporte, debate in filas]
+
+
+def mis_debates_por_estado(db: Session, usuario_id: int) -> dict[str, int]:
+    filas = db.execute(
+        select(Debate.estado, func.count())
+        .where(Debate.autor_id == usuario_id)
+        .group_by(Debate.estado)
+    )
+    return {estado: total for estado, total in filas}

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import JWT_ALGORITMO, Settings
 from app.db import get_db
-from app.models import Usuario
+from app.models import Rol, Usuario
 from app.repositorios import usuarios as repo_usuarios
 
 _hasher = PasswordHash.recommended()  # Argon2id
@@ -19,7 +19,6 @@ _hasher = PasswordHash.recommended()  # Argon2id
 _HASH_SENUELO = _hasher.hash("contraseña-señuelo-sin-uso")
 
 _bearer = HTTPBearer(auto_error=False)
-
 
 
 def no_autenticado() -> HTTPException:
@@ -83,3 +82,20 @@ def usuario_actual(
 
 
 UsuarioActual = Annotated[Usuario, Depends(usuario_actual)]
+
+
+def administrador_actual(usuario: UsuarioActual) -> Usuario:
+    """Exige el rol de administración **según la base en esta petición**.
+
+    El rol no viaja en el token ni se acepta de la app: retirar el rol tiene efecto inmediato
+    aunque la sesión siga abierta.
+    """
+    if usuario.rol != Rol.administrador.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Esta acción está reservada a la administración.",
+        )
+    return usuario
+
+
+AdministradorActual = Annotated[Usuario, Depends(administrador_actual)]

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../controllers/actividad_aportes.dart';
+import '../controllers/actividad_comunidad.dart';
 import '../controllers/inicio_controller.dart';
 import '../controllers/principal_controller.dart';
 import 'debates_screen.dart';
@@ -31,8 +31,8 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       InicioController(
         Get.find(),
         Get.find(),
-        Get.isRegistered<ActividadAportes>()
-            ? Get.find<ActividadAportes>()
+        Get.isRegistered<ActividadComunidad>()
+            ? Get.find<ActividadComunidad>()
             : null,
       ),
     );

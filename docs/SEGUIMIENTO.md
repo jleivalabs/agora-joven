@@ -12,10 +12,34 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
   pendiente técnico de Hive.
 - **Solo queda entregar el enlace del repositorio en Moodle** (persona autora). No está
   registrado como realizado.
-- **v1.1 en desarrollo** sobre `c79c9e3`: **Bloque 7A (dashboard) comprobado** (pruebas
-  automáticas del agente; recorrido funcional y revisión visual de los ajustes por la persona
-  autora). Pendiente: **commit y push**. La etiqueta `v1.0.0` y sus archivos publicados no se han
-  tocado. 7B no ha empezado.
+- **v1.1 en desarrollo**: Bloque 7A publicado en `origin/main` (commit `c53367f`). **Bloque 7B
+  (debates de usuarios, con roles y archivo revisado por la administración) comprobado**: pruebas
+  automáticas del agente y recorrido manual completo confirmado por la persona autora. Pendiente:
+  revisión de cambios, commit y push. La etiqueta `v1.0.0` y sus archivos publicados no se han
+  tocado. 7B.1 y 7C no han empezado.
+
+## Punto de continuación (actualizado el 25/10/2026)
+
+- **Último commit publicado:** `c53367f` (Bloque 7A), en `origin/main`.
+- **7B comprobado, sin commit ni push**, incluidos roles (usuario/administrador), solicitudes de
+  archivo con revisión administrativa y la corrección del desbordamiento del dashboard.
+- **Resultados reportados por el agente:** backend 167 pruebas aprobadas (Python 3.11 local y 3.12
+  en contenedor), Flutter 181 pruebas aprobadas y `flutter analyze` sin incidencias.
+- **Base real migrada a la revisión `0003`**, con respaldos verificados fuera de Git:
+  - Previo a 7B (esquema 7A):
+    `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-20261024-211248.db`
+  - Previo a roles y solicitudes (revisión `0002`):
+    `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-roles-20261024-221206.db`
+- **Recorrido manual con la política anterior**: satisfactorio, según la persona autora.
+- **Cuenta administradora:** la cuenta "Admin" (id 4) fue promovida expresamente por la persona
+  autora con el comando local; la salida de `listar` confirma `administrador`. Las cuentas Jleiva y
+  patu siguen como usuarios normales. (Según la persona autora; el agente no ejecutó el comando.)
+- **Recorrido manual de la política nueva:** confirmado en general por la persona autora; la
+  **aprobación administrativa** está comprobada expresamente con capturas. Cancelación, rechazo,
+  archivo directo y revisión visual del dashboard no tienen evidencia manual específica y los cubren
+  las pruebas automáticas (ver "Ajuste de 7B → Comprobación manual de la persona autora").
+- **Pendiente:** revisar los cambios (`git diff`), commit y push (persona autora).
+- **Siguiente bloque:** 7B.1, historial y protección permanente del contexto. No empezarlo todavía.
 
 ## Bloques
 
@@ -28,8 +52,9 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 4 | Debates guardados con Hive | ✅ Commit `5df1279`, publicado en `origin/main` (con el pendiente técnico de Hive documentado) |
 | 5 | Asistente con Gemini: endpoint del backend y pantalla en la app | ✅ Commit `20fae85`, publicado en `origin/main` |
 | 6 | CI, workflow de Release, README final, auditoría de secretos | ✅ Commit `1ce2f37`; CI en verde; Release `v1.0.0` publicada y validada en emulador (persona autora) |
-| 7A (v1.1) | Dashboard de comunidad y participación personal; navegación Inicio · Debates · Guardados | ✅ Comprobado (pruebas automáticas, recorrido funcional y revisión visual); pendiente de commit y push |
-| 7B (v1.1) | Creación de debates por usuarios | ⏳ Siguiente entrega |
+| 7A (v1.1) | Dashboard de comunidad y participación personal; navegación Inicio · Debates · Guardados | ✅ Commit `c53367f`, publicado en `origin/main` |
+| 7B (v1.1) | Creación de debates por usuarios: borradores, publicación, edición, Mis debates; archivo con solicitud y revisión administrativa; roles; migraciones 0002–0003 | ✅ Comprobado (pruebas automáticas y recorridos manuales de ambas políticas por la persona autora); pendiente revisión, commit y push |
+| 7B.1 (v1.1) | Historial y protección permanente del contexto | ⏳ Siguiente bloque |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -662,12 +687,204 @@ registro.
 
 **Estado de 7A:** comprobado. Pendiente únicamente commit y push (persona autora).
 
-### Siguiente entrega: Bloque 7B (no implementado)
+## Bloque 7B — Debates creados por usuarios (2026-10-24)
 
-Creación de debates por usuarios. Pendiente de concretar con la persona autora antes de
-implementar: quién puede publicar, borradores, validación y moderación, cómo se distinguen del
-material editorial, y su efecto en el dashboard (debates creados, borradores). Nada de esto existe
-todavía en el código ni en el dashboard.
+Punto de partida: `c53367f` (7A) en `origin/main`. Sin subagentes, sin llamadas a Gemini, sin
+commit, push, etiquetas ni Releases. Diseño y contrato en `docs/ARQUITECTURA.md` → "Debates de
+usuarios".
+
+### Acciones realizadas (agente)
+
+- Backend: modelo `procedencia`/`estado`/`autor_id`, tabla `borradores`, rutas `/borradores`,
+  `/borradores/{id}/publicar`, `PUT /debates/{id}`, `/debates/{id}/archivar`, `/mis-debates`;
+  409 para aportes en debates archivados; estadísticas solo con debates activos y
+  `debates_archivados` / `mis_debates`.
+- Migraciones Alembic (`0001` esquema 7A, `0002` cambios 7B) aplicadas al arrancar en lugar de
+  `create_all`. Dependencias nuevas: `alembic` 1.20.0, `mako` 1.4.1, `markupsafe` 3.0.3 (versiones
+  del lock del curso).
+- App: asistente de creación de 6 pasos (también para editar), Mis debates con tres pestañas,
+  botón "Crear debate" en el catálogo, tarjeta "Mis debates" en Inicio, aviso de contenido de la
+  comunidad, menú de autor (editar/archivar), aviso de archivado, `TipoError.conflicto` (409),
+  `ActividadAportes` renombrado a `ActividadComunidad`. Etiqueta del dashboard: "Debates activos".
+
+### Resultados verificados (agente)
+
+| Comprobación | Resultado |
+|---|---|
+| `pytest -q` (Python 3.11 local) | 149 passed (incluye 29 de borradores/debates de usuarios y 5 de migración) |
+| `pytest -q` en contenedor desechable `python:3.12-slim` (montaje de solo lectura) | 149 passed |
+| `flutter analyze` | No issues found |
+| `flutter test` | 164 passed (incluye 11 del controlador y 10 de flujo de creación) |
+
+Cubren: borradores incompletos, guardado y recuperación; aislamiento entre dos cuentas (listar,
+leer, modificar, eliminar y publicar ajenos → 404); publicación válida, inválida y repetida (201/200
+sin duplicados); edición bloqueada con aportes; archivo sin pérdida y 409 a nuevos aportes;
+estadísticas sin borradores ni archivados; migración desde una base 7A sintética; en Flutter,
+fallos de red con reintento, respuesta perdida al publicar, cambio de sesión durante la
+publicación y pantallas estrechas (360 px con texto ×2).
+
+Errores encontrados y corregidos durante el bloque:
+
+- Reintentar "Publicar" tras perder la respuesta quedaba bloqueado (el guardado previo recibía
+  409 porque el borrador ya estaba publicado). Ahora no se vuelve a guardar sin cambios y el 409
+  se trata como "ya publicado".
+- El botón de texto "Guardar y salir" desbordaba la barra a 360 px con texto ×2: pasó a icono con
+  descripción emergente.
+
+### Migración de la base real
+
+1. Esquema del volumen comparado con el de 7A (solo lectura): idéntico.
+2. **Copia de seguridad** con la API de copia de SQLite, fuera de Git:
+   `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-20261024-211248.db`.
+   Verificada: se abre, `integrity_check` = ok, tablas `usuarios`, `debates`, `aportes`.
+3. Ensayo sobre una copia temporal de esa copia: revisión `0002`, recuentos y huellas de datos
+   iguales, 20 debates `editorial`/`publicado`, `integrity_check` ok, `foreign_key_check` vacío.
+   La copia temporal se eliminó.
+4. Migración real con `docker compose up --build -d api` (sin `down -v`; volumen conservado).
+   Resultado: servicio sano, revisión `0002`, mismos recuentos que la copia (3 cuentas, 20
+   debates, 4 aportes, 0 borradores), huellas SHA-256 de cuentas, aportes y debates (id, slug)
+   iguales a la copia, `integrity_check` ok, `foreign_key_check` vacío; `/health` 200 y
+   `/borradores`, `/mis-debates` → 401 sin token. No se mostraron datos personales en las
+   comprobaciones.
+
+Restauración: ver `docs/ARQUITECTURA.md` → "Restaurar la copia previa a 7B".
+
+### Pendiente: recorrido manual con dos cuentas (persona autora)
+
+No ejecutado por el agente en emulador. Requiere el backend migrado y `flutter run`.
+
+1. Cuenta A: Debates → "Crear debate". En el paso 1 pulsa "Siguiente" sin categoría: error junto
+   al campo y no avanza.
+2. Completa tema y pregunta, avanza al paso 3, vuelve atrás: los datos siguen ahí.
+3. Escribe parte del contexto y pulsa atrás del sistema: aparece el aviso de cambios sin guardar;
+   elige "Guardar y salir".
+4. **Cierre completo**: quita la app de recientes (o detenla) y vuelve a abrirla. Inicio → "Mis
+   debates" → Borradores: el borrador está, y al abrirlo retoma el paso y los datos.
+5. Con el backend detenido (`docker compose stop api`), pulsa "Siguiente": error con "Reintentar
+   guardado" y datos intactos. Arranca la API (`docker compose start api`) y reintenta.
+6. Completa perspectivas (prueba añadir hasta 5 y quitar hasta 2) y objetivo; en Revisión pulsa
+   "Publicar debate". Se abre el detalle con "Debate creado por …" (nombre, no correo).
+7. Inicio y catálogo: "Debates activos" y la categoría suben en 1; Mis debates → Publicados lo
+   muestra. Edita el debate desde el menú del detalle y guarda.
+8. Cuenta B (cierra sesión de A): ve el debate en el catálogo con "CREADO POR …", no ve el menú de
+   autor ni los borradores de A; publica un aporte y guarda el debate.
+9. Cuenta A: el menú indica "Editar debate" bloqueado (ya tiene aportes). Archiva con
+   confirmación; deja de estar en el catálogo, pasa a Archivados y el contador baja.
+10. Cuenta B: abre el debate desde Guardados: aviso de archivado, sin "Publicar un aporte" y sin
+    editar/eliminar su aporte, que sigue visible.
+11. Cuenta A: crea un borrador cualquiera y elimínalo con confirmación desde Mis debates.
+12. Revisión visual en pantalla estrecha y con texto ampliado del asistente y de Mis debates.
+
+**Estado de 7B (política inicial):** implementado y verificado con pruebas automáticas y migración
+real comprobada. La persona autora informó que el recorrido manual anterior fue **satisfactorio
+para esa política** (archivo directo por el autor). Esa política se sustituyó a continuación.
+
+### Ajuste de 7B: archivo con revisión administrativa y roles (2026-10-24)
+
+Cambio solicitado por la persona autora antes de cerrar 7B: el autor ya no archiva directamente;
+solicita el archivo y la administración lo revisa. Además, corrección de un desbordamiento del
+dashboard. Sin subagentes, sin llamadas a Gemini, sin commit, push ni etiquetas. 7B.1 y 7C no se
+han empezado.
+
+#### Acciones realizadas (agente)
+
+- **Dashboard**: `RejillaEstadisticas` maquetaba cada tarjeta con altura fija; al cambiar el texto
+  tras una recarga la tarjeta se recalculaba sola y desbordaba. Ahora la altura común es un mínimo
+  y cualquier cambio de contenido la recalcula. Prueba nueva que reproduce el cambio de texto tras
+  archivar en ancho normal, pantalla estrecha y texto ×2 (fallaba con 44, 12 y 56 px antes de la
+  corrección; pasa después).
+- **Roles** (`usuarios.rol`): registro siempre `usuario` (422 si se envía `rol` u otro campo), sin
+  edición de perfil, rol leído de la base en cada petición (un rol en el token o en la petición se
+  ignora), comando local `python -m app.admin listar|promover|retirar` con confirmación por id. No se
+  ha ejecutado `promover` ni se ha elegido ninguna cuenta.
+- **Solicitudes de archivo**: tabla `solicitudes_archivo`, rutas de autor y de administración,
+  archivo directo solo para administración con motivo; el antiguo `POST /debates/{id}/archivar`
+  responde 403 a usuarios normales aunque sean autores.
+- **App**: "Solicitar archivo"/"Cancelar solicitud" en el detalle, estado de la solicitud en el
+  detalle y en Mis debates, explicación pública del archivo, sección Administración en Inicio
+  (solo administradores) con lista, detalle, Aprobar y Rechazar.
+- **Migración** `0003` (nueva; `0001` y `0002` no se modificaron).
+
+#### Resultados verificados (agente)
+
+| Comprobación | Resultado |
+|---|---|
+| `pytest -q` (Python 3.11 local) | 167 passed |
+| `pytest -q` en contenedor desechable `python:3.12-slim` | 167 passed |
+| `flutter analyze` | No issues found |
+| `flutter test` | 181 passed |
+
+Pruebas por API (`tests/test_solicitudes.py`, 17): registro con `rol` → 422; `PATCH`/`PUT
+/auth/me` → 405; token con `rol` añadido o cabecera/parámetro de rol → 403; retirar el rol en la
+base surte efecto con el mismo token; rutas de administración → 403 para autora y cuenta ajena;
+solicitud duplicada (y 6 simultáneas) → una sola pendiente; solo la autora solicita; cancelación
+propia/ajena; aprobación (archiva, conserva aportes, bloquea nuevos) y rechazo (sigue activo);
+dobles resoluciones (y 6 simultáneas: una 200 y cinco 409, con resultado coherente); archivo
+directo con motivo obligatorio que cierra la solicitud pendiente; detalles internos invisibles
+para otras cuentas; comando de promoción con confirmación y sin correos. Migración: base 0002 con
+un debate archivado por su autor → `anterior`, sin revisor ni motivo, mismo estado y fecha.
+
+En Flutter (`solicitudes_controller_test.dart`, 9, y `crear_debate_flujo_test.dart`): envíos
+duplicados ignorados, 409 que recarga el estado, 403 de permisos, respuesta tardía tras cambiar de
+sesión descartada, flujo del autor (solicitar con validación del motivo, sigue abierto, cancelar),
+Mis debates (pendiente y cancelación), cuenta normal sin Administración ni archivo directo,
+aprobación desde Inicio (también a 360 px con texto ×2) y archivo directo con motivo.
+
+#### Migración de la base real
+
+1. **Copia de seguridad** consistente (API de copia de SQLite, origen en solo lectura), fuera de
+   Git: `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-roles-20261024-221206.db`.
+   Verificada: `integrity_check` ok, revisión `0002`, 3 cuentas, 21 debates (20 editoriales
+   publicados y 1 de usuario archivado durante las pruebas manuales), 5 aportes, 2 borradores.
+2. Ensayo sobre una copia temporal: revisión `0003`, mismas huellas SHA-256 de cuentas, aportes,
+   borradores y debates; 3 cuentas `usuario`; el debate archivado queda `anterior` sin revisor ni
+   motivo; 0 solicitudes; `integrity_check` ok y `foreign_key_check` vacío. Copia temporal eliminada.
+3. Migración real con `docker compose up --build -d api` (sin `down -v`): servicio sano, mismos
+   resultados que el ensayo (huellas iguales a la copia). `/health` 200; `/admin/solicitudes-archivo`
+   y `/solicitudes-archivo` → 401 sin token. Volumen conservado. Las comprobaciones solo mostraron
+   recuentos, estados y huellas, sin datos personales.
+
+#### Comprobación manual de la persona autora (2026-10-25)
+
+Evidencia aportada por la persona autora, no por el agente (el agente no ejecutó la app en
+emulador ni el comando de promoción).
+
+- **Cuenta administradora:** "Admin" (id 4) promovida expresamente por la persona autora con
+  `python -m app.admin promover`; la salida de `listar` confirma el rol `administrador`. Jleiva y
+  patu siguen como usuarios normales.
+- **Confirmación general previa:** la persona autora indicó que completó satisfactoriamente las
+  pruebas manuales previstas (autor, participante y administración), sin detallar cada caso.
+
+**Comprobado expresamente por la persona autora, con capturas:**
+
+- Primera tanda: sección Administración visible en Inicio para la cuenta administradora; lista de
+  solicitudes inicialmente vacía; publicación de un debate; solicitud de archivo y su estado
+  pendiente; el debate guardado y un aporte de patu mientras el debate sigue abierto.
+- **Aprobación administrativa** (registrada después, el 2026-10-25): solicitud pendiente de
+  "Prueba movilidad" en la lista; su detalle con el motivo y un aporte existente; confirmación con
+  justificación; resultado "Solicitud aprobada: el debate quedó archivado." y lista de pendientes
+  vacía.
+
+**Sin evidencia manual específica** (ni capturas ni confirmación expresa de cada caso; solo la
+confirmación general anterior). Los cubren las **pruebas automáticas** del agente
+(`backend/tests/test_solicitudes.py`, `app/test/solicitudes_controller_test.dart`,
+`app/test/crear_debate_flujo_test.dart`, `app/test/tarjetas_estadistica_test.dart`):
+
+- Cancelación de la solicitud por el autor.
+- Rechazo con justificación (el debate sigue activo y el autor ve la respuesta).
+- Archivo directo por la administración con motivo obligatorio.
+- Revisión visual de "Debates activos" tras archivar, también con texto ampliado.
+
+Las capturas de la aprobación no muestran el debate archivado desde la vista de otra cuenta ni
+desde Guardados; ese comportamiento lo cubren las pruebas automáticas.
+
+**Estado del ajuste de 7B:** comprobado con pruebas automáticas y con la confirmación manual
+descrita (aprobación verificada expresamente). Pendiente: revisión de cambios, commit y push
+(persona autora); opcionalmente, evidencia manual específica de los casos anteriores.
+
+#### Siguiente bloque: 7B.1 (no implementado)
+
+Historial de cambios y protección permanente del contexto de un debate. No se ha empezado.
 
 ## Decisiones registradas (2026-10-22)
 

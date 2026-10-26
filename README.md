@@ -272,8 +272,16 @@ ejecutar la app desde el código (`flutter run`, sección 5) con el backend actu
     y acceso a Mis guardados.
   - Cifras calculadas en el servidor (`GET /estadisticas/comunidad` y `/estadisticas/mias`);
     definiciones en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#dashboard-bloque-7a-v11).
-- Próximo: Bloque 7B (creación de debates por usuarios). Más adelante: investigación asistida con
-  fuentes y construcción de acuerdos. Alcance en [docs/ALCANCE.md](docs/ALCANCE.md).
+- **Bloque 7B — debates creados por usuarios.** "Crear debate" en el catálogo abre un asistente
+  de 6 pasos (tema, pregunta, contexto, perspectivas, objetivo, revisión). Los borradores son
+  privados, se guardan en el servidor al avanzar y se retoman desde Inicio → "Mis debates"
+  (borradores, publicados, archivados). Publicado, el debate aparece en el catálogo como contenido
+  de la comunidad no verificado; quien lo creó puede editarlo mientras no tenga aportes y
+  solicitar su archivo, que revisa la administración (roles usuario/administrador; una cuenta se
+  promueve solo con `docker compose exec api python -m app.admin promover <id>`). El backend migra la base existente con Alembic al arrancar, conservando cuentas,
+  debates y aportes. Detalles en
+  [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#debates-de-usuarios-bloque-7b-v11).
+- Próximo: investigación asistida con fuentes (7C) y construcción de acuerdos. Alcance en [docs/ALCANCE.md](docs/ALCANCE.md).
 
 ## Desarrollo
 

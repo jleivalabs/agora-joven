@@ -12,9 +12,10 @@ from fastapi import FastAPI
 from app.catalogo import cargar_catalogo
 from app.config import Settings
 from app.asistente import MAX_TOKENS_SALIDA
-from app.db import Base, crear_fabrica_sesiones, crear_motor
+from app.db import crear_fabrica_sesiones, crear_motor
 from app.ia import GeminiProveedor, ProveedorIA
-from app.routers import aportes, asistente, auth, debates, estadisticas
+from app.migrar import aplicar_migraciones
+from app.routers import aportes, asistente, auth, borradores, debates, estadisticas, solicitudes
 
 
 def crear_proveedor(settings: Settings) -> ProveedorIA | None:
@@ -40,7 +41,8 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         motor = crear_motor(settings.database_url)
-        Base.metadata.create_all(motor)
+        # Migraciones versionadas (Alembic); create_all no modifica tablas existentes.
+        aplicar_migraciones(motor)
         app.state.settings = settings
         app.state.proveedor_ia = proveedor
         app.state.fabrica_sesiones = crear_fabrica_sesiones(motor)
@@ -61,4 +63,7 @@ def create_app(
     app.include_router(aportes.router)
     app.include_router(asistente.router)
     app.include_router(estadisticas.router)
+    app.include_router(borradores.router)
+    app.include_router(solicitudes.router)
+    app.include_router(solicitudes.admin)
     return app

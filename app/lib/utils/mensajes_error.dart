@@ -12,6 +12,8 @@ String mensajeDeError(ApiException e) {
       'Tu sesión no es válida o caducó. Inicia sesión de nuevo.',
     TipoError.prohibido => 'No tienes permiso para realizar esta acción.',
     TipoError.noEncontrado => 'No encontramos lo que buscas.',
+    TipoError.conflicto =>
+      'No se puede hacer en el estado actual. Actualiza e inténtalo de nuevo.',
     TipoError.validacion =>
       'Algunos datos no son válidos. Revísalos e inténtalo de nuevo.',
     TipoError.limiteUso =>

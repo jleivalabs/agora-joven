@@ -38,6 +38,9 @@ Regla: una pantalla solo habla con controladores; un controlador solo con reposi
 | Sección de aportes (en el detalle) + `AporteFormScreen` | `AportesController` (uno por debate) | `AportesRepository` | `ApiClient` | ✅ |
 | `GuardadosScreen` + marcador en el detalle | `GuardadosController` (global) | `GuardadosRepository` | `HiveAlmacenGuardados` (caja por usuario) | ✅ |
 | `SeccionAsistente` (en el detalle) | `AsistenteController` (uno por debate) | `AsistenteRepository` | `ApiClient` | ✅ |
+| `CrearDebateScreen` (asistente de 6 pasos; también edición) | `CrearDebateController` | `BorradoresRepository`, `DebatesRepository` | `ApiClient` | ✅ 7B |
+| `MisDebatesScreen` (borradores, publicados, archivados) | `MisDebatesController` | `DebatesRepository`, `BorradoresRepository`, `SolicitudesRepository` | `ApiClient` | ✅ 7B |
+| `AdminSolicitudesScreen`, `AdminSolicitudScreen` (solo administración) | `AdminSolicitudesController` | `SolicitudesRepository` | `ApiClient` | ✅ 7B (ajuste) |
 
 Widgets comunes: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con reintentar y acción
 secundaria), `Marca` y `Aviso`. `setState` solo se usa para estado local de un formulario
@@ -131,7 +134,9 @@ campos (`Revisa el correo.`). Algunos casos tienen texto propio según el contex
 
 ## Modelos
 
-`Usuario`, `Debate` y `Aporte` están implementados (`backend/app/models.py`).
+`Usuario`, `Debate` y `Aporte` están implementados (`backend/app/models.py`). Las columnas y tablas
+añadidas en 7B (`borradores`, `solicitudes_archivo`, estado y origen del archivo) se describen en
+"Debates de usuarios".
 
 **Usuario**
 | Campo | Tipo | Notas |
@@ -141,6 +146,7 @@ campos (`Revisa el correo.`). Algunos casos tienen texto propio según el contex
 | email | str | Normalizado (sin espacios, minúsculas) y único en la base; solo lo ve su dueño |
 | password_hash | str | Solo en el servidor (Argon2); nunca se devuelve |
 | creado_en | datetime (UTC) | |
+| rol | `usuario` \| `administrador` | Migración 0003. Nunca se asigna desde la API; ver "Roles" en "Debates de usuarios" |
 
 **Debate**
 | Campo | Tipo | Notas |
@@ -184,14 +190,26 @@ existe, la respuesta es 401 `Sesión no válida o caducada. Inicia sesión de nu
 | Método y ruta | Estado | Uso | Respuestas |
 |---|---|---|---|
 | `GET /health` | ✅ | Salud del servicio | 200 `{status, servicio}` |
-| `POST /auth/registro` | ✅ | `{nombre (2–60), email, password (8–128)}` | 201 `{id, nombre, email, creado_en}` · 400 `Ya existe una cuenta con ese correo.` · 422 |
+| `POST /auth/registro` | ✅ | `{nombre (2–60), email, password (8–128)}`; cualquier otro campo (`rol`…) → 422. Siempre crea rol `usuario` | 201 `{id, nombre, email, creado_en, rol}` · 400 `Ya existe una cuenta con ese correo.` · 422 |
 | `POST /auth/login` | ✅ | `{email, password}` | 200 `{access_token, token_type: "bearer", expira_en}` · 401 `Correo o contraseña incorrectos.` · 422 campos vacíos |
-| `GET /auth/me` | ✅ | Usuario del token | 200 `{id, nombre, email, creado_en}` · 401 |
-| `GET /debates/categorias` | ✅ | Las 8 categorías en orden fijo, con `etiqueta` y `total` (puede ser 0) | 200 · 401 |
-| `GET /debates?categoria=` | ✅ | Lista resumida `{id, titulo, categoria, resumen, origen}`, orden por `id` ascendente | 200 (lista vacía si la categoría no tiene debates) · 401 · 422 categoría desconocida |
-| `GET /debates/{id}` | ✅ | Detalle: resumen + `contexto`, `perspectivas[{titulo, descripcion}]`, `actualizado_en` | 200 · 401 · 404 `Debate no encontrado.` · 422 id no numérico |
+| `GET /auth/me` | ✅ | Usuario del token (rol leído de la base) | 200 `{id, nombre, email, creado_en, rol}` · 401 · 405 a `PATCH`/`PUT` (no hay edición de perfil) |
+| `GET /debates/categorias` | ✅ | Las 8 categorías en orden fijo, con `etiqueta` y `total` de debates **activos** (puede ser 0) | 200 · 401 |
+| `GET /debates?categoria=` | ✅ | Debates **publicados** (no archivados): `{id, titulo, categoria, resumen, origen, procedencia, estado, autor_nombre}`, orden por `id` ascendente | 200 (lista vacía si la categoría no tiene debates) · 401 · 422 categoría desconocida |
+| `GET /debates/{id}` | ✅ | Detalle (también archivados): resumen + `contexto`, `perspectivas[{titulo, descripcion}]`, `actualizado_en`, `ambito`, `objetivo`, `publicado_en`, `archivado_en`, `archivo_origen`, `aportes`, `es_propio`, `editable` y, solo para la cuenta autora, `solicitud_archivo` | 200 · 401 · 404 `Debate no encontrado.` · 422 id no numérico |
+| `PUT /debates/{id}` | ✅ 7B | Editar el propio con el contenido completo; solo publicado y sin aportes | 200 · 401 · 403 no es autor o editorial · 404 · 409 archivado o con aportes · 422 |
+| `POST /debates/{id}/archivar` | ✅ 7B (ajuste) | **Solo administración**: archivo directo `{motivo (10–500)}` | 200 · 401 · **403 cualquier otra cuenta, también la autora** · 404 · 409 ya archivado · 422 |
+| `POST /debates/{id}/solicitud-archivo` | ✅ 7B (ajuste) | El autor solicita archivar `{motivo}`; no archiva | **201** nueva · **200** ya había una pendiente (la misma) · 401 · 403 no es autor · 404 · 409 archivado · 422 |
+| `GET /solicitudes-archivo` · `GET /solicitudes-archivo/{id}` | ✅ 7B (ajuste) | Solicitudes propias con estado y `respuesta` | 200 · 401 · 404 si es ajena |
+| `POST /solicitudes-archivo/{id}/cancelar` | ✅ 7B (ajuste) | Cancelar la propia pendiente | 200 (también si ya estaba cancelada) · 401 · 404 · 409 ya resuelta |
+| `GET /admin/solicitudes-archivo?estado=` | ✅ 7B (ajuste) | Administración: por defecto pendientes (más antiguas primero); nombres, nunca correos | 200 · 401 · 403 |
+| `GET /admin/solicitudes-archivo/{id}` | ✅ 7B (ajuste) | Registro completo de una solicitud | 200 · 401 · 403 · 404 |
+| `POST /admin/solicitudes-archivo/{id}/aprobar` · `…/rechazar` | ✅ 7B (ajuste) | `{justificacion (10–500)}`; aprobar archiva en la misma transacción | 200 · 401 · 403 · 404 · 409 ya resuelta o cancelada · 422 |
+| `GET /borradores` · `POST /borradores` | ✅ 7B | Borradores pendientes de la cuenta del token · crear (campos opcionales) | 200 · 201 · 401 · 422 |
+| `GET` · `PATCH` · `DELETE /borradores/{id}` | ✅ 7B | Leer, guardar cambios parciales, eliminar el propio | 200 · 204 · 401 · **404 si es ajeno** · 409 ya publicado · 422 |
+| `POST /borradores/{id}/publicar` | ✅ 7B | Valida y convierte el borrador en debate | **201** primera vez · **200** repetición (mismo debate) · 401 · 404 · 422 incompleto |
+| `GET /mis-debates` | ✅ 7B | `{borradores, publicados, archivados}` de la cuenta del token | 200 · 401 |
 | `GET /debates/{id}/aportes` | ✅ | Aportes del debate, `creado_en` descendente con desempate por `id` descendente; sin paginación | 200 · 401 · 404 debate |
-| `POST /debates/{id}/aportes` | ✅ | Crear `{tipo, texto}`; cualquier otro campo (`autor_id`, `debate_id`…) → 422 | 201 aporte · 401 · 404 debate · 422 |
+| `POST /debates/{id}/aportes` | ✅ | Crear `{tipo, texto}`; cualquier otro campo (`autor_id`, `debate_id`…) → 422 | 201 aporte · 401 · 404 debate · 409 debate archivado (7B) · 422 |
 | `PATCH /aportes/{id}` | ✅ | Editar el propio `{tipo?, texto?}`: al menos uno, sin `null`, sin campos extra | 200 · 401 · **403 si no es el autor** · 404 · 422 |
 | `DELETE /aportes/{id}` | ✅ | Eliminar el propio | 204 sin cuerpo · 401 · **403** · 404 |
 | `GET /estadisticas/comunidad` | ✅ 7A | Cifras públicas agregadas (ver "Dashboard") | 200 · 401 |
@@ -305,15 +323,16 @@ la app no descarga aportes para contar):
 
 | Indicador | Definición |
 |---|---|
-| Debates publicados | Filas de `debates` (los 20 del catálogo editorial). |
-| Por categoría | Debates **publicados del catálogo actual** de cada una de las 8 categorías, incluidas las que tienen 0. En 7A no existe estado abierto/cerrado: cuentan todos los debates de la tabla. El servidor las envía en orden fijo; el dashboard las muestra de más a menos debates y, en empate, por nombre visible en orden alfabético español (sin tildes ni mayúsculas, ñ tras n). |
-| Aportes | Filas de `aportes` existentes (los eliminados no cuentan). |
+| Debates activos | Debates con `estado = publicado` (editoriales y de usuarios). Los borradores nunca cuentan; los archivados se informan aparte (`debates_archivados`). Hasta 7A la etiqueta era "Debates publicados". |
+| Por categoría | Debates **activos** de cada una de las 8 categorías, incluidas las que tienen 0 (sin archivados ni borradores). El servidor las envía en orden fijo; el dashboard las muestra de más a menos debates y, en empate, por nombre visible en orden alfabético español (sin tildes ni mayúsculas, ñ tras n). |
+| Aportes | Filas de `aportes` existentes (los eliminados no cuentan), **incluidos los de debates archivados**, que se conservan. |
 | Participantes | Cuentas **distintas** con al menos un aporte existente. No es el número de cuentas registradas. |
-| Debates sin aportes | Total, y los 5 primeros en el orden del catálogo (id ascendente). |
-| Actividad reciente | Hasta 5 debates con aportes, ordenados por la fecha de **creación** de su aporte más reciente (desc) y, a igualdad, por id de debate (desc). Las ediciones no cuentan como actividad. |
+| Debates sin aportes | Total de debates activos sin aportes, y los 5 primeros en el orden del catálogo (id ascendente). |
+| Actividad reciente | Hasta 5 debates con aportes, ordenados por la fecha de **creación** de su aporte más reciente (desc) y, a igualdad, por id de debate (desc). Las ediciones no cuentan como actividad. Solo debates activos. |
 | Mis aportes | Aportes existentes de la cuenta del token, por tipo (pregunta, argumento, propuesta). |
 | Debates en los que participé | Debates **distintos** con al menos un aporte de la cuenta. |
 | Mis aportes recientes | Hasta 5, por fecha de creación (desc) e id (desc), con el debate al que pertenecen. |
+| Mis debates (7B) | Borradores pendientes, debates publicados y archivados creados por la cuenta del token. |
 | Mis guardados | Número de debates guardados en el dispositivo (repositorio Hive existente; no viene del servidor). |
 
 **Privacidad.** `/estadisticas/comunidad` solo devuelve cifras y títulos de debates: ni nombres,
@@ -323,10 +342,15 @@ JWT y no acepta parámetros de usuario.
 **Estado.** `InicioController` carga las dos secciones por separado, cada una con carga, error con
 "Reintentar" y datos; un fallo nunca se muestra como cero. Usa `SesionController.ejecutar`,
 numera sus cargas y deja de aplicar respuestas al cerrarse. Se actualiza con el botón "Actualizar
-cifras", deslizando hacia abajo o automáticamente cuando `ActividadAportes` avisa que el servidor
-confirmó publicar, editar o eliminar un aporte.
+cifras", deslizando hacia abajo o automáticamente cuando `ActividadComunidad` (antes `ActividadAportes`) avisa que el servidor
+confirmó publicar, editar o eliminar un aporte, o publicar, editar o archivar un debate (7B).
 
-**Interfaz.** Las cifras usan un componente compartido (`lib/widgets/tarjetas_estadistica.dart`):
+**Interfaz.** Las cifras usan un componente compartido (`lib/widgets/tarjetas_estadistica.dart`).
+La rejilla mide la altura natural de cada tarjeta y luego las maqueta con esa altura como **mínimo**
+(no como altura fija): con una altura fija cada tarjeta era un límite de maquetación y, si su texto
+cambiaba en una recarga (por ejemplo, "(1 archivado aparte)" tras archivar), se volvía a maquetar
+sola con la altura anterior y desbordaba ("BOTTOM OVERFLOWED BY 16 PIXELS"). Ahora cualquier cambio
+de contenido vuelve a calcular la altura común:
 `TarjetaEstadistica` (icono, cifra, título y explicación alineados arriba, sin recortes ni
 tipografía reducida) dentro de `RejillaEstadisticas`, que da a todas las tarjetas de un grupo el
 mismo ancho y la altura de la más alta: "La comunidad" forma una cuadrícula 2×2 y "Mi
@@ -337,11 +361,146 @@ abre el catálogo filtrado, cada debate abre su detalle, "Debates publicados" y 
 abren el catálogo y "Mis guardados" la pestaña Guardados. Las cifras tienen etiquetas semánticas
 ("Aportes: 5. Preguntas, argumentos y propuestas"); la información nunca depende solo del color.
 
+## Debates de usuarios (Bloque 7B, v1.1)
+
+**Modelo.** `debates` gana `procedencia` (`editorial` | `usuario`), `estado` (`publicado` |
+`archivado`), `autor_id` (FK a `usuarios`, nulo en los editoriales), `ambito`, `objetivo`,
+`publicado_en` y `archivado_en`. Los borradores viven en una tabla aparte, `borradores` (autor,
+campos opcionales, `paso` 1–6, `debate_id` único y nulo hasta publicar): un borrador nunca aparece
+en el catálogo, en búsquedas ni en estadísticas.
+
+**Asistente de creación** (`CrearDebateScreen` + `CrearDebateController`), 6 pasos: tema
+(categoría y ámbito), pregunta, contexto (resumen y descripción), perspectivas (2–5, títulos
+distintos), objetivo y revisión con el botón "Publicar debate". Cada dato se pide una sola vez;
+avanzar valida el paso y **guarda el borrador** (solo avanza si el guardado se confirma);
+retroceder conserva los datos. Errores junto al campo; si guardar falla, aviso con "Reintentar
+guardado" y los datos se mantienen. Salir con cambios sin guardar pregunta: seguir editando,
+descartar o "Guardar y salir" (también disponible como icono en la barra). Límites (mismos en app y
+backend): ámbito 3–120, pregunta 10–160, resumen 30–300, contexto 80–3000, objetivo 20–500, título
+de perspectiva 3–80 y descripción 20–600.
+
+**Borradores.** Se guardan incompletos; la validación completa ocurre al publicar (422 con los
+campos que faltan). Son privados: todas las consultas filtran por el usuario del JWT y un borrador
+ajeno responde **404** (igual que uno inexistente, para no revelar que existe). Se recuperan desde
+"Mis debates" tras cerrar la app por completo. Eliminar pide confirmación; un borrador ya publicado
+no se edita ni se elimina (409).
+
+**Publicar** (`POST /borradores/{id}/publicar`). El autor sale solo del token. En una transacción
+se inserta el debate (`procedencia=usuario`, `estado=publicado`, `origen` "Debate creado por una
+persona usuaria") y se vincula el borrador con un `UPDATE … WHERE debate_id IS NULL`; si otra
+petición ya lo vinculó, se revierte y se devuelve el debate existente. Primera vez **201**,
+repeticiones **200** con el mismo debate: no hay duplicados. En la app, si la respuesta se pierde,
+reintentar publica sin volver a guardar (un 409 al guardar se interpreta como "ya publicado").
+
+**Roles (ajuste de 7B).** `usuarios.rol` vale `usuario` o `administrador`. El registro público
+siempre crea `usuario` y rechaza cualquier campo extra (`rol`, `id`…) con 422; no existe edición de
+perfil (`PATCH`/`PUT /auth/me` → 405). El rol **no viaja en el JWT** ni se acepta de la app: la
+dependencia `administrador_actual` lo lee de la base en cada petición, así que retirar el rol tiene
+efecto inmediato con la sesión abierta. `/auth/me` devuelve `rol` solo para que la interfaz decida
+qué mostrar. No hay administradores ni contraseñas predeterminados: la persona autora promueve una
+cuenta existente con el comando local (pide escribir de nuevo el id; solo muestra id, nombre y rol):
+
+```bash
+cd backend
+docker compose exec api python -m app.admin listar
+docker compose exec api python -m app.admin promover <id>
+docker compose exec api python -m app.admin retirar <id>     # deshacer
+```
+
+**Editar.** Solo quien creó el debate; los editoriales no se editan (403). Editar
+(`PUT /debates/{id}`, contenido completo) es un único `UPDATE` condicionado a autor, estado
+publicado y `NOT EXISTS` aportes: si entra un aporte a la vez, la edición falla con 409
+"bloqueado". Una solicitud de archivo pendiente no impide editar.
+
+**Archivo con revisión administrativa.** El autor ya **no** archiva directamente:
+
+- *Solicitud* (`POST /debates/{id}/solicitud-archivo`, motivo 10–500): solo la cuenta autora de un
+  debate de usuario activo (403 a cuentas ajenas, también a administradores; 409 si ya está
+  archivado). No archiva ni bloquea nada. Un índice único parcial (`estado = 'pendiente'`) impide
+  dos pendientes por debate incluso con peticiones simultáneas: repetir devuelve la misma (200).
+- *Consulta y cancelación* (`GET /solicitudes-archivo`, `GET`/`POST …/{id}/cancelar`): solo las
+  propias (ajena → 404); cancelar solo mientras está pendiente (resuelta → 409; repetir una
+  cancelación → 200). Se puede volver a solicitar después.
+- *Revisión* (`/admin/solicitudes-archivo`, rol leído de la base): lista de pendientes por orden de
+  llegada, detalle, `aprobar` o `rechazar` con justificación obligatoria. Aprobar archiva el debate
+  en la misma transacción; rechazar lo deja activo. Cada decisión es un `UPDATE … WHERE estado =
+  'pendiente'` seguido, al aprobar, de `UPDATE debates … WHERE estado = 'publicado'`: el primer
+  `UPDATE` toma el bloqueo de escritura de SQLite, así que de varias resoluciones simultáneas solo
+  una se aplica y el resto recibe 409; si el debate ya no estuviera publicado, se revierte todo.
+- *Archivo directo* (`POST /debates/{id}/archivar`, motivo obligatorio): solo administración, sobre
+  cualquier debate activo (también editorial). Cualquier otra cuenta recibe **403, aunque sea la
+  autora**, antes de validar el cuerpo. Si había una solicitud pendiente, se cierra como aprobada con
+  la respuesta "La administración archivó el debate directamente.".
+- *Registro*: `solicitudes_archivo` guarda solicitante, motivo, fechas, revisor, justificación y
+  decisión; el debate guarda `archivo_origen`, `archivado_por_id` y `motivo_archivo`. Nada se borra.
+- *Privacidad*: el detalle público solo expone `estado`, `archivado_en` y `archivo_origen`
+  (`solicitud`, `administracion` o `anterior`), con el que la app muestra una explicación fija. El
+  motivo, la justificación y el revisor no se envían a otras cuentas. El solicitante ve su solicitud
+  (`solicitud_archivo` en el detalle y en Mis debates) con estado y respuesta, sin datos del revisor.
+- *Archivos anteriores*: los debates que su autor archivó con la política anterior se marcan
+  `archivo_origen = 'anterior'`, sin revisor ni motivo; no se reabren ni se atribuyen a nadie.
+
+El archivado conserva contenido y aportes, se puede consultar por id y sale del catálogo. Crear,
+editar o eliminar aportes en un archivado responde **409**: la comprobación se hace tras escribir y
+dentro de la misma transacción, con el bloqueo de escritura de SQLite tomado, así que un archivado
+simultáneo no deja pasar aportes. Quien crea un debate no obtiene permisos sobre aportes ajenos.
+
+**App.** Menú del detalle: el autor ve "Editar debate" y "Solicitar archivo" (o "Cancelar solicitud
+de archivo" si hay una pendiente) y un aviso con el estado de su solicitud; la administración ve
+"Archivar (administración)". Ambos piden el texto en `pedirMotivo` (`lib/widgets/dialogo_motivo.dart`,
+error junto al campo). Mis debates muestra la solicitud pendiente con un botón para cancelarla y el
+origen de cada archivado. La sección **Administración** de Inicio (solo si `/auth/me` dice
+`administrador`) abre `AdminSolicitudesScreen` → `AdminSolicitudScreen` con Aprobar y Rechazar
+(`AdminSolicitudesController`). Los controladores ignoran un segundo envío mientras hay uno en
+curso, descartan respuestas de sesiones anteriores (`SesionController.ejecutar`) y, ante un 409,
+recargan el estado real del servidor.
+
+**Desde Guardados.** Un debate guardado que luego se archiva se sigue abriendo: el detalle muestra
+el aviso "Debate archivado el … " con la explicación pública de su origen y "ya no admite nuevos
+aportes ni cambios", oculta "Publicar un aporte" y las acciones de editar o eliminar aportes, y sigue
+pudiendo quitarse de guardados.
+
+**Presentación.** Los debates de usuarios muestran "CREADO POR NOMBRE" en el catálogo y, en el
+detalle, "Debate creado por NOMBRE. Es contenido de la comunidad: Ágora Joven no lo ha verificado
+ni lo respalda". Se usa el nombre visible; el correo nunca se envía. Los campos internos
+(`procedencia`, `estado`, `autor_id`, fechas) no se aceptan del cliente (`extra=forbid` → 422).
+
+**Mis debates** (`MisDebatesScreen`, acceso desde la tarjeta de Inicio → Mi participación):
+pestañas Borradores, Publicados y Archivados, con carga, vacío y error. Publicar, archivar o editar
+avisa por `ActividadComunidad` (antes `ActividadAportes`) y se recargan el dashboard, el catálogo y
+Mis debates. Todas las operaciones usan `SesionController.ejecutar`: una respuesta tardía de otra
+sesión se descarta.
+
+**Migraciones (Alembic).** Al arrancar, `app/migrar.py` aplica las migraciones de
+`app/migraciones/` (`0001` esquema v1/7A, `0002` columnas 7B y tabla `borradores`, `0003` roles,
+origen del archivo y `solicitudes_archivo`). Las migraciones aplicadas no se modifican; cada cambio
+de esquema es una revisión nueva. Una base
+anterior sin `alembic_version` pero con las tablas v1 se marca como `0001` y se actualiza. La FK
+`autor_id` se añade con `ALTER TABLE … ADD COLUMN … REFERENCES` (SQLite no admite añadir
+restricciones por otra vía sin recrear la tabla). Los 20 debates existentes quedan
+`editorial`/`publicado`; la semilla del catálogo nunca sobrescribe un debate que no sea editorial.
+Manual: `python -m app.migrar`.
+
+**Restaurar una copia de seguridad.** Las copias están fuera de Git (rutas en
+`docs/SEGUIMIENTO.md`): la previa a 7B (esquema 7A, revisión `0001`) y la previa a los roles
+(revisión `0002`). Al arrancar, la API aplica las migraciones pendientes: restaurar una copia con
+el código actual la vuelve a migrar a la última revisión conservando sus datos; para volver de
+verdad a un esquema anterior hay que usar también el código de esa versión. Con la API detenida:
+
+```bash
+cd backend
+docker compose stop api
+docker compose cp <ruta-de-la-copia>.db api:/srv/data/agora.db   # el contenedor detenido admite cp
+docker compose start api
+```
+
+No usar `down -v` (borra el volumen). Antes de restaurar, conviene copiar también la base actual.
+
 ## Persistencia
 
 | Dónde | Tecnología | Motivo |
 |---|---|---|
-| Backend (implementado) | SQLite en el volumen Docker `agora_datos` (`/srv/data/agora.db`), con claves foráneas activadas | Sin servicio extra que levantar; suficiente para la escala del proyecto. Se descartó Postgres (más pasos para quien evalúa). Las tablas se crean con `create_all` al arrancar; no hay migraciones (Alembic) porque los bloques siguientes solo añaden tablas nuevas. |
+| Backend (implementado) | SQLite en el volumen Docker `agora_datos` (`/srv/data/agora.db`), con claves foráneas activadas | Sin servicio extra que levantar; suficiente para la escala del proyecto. Se descartó Postgres (más pasos para quien evalúa). Hasta 7A las tablas se creaban con `create_all`; desde 7B el esquema se versiona con migraciones Alembic aplicadas al arrancar (ver "Debates de usuarios"). |
 | App, guardados | Hive (caja por usuario) | Mismo patrón practicado en el curso; sobrevive al cierre completo. |
 | App, token | `flutter_secure_storage` | Requisito del curso: el token no va en Hive ni en preferencias. |
 
@@ -365,6 +524,8 @@ abren el catálogo y "Mis guardados" la pestaña Guardados. Las cifras tienen et
 - App (Bloque 4, versiones de ExploraEC, fijadas exactas): `hive` 2.2.3 y `hive_flutter` 1.1.0
   (este último trae `path_provider` 2.1.6, la misma versión que en ExploraEC). No se actualizó
   ninguna otra dependencia.
+- Backend (Bloque 7B, versiones del lock del curso): `alembic` 1.20.0 (migraciones versionadas),
+  con sus dependencias `mako` 1.4.1 y `markupsafe` 3.0.3. La app no añadió paquetes en 7B.
 - Asistente (Bloque 5): **sin dependencias nuevas**. Gemini se llama por REST con `urllib` de la
   biblioteca estándar; no se instaló el SDK de Google.
 

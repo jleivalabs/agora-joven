@@ -4,7 +4,7 @@ import '../data/api_exception.dart';
 import '../models/aporte.dart';
 import '../repositories/aportes_repository.dart';
 import '../utils/mensajes_error.dart';
-import 'actividad_aportes.dart';
+import 'actividad_comunidad.dart';
 import 'debates_controller.dart';
 import 'sesion_controller.dart';
 
@@ -25,7 +25,7 @@ class AportesController extends GetxController {
   final int debateId;
 
   /// Avisa al dashboard cuando el servidor confirma un cambio de aportes.
-  final ActividadAportes? actividad;
+  final ActividadComunidad? actividad;
 
   final estado = EstadoCarga.cargando.obs;
   final aportes = <Aporte>[].obs;

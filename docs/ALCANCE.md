@@ -33,12 +33,17 @@ original** con cuatro funciones, entregadas por bloques:
 | Bloque | Función | Estado |
 |---|---|---|
 | 7A | Dashboard de comunidad y participación personal como inicio de la sesión | Implementado (ver `docs/SEGUIMIENTO.md`) |
-| 7B | Creación de debates por usuarios | Siguiente entrega; no implementada |
+| 7B | Creación de debates por usuarios: borradores privados, publicación, edición sin aportes; archivo mediante solicitud revisada por la administración (roles usuario/administrador) | Implementado; recorrido manual de la política nueva pendiente (ver `docs/SEGUIMIENTO.md`) |
+| 7B.1 | Historial de cambios y protección permanente del contexto de un debate | Siguiente bloque; no implementado |
 | — | Investigación asistida con fuentes | Prevista; no implementada |
 | — | Construcción de acuerdos | Prevista; no implementada |
 
-Mientras no se implementen, el dashboard no muestra debates creados, borradores ni métricas de
-consenso.
+En 7B: cualquier cuenta crea debates con un asistente de 6 pasos; los borradores son privados y
+se pueden retomar; publicar los muestra en el catálogo, marcados como contenido de la comunidad no
+verificado. Quien lo creó puede editarlo solo mientras no tenga aportes y **solicitar** su archivo con un
+motivo; la administración aprueba o rechaza con una justificación, o archiva directamente con un
+motivo. No hay borrado físico. El rol de administración solo se concede con un comando local. No incluye moderación, investigación con fuentes ni ayuda de redacción con IA (previstas
+para 7C). El dashboard aún no muestra métricas de consenso.
 
 ## Exclusiones
 

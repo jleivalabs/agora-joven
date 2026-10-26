@@ -167,11 +167,21 @@ class _RenderRejillaUniforme extends RenderBox
       hijo = childAfter(hijo);
     }
 
-    // 2) Todas con la altura de la más alta.
+    // 2) Todas con la altura de la más alta, como mínimo y sin máximo. Unas restricciones
+    //    ajustadas (tight) convertirían cada tarjeta en límite de maquetación: si su contenido
+    //    cambia (por ejemplo, tras una recarga), se volvería a maquetar sola con la altura
+    //    anterior y desbordaría sin que la rejilla recalculase la altura común.
     var indice = 0;
     hijo = firstChild;
     while (hijo != null) {
-      hijo.layout(BoxConstraints.tight(Size(anchoCelda, alto)));
+      hijo.layout(
+        BoxConstraints(
+          minWidth: anchoCelda,
+          maxWidth: anchoCelda,
+          minHeight: alto,
+        ),
+        parentUsesSize: true,
+      );
       final fila = indice ~/ _columnas;
       final columna = indice % _columnas;
       (hijo.parentData! as _DatosCelda).offset = Offset(

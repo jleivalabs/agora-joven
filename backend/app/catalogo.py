@@ -1,7 +1,8 @@
 """Carga reproducible del catálogo editorial desde app/datos/debates.json.
 
 Idempotente: cada debate se identifica por su `slug`. Si existe, se actualizan sus campos
-editoriales; si no, se inserta. Nunca borra debates ni toca usuarios.
+editoriales; si no, se inserta. Nunca borra debates ni toca usuarios, y nunca modifica debates
+creados por usuarios (procedencia "usuario"), aunque coincidiera un slug.
 
 Uso manual: python -m app.catalogo
 """
@@ -14,7 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import ORIGEN_EDITORIAL, Categoria, Debate
+from app.models import ORIGEN_EDITORIAL, Categoria, Debate, Procedencia
 from app.schemas import Perspectiva
 
 ARCHIVO_CATALOGO = Path(__file__).parent / "datos" / "debates.json"
@@ -65,6 +66,8 @@ def cargar_catalogo(db: Session, archivo: Path = ARCHIVO_CATALOGO) -> ResultadoC
     for editorial in leer_catalogo(archivo):
         campos = editorial.model_dump(mode="json", exclude={"slug"})
         debate = existentes.get(editorial.slug)
+        if debate is not None and debate.procedencia != Procedencia.editorial.value:
+            continue  # nunca se sobrescribe un debate de usuario
         if debate is None:
             db.add(Debate(slug=editorial.slug, **campos))
             resultado.insertados += 1
@@ -80,10 +83,11 @@ def cargar_catalogo(db: Session, archivo: Path = ARCHIVO_CATALOGO) -> ResultadoC
 
 def main() -> None:
     from app.config import Settings
-    from app.db import Base, crear_fabrica_sesiones, crear_motor
+    from app.db import crear_fabrica_sesiones, crear_motor
+    from app.migrar import aplicar_migraciones
 
     motor = crear_motor(Settings().database_url)
-    Base.metadata.create_all(motor)
+    aplicar_migraciones(motor)
     with crear_fabrica_sesiones(motor)() as db:
         r = cargar_catalogo(db)
         total = len(list(db.scalars(select(Debate.id))))

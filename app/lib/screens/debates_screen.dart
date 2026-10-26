@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../controllers/actividad_comunidad.dart';
 import '../controllers/debates_controller.dart';
 import '../controllers/sesion_controller.dart';
 import '../models/debate.dart';
 import '../theme/app_theme.dart';
 import '../widgets/estados.dart';
 import '../widgets/menu_cuenta.dart';
+import 'crear_debate_screen.dart';
 import 'detalle_debate_screen.dart';
 
 /// Catálogo de debates (pestaña "Debates"). Crea su controlador al aparecer y lo elimina al
@@ -25,7 +27,15 @@ class _DebatesScreenState extends State<DebatesScreen> {
   @override
   void initState() {
     super.initState();
-    _debates = Get.put(DebatesController(Get.find(), _sesion));
+    _debates = Get.put(
+      DebatesController(
+        Get.find(),
+        _sesion,
+        Get.isRegistered<ActividadComunidad>()
+            ? Get.find<ActividadComunidad>()
+            : null,
+      ),
+    );
   }
 
   @override
@@ -40,6 +50,13 @@ class _DebatesScreenState extends State<DebatesScreen> {
       appBar: AppBar(
         title: const Text('Debates'),
         actions: const [MenuCuenta()],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('crear-debate'),
+        heroTag: 'crear-desde-catalogo',
+        onPressed: () => Get.to<void>(() => const CrearDebateScreen()),
+        icon: const Icon(Icons.add),
+        label: const Text('Crear debate'),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,7 +102,13 @@ class _DebatesScreenState extends State<DebatesScreen> {
         return RefreshIndicator(
           onRefresh: _debates.cargar,
           child: ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.m),
+            // Margen inferior para que el botón "Crear debate" no tape la última tarjeta.
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.m,
+              AppSpacing.m,
+              AppSpacing.m,
+              88,
+            ),
             itemCount: _debates.debates.length,
             separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
             itemBuilder: (_, i) => _TarjetaDebate(
@@ -183,7 +206,10 @@ class _TarjetaDebate extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                etiqueta.toUpperCase(),
+                debate.esDeUsuario
+                    ? '${etiqueta.toUpperCase()} · CREADO POR '
+                          '${(debate.autorNombre ?? 'LA COMUNIDAD').toUpperCase()}'
+                    : etiqueta.toUpperCase(),
                 style: texto.labelSmall?.copyWith(color: AppColors.acento),
               ),
               const SizedBox(height: AppSpacing.xs),

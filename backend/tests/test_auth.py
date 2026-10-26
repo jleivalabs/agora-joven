@@ -13,7 +13,7 @@ from app.models import Usuario
 from app.security import crear_token
 from tests.conftest import PASSWORD
 
-CAMPOS_USUARIO = {"id", "nombre", "email", "creado_en"}
+CAMPOS_USUARIO = {"id", "nombre", "email", "creado_en", "rol"}
 
 
 def _login(client, email="ana@example.com", password=PASSWORD):

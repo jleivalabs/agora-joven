@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import ETIQUETAS_CATEGORIA, Categoria, TipoAporte
+from app.models import ETIQUETAS_CATEGORIA, Categoria, EstadoDebate, TipoAporte
 from app.repositorios import estadisticas as repo
 from app.schemas import (
     AportesPorTipo,
@@ -21,7 +21,9 @@ from app.schemas import (
     EstadisticasComunidad,
     EstadisticasPersonales,
     MiAporteReciente,
+    MisDebatesTotales,
 )
+from app.repositorios import borradores as repo_borradores
 from app.security import UsuarioActual, usuario_actual
 
 router = APIRouter(
@@ -37,6 +39,7 @@ def comunidad(db: Db) -> EstadisticasComunidad:
     total_sin, sin_aportes = repo.debates_sin_aportes(db)
     return EstadisticasComunidad(
         total_debates=repo.total_debates(db),
+        debates_archivados=repo.total_archivados(db),
         por_categoria=[
             CategoriaSalida(
                 categoria=c, etiqueta=ETIQUETAS_CATEGORIA[c], total=por_categoria.get(c, 0)
@@ -60,6 +63,7 @@ def comunidad(db: Db) -> EstadisticasComunidad:
 @router.get("/mias", response_model=EstadisticasPersonales)
 def mias(db: Db, usuario: UsuarioActual) -> EstadisticasPersonales:
     por_tipo = repo.mis_aportes_por_tipo(db, usuario.id)
+    mis_debates = repo.mis_debates_por_estado(db, usuario.id)
     return EstadisticasPersonales(
         total_aportes=sum(por_tipo.values()),
         por_tipo=AportesPorTipo(**{t.value: por_tipo.get(t.value, 0) for t in TipoAporte}),
@@ -75,4 +79,9 @@ def mias(db: Db, usuario: UsuarioActual) -> EstadisticasPersonales:
             )
             for aporte, debate in repo.mis_aportes_recientes(db, usuario.id)
         ],
+        mis_debates=MisDebatesTotales(
+            borradores=repo_borradores.contar_pendientes(db, usuario.id),
+            publicados=mis_debates.get(EstadoDebate.publicado.value, 0),
+            archivados=mis_debates.get(EstadoDebate.archivado.value, 0),
+        ),
     )

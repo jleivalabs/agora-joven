@@ -60,6 +60,12 @@ class ApiClient {
     );
   }
 
+  Future<dynamic> put(String ruta, Object cuerpo, {String? token}) {
+    return _enviar(
+      () => _dio.put<dynamic>(ruta, data: cuerpo, options: _opciones(token)),
+    );
+  }
+
   Future<void> delete(String ruta, {String? token}) async {
     await _enviar(() => _dio.delete<dynamic>(ruta, options: _opciones(token)));
   }

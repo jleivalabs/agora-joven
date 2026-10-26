@@ -89,7 +89,7 @@ void main() {
     sembrar();
     await abrir(tester);
 
-    expect(cifra('Debates publicados', 20), findsOneWidget);
+    expect(cifra('Debates activos', 20), findsOneWidget);
     expect(cifra('Aportes', 5), findsOneWidget);
     expect(cifra('Participantes', 2), findsOneWidget);
     expect(cifra('Debates sin aportes', 18), findsOneWidget);

@@ -14,7 +14,9 @@ import '../utils/formato.dart';
 import '../widgets/estados.dart';
 import '../widgets/menu_cuenta.dart';
 import '../widgets/tarjetas_estadistica.dart';
+import 'admin_solicitudes_screen.dart';
 import 'detalle_debate_screen.dart';
+import 'mis_debates_screen.dart';
 
 /// Dashboard de la sesión: "La comunidad" y "Mi participación".
 ///
@@ -98,9 +100,44 @@ class InicioScreen extends StatelessWidget {
             }),
             const SizedBox(height: AppSpacing.m),
             const _AccesoGuardados(),
+            // Solo para administradores (el servidor vuelve a comprobar el rol).
+            Obx(
+              () => (sesion.usuario.value?.esAdministrador ?? false)
+                  ? const _Administracion()
+                  : const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Administracion extends StatelessWidget {
+  const _Administracion();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.l),
+        const _TituloSeccion(
+          icono: Icons.admin_panel_settings_outlined,
+          titulo: 'Administración',
+        ),
+        const SizedBox(height: AppSpacing.s),
+        Card(
+          child: ListTile(
+            key: const Key('administracion'),
+            leading: const Icon(Icons.outbox_outlined, color: AppColors.acento),
+            title: const Text('Solicitudes de archivo'),
+            subtitle: const Text('Revisar, aprobar o rechazar las pendientes'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Get.to<void>(() => const AdminSolicitudesScreen()),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -200,8 +237,11 @@ class _Comunidad extends StatelessWidget {
           children: [
             TarjetaEstadistica(
               valor: datos.totalDebates,
-              titulo: 'Debates publicados',
-              explicacion: 'En el catálogo actual',
+              titulo: 'Debates activos',
+              explicacion: datos.debatesArchivados == 0
+                  ? 'Publicados y abiertos a aportes'
+                  : 'Publicados y abiertos a aportes '
+                        '(${plural(datos.debatesArchivados, 'archivado', 'archivados')} aparte)',
               icono: Icons.forum_outlined,
               onTap: () => principal.irADebates(),
             ),
@@ -413,21 +453,31 @@ class _MiParticipacion extends StatelessWidget {
   Widget build(BuildContext context) {
     final principal = Get.find<PrincipalController>();
     final texto = Theme.of(context).textTheme;
+    final misDebates = _MisDebates(totales: datos.misDebates);
     if (datos.totalAportes == 0) {
-      return Card(
-        child: EstadoEnLinea(
-          icono: Icons.record_voice_over_outlined,
-          mensaje:
-              'Todavía no has publicado aportes. Elige un debate y comparte una '
-              'pregunta, un argumento o una propuesta.',
-          textoAccion: 'Explorar debates',
-          onAccion: () => principal.irADebates(),
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            child: EstadoEnLinea(
+              icono: Icons.record_voice_over_outlined,
+              mensaje:
+                  'Todavía no has publicado aportes. Elige un debate y comparte una '
+                  'pregunta, un argumento o una propuesta.',
+              textoAccion: 'Explorar debates',
+              onAccion: () => principal.irADebates(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.m),
+          misDebates,
+        ],
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        misDebates,
+        const SizedBox(height: AppSpacing.m),
         RejillaEstadisticas(
           children: [
             TarjetaEstadistica(
@@ -505,6 +555,31 @@ class _MiParticipacion extends StatelessWidget {
     TipoAporte.argumento => 'Argumentos',
     TipoAporte.propuesta => 'Propuestas',
   };
+}
+
+/// "Mis debates": borradores (privados), publicados y archivados, con acceso a su pantalla.
+class _MisDebates extends StatelessWidget {
+  const _MisDebates({required this.totales});
+
+  final MisDebatesTotales totales;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        key: const Key('mis-debates'),
+        leading: const Icon(Icons.forum_outlined, color: AppColors.acento),
+        title: const Text('Mis debates'),
+        subtitle: Text(
+          '${plural(totales.borradores, 'borrador', 'borradores')} · '
+          '${plural(totales.publicados, 'publicado', 'publicados')} · '
+          '${plural(totales.archivados, 'archivado', 'archivados')}',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Get.to<void>(() => const MisDebatesScreen()),
+      ),
+    );
+  }
 }
 
 /// Acceso a los guardados del dispositivo (repositorio local existente).

@@ -9,6 +9,7 @@ enum TipoError {
   noAutorizado, // 401
   prohibido, // 403
   noEncontrado, // 404
+  conflicto, // 409
   validacion, // 422
   limiteUso, // 429
   servidor, // 5xx
@@ -63,6 +64,7 @@ class ApiException implements Exception {
       401 => TipoError.noAutorizado,
       403 => TipoError.prohibido,
       404 => TipoError.noEncontrado,
+      409 => TipoError.conflicto,
       422 => TipoError.validacion,
       429 => TipoError.limiteUso,
       _ => TipoError.desconocido,

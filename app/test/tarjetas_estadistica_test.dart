@@ -133,6 +133,93 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  // Reproduce el caso real: tras archivar un debate, la recarga del dashboard alarga la
+  // explicación de "Debates activos" sin reconstruir la rejilla desde cero.
+  for (final caso in [
+    ('ancho normal', 400.0, 1.0),
+    ('pantalla estrecha', 280.0, 1.0),
+    ('texto ampliado ×2', 360.0, 2.0),
+  ]) {
+    testWidgets(
+      'el contenido cambia tras una recarga (${caso.$1}): crece sin desbordar',
+      (tester) async {
+        final explicacion = ValueNotifier('Publicados y abiertos a aportes');
+        addTearDown(explicacion.dispose);
+        tester.view.physicalSize = Size(caso.$2, 3000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.claro,
+            home: MediaQuery(
+              data: MediaQueryData(
+                size: Size(caso.$2, 3000),
+                textScaler: TextScaler.linear(caso.$3),
+              ),
+              child: Scaffold(
+                body: ListView(
+                  padding: const EdgeInsets.all(AppSpacing.m),
+                  children: [
+                    RejillaEstadisticas(
+                      children: [
+                        // Solo cambia el texto de la tarjeta: la rejilla no se reconstruye.
+                        ValueListenableBuilder(
+                          valueListenable: explicacion,
+                          builder: (_, texto, _) => TarjetaEstadistica(
+                            valor: 20,
+                            titulo: 'Debates activos',
+                            explicacion: texto,
+                            icono: Icons.forum_outlined,
+                          ),
+                        ),
+                        // Textos reales del dashboard: tras el cambio, esta pasa a
+                        // ser la tarjeta más alta del grupo.
+                        const TarjetaEstadistica(
+                          valor: 4,
+                          titulo: 'Aportes',
+                          explicacion: 'Preguntas, argumentos y propuestas',
+                          icono: Icons.chat_bubble_outline,
+                        ),
+                        const TarjetaEstadistica(
+                          valor: 2,
+                          titulo: 'Participantes',
+                          explicacion: 'Cuentas con al menos un aporte',
+                          icono: Icons.people_outline,
+                        ),
+                        const TarjetaEstadistica(
+                          valor: 17,
+                          titulo: 'Debates sin aportes',
+                          explicacion: 'Esperan una primera voz',
+                          icono: Icons.campaign_outlined,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final antes = rectangulos(tester).first.height;
+
+        explicacion.value =
+            'Publicados y abiertos a aportes (1 archivado aparte)';
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final r = rectangulos(tester);
+        mismasDimensiones(r);
+        expect(r.first.height, greaterThanOrEqualTo(antes));
+        // Todo el contenido real cabe: el texto completo termina dentro de su tarjeta.
+        final texto = tester.getRect(
+          find.text('Publicados y abiertos a aportes (1 archivado aparte)'),
+        );
+        expect(texto.bottom, lessThanOrEqualTo(r.first.bottom));
+      },
+    );
+  }
+
   testWidgets('la tarjeta es pulsable y accesible', (tester) async {
     await montar(tester, 400);
 

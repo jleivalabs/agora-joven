@@ -19,7 +19,11 @@ def test_lista_tiene_20_debates_en_orden_estable(client, auth):
     assert [d["id"] for d in primera] == sorted(d["id"] for d in primera)
     assert primera == segunda
     assert all(d["origen"] == ORIGEN_EDITORIAL for d in primera)
-    assert set(primera[0]) == {"id", "titulo", "categoria", "resumen", "origen"}
+    assert set(primera[0]) == {
+        "id", "titulo", "categoria", "resumen", "origen", "procedencia", "estado", "autor_nombre"
+    }
+    assert {d["procedencia"] for d in primera} == {"editorial"}
+    assert {d["estado"] for d in primera} == {"publicado"}
 
 
 def test_filtrar_por_categoria(client, auth):
