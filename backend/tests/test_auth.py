@@ -13,7 +13,8 @@ from app.models import Usuario
 from app.security import crear_token
 from tests.conftest import PASSWORD
 
-CAMPOS_USUARIO = {"id", "nombre", "email", "creado_en", "rol"}
+CAMPOS_USUARIO = {"id", "nombre", "email", "creado_en", "rol", "edad_confirmada"}
+EDAD = {"confirma_mayoria_edad": True}
 
 
 def _login(client, email="ana@example.com", password=PASSWORD):
@@ -26,7 +27,12 @@ def _login(client, email="ana@example.com", password=PASSWORD):
 def test_registro_correcto_devuelve_solo_datos_publicos(client):
     respuesta = client.post(
         "/auth/registro",
-        json={"nombre": "  Ana   Pérez ", "email": " Ana@Example.COM ", "password": PASSWORD},
+        json={
+            "nombre": "  Ana   Pérez ",
+            "email": " Ana@Example.COM ",
+            "password": PASSWORD,
+            "confirma_mayoria_edad": True,
+        },
     )
 
     assert respuesta.status_code == 201
@@ -43,7 +49,7 @@ def test_registro_con_correo_duplicado_aunque_cambien_mayusculas(client, registr
 
     respuesta = client.post(
         "/auth/registro",
-        json={"nombre": "Otra", "email": "ANA@example.com", "password": PASSWORD},
+        json={"nombre": "Otra", "email": "ANA@example.com", "password": PASSWORD, **EDAD},
     )
 
     assert respuesta.status_code == 400
@@ -53,10 +59,10 @@ def test_registro_con_correo_duplicado_aunque_cambien_mayusculas(client, registr
 @pytest.mark.parametrize(
     "datos",
     [
-        {"nombre": "Ana", "email": "no-es-correo", "password": PASSWORD},
-        {"nombre": "Ana", "email": "ana@example.com", "password": "corta"},
-        {"nombre": " ", "email": "ana@example.com", "password": PASSWORD},
-        {"email": "ana@example.com", "password": PASSWORD},
+        {"nombre": "Ana", "email": "no-es-correo", "password": PASSWORD, **EDAD},
+        {"nombre": "Ana", "email": "ana@example.com", "password": "corta", **EDAD},
+        {"nombre": " ", "email": "ana@example.com", "password": PASSWORD, **EDAD},
+        {"email": "ana@example.com", "password": PASSWORD, **EDAD},
     ],
 )
 def test_registro_invalido_responde_422(client, datos):
@@ -193,7 +199,7 @@ def test_usuario_persiste_al_reabrir_la_base(settings):
     with TestClient(create_app(settings)) as primero:
         assert primero.post(
             "/auth/registro",
-            json={"nombre": "Ana", "email": "ana@example.com", "password": PASSWORD},
+            json={"nombre": "Ana", "email": "ana@example.com", "password": PASSWORD, **EDAD},
         ).status_code == 201
 
     with TestClient(create_app(settings)) as segundo:

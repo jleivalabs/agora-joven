@@ -44,6 +44,12 @@ class ProveedorIA(Protocol):
     def generar(self, instrucciones: str, contenido: str) -> RespuestaIA: ...
 
 
+class ProveedorRedaccion(Protocol):
+    """Redacción del Bloque 7C: misma API, sin herramientas (sin búsqueda) y salida JSON."""
+
+    def redactar(self, instrucciones: str, contenido: str, esquema: dict) -> RespuestaIA: ...
+
+
 class GeminiProveedor:
     def __init__(
         self,
@@ -59,10 +65,25 @@ class GeminiProveedor:
         self._max_tokens = max_tokens_salida
 
     def generar(self, instrucciones: str, contenido: str) -> RespuestaIA:
+        return self._llamar(instrucciones, contenido, {})
+
+    def redactar(self, instrucciones: str, contenido: str, esquema: dict) -> RespuestaIA:
+        """Salida estructurada sin `tools`: no se usa Grounding with Google Search."""
+        return self._llamar(
+            instrucciones,
+            contenido,
+            {"responseMimeType": "application/json", "responseSchema": esquema},
+        )
+
+    def _llamar(self, instrucciones: str, contenido: str, extra: dict) -> RespuestaIA:
         cuerpo = {
             "systemInstruction": {"parts": [{"text": instrucciones}]},
             "contents": [{"role": "user", "parts": [{"text": contenido}]}],
-            "generationConfig": {"maxOutputTokens": self._max_tokens, "temperature": 0.3},
+            "generationConfig": {
+                "maxOutputTokens": self._max_tokens,
+                "temperature": 0.3,
+                **extra,
+            },
         }
         peticion = urllib.request.Request(
             self._url,

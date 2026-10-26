@@ -68,16 +68,39 @@ def get_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
-def usuario_actual(
+def usuario_autenticado(
     credenciales: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     settings: Annotated[Settings, Depends(get_settings)],
     db: Annotated[Session, Depends(get_db)],
 ) -> Usuario:
+    """Token válido de una cuenta existente, haya o no declarado su edad. Solo lo usan
+    `GET /auth/me` y `POST /auth/confirmar-edad`."""
     if credenciales is None or credenciales.scheme.lower() != "bearer":
         raise no_autenticado()
     usuario = repo_usuarios.obtener(db, leer_usuario_id(credenciales.credentials, settings))
     if usuario is None:
         raise no_autenticado()
+    return usuario
+
+
+UsuarioAutenticado = Annotated[Usuario, Depends(usuario_autenticado)]
+
+
+def edad_no_confirmada() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={
+            "codigo": "edad_no_confirmada",
+            "mensaje": "Confirma que tienes 18 años o más para seguir usando Ágora Joven.",
+        },
+    )
+
+
+def usuario_actual(usuario: UsuarioAutenticado) -> Usuario:
+    """Cuenta autenticada que **ya declaró** tener 18 años o más (leído de la base en cada
+    petición). Todas las rutas protegidas lo exigen, también las de administración."""
+    if usuario.mayoria_edad_declarada_en is None:
+        raise edad_no_confirmada()
     return usuario
 
 

@@ -53,7 +53,13 @@ def test_el_registro_crea_usuarios_y_rechaza_asignar_rol(client, registrar):
     for extra in ({"rol": "administrador"}, {"rol": "usuario"}, {"es_admin": True}):
         r = client.post(
             "/auth/registro",
-            json={"nombre": "Eva", "email": "eva@example.com", "password": PASSWORD, **extra},
+            json={
+                "nombre": "Eva",
+                "email": "eva@example.com",
+                "password": PASSWORD,
+                "confirma_mayoria_edad": True,
+                **extra,
+            },
         )
         assert r.status_code == 422
     assert registrar(email="eva@example.com", nombre="Eva")["rol"] == "usuario"

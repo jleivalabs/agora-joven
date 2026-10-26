@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Usuario
+from app.models import Usuario, ahora_utc
 
 
 class EmailDuplicado(Exception):
@@ -20,11 +20,24 @@ def obtener_por_email(db: Session, email: str) -> Usuario | None:
 
 
 def crear(db: Session, nombre: str, email: str, password_hash: str) -> Usuario:
-    usuario = Usuario(nombre=nombre, email=email, password_hash=password_hash)
+    """Solo se llama tras validar la declaración de mayoría de edad del registro."""
+    usuario = Usuario(
+        nombre=nombre,
+        email=email,
+        password_hash=password_hash,
+        mayoria_edad_declarada_en=ahora_utc(),
+    )
     db.add(usuario)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
         raise EmailDuplicado from None
+    return usuario
+
+
+def declarar_mayoria_edad(db: Session, usuario: Usuario) -> Usuario:
+    if usuario.mayoria_edad_declarada_en is None:
+        usuario.mayoria_edad_declarada_en = ahora_utc()
+        db.commit()
     return usuario

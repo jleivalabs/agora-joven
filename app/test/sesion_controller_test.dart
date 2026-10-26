@@ -77,6 +77,7 @@ void main() {
           'nombre': 'Ana',
           'email': emailAna,
           'creado_en': '2026-10-22T00:00:00Z',
+          'edad_confirmada': true,
         }),
       );
       await sesion.restaurar();
@@ -220,6 +221,7 @@ void main() {
         nombre: 'Bea',
         email: ' Bea@Example.com ',
         password: 'clave-de-bea-123',
+        confirmaMayoriaEdad: true,
       );
 
       expect(ok, isTrue);
@@ -235,6 +237,7 @@ void main() {
         nombre: 'Ana',
         email: emailAna,
         password: passwordAna,
+        confirmaMayoriaEdad: true,
       );
 
       expect(ok, isFalse);
@@ -262,6 +265,7 @@ void main() {
         nombre: 'Ana',
         email: 'x@y.z',
         password: passwordAna,
+        confirmaMayoriaEdad: true,
       );
 
       expect(sesion.errorFormulario.value, 'Revisa el correo.');

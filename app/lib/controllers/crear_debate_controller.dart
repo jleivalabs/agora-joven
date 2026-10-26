@@ -178,6 +178,26 @@ class CrearDebateController extends GetxController {
     }
   }
 
+  /// Aplica el contexto y las perspectivas confirmados por el servidor tras aceptar una
+  /// sugerencia (7C). Solo se llama sin cambios locales pendientes, así que no los pisa.
+  void sincronizarDesdeServidor(Borrador b) {
+    if (!_activo || b.id != _borradorId) return;
+    contexto.value = b.contexto ?? '';
+    perspectivas.assignAll([
+      ...b.perspectivas,
+      for (
+        var i = b.perspectivas.length;
+        i < LimitesDebate.minPerspectivas;
+        i++
+      )
+        const PerspectivaBorrador(),
+    ]);
+    _reiniciarIds();
+  }
+
+  /// Huella del contenido en pantalla: permite saber si cambió durante una consulta.
+  String get firmaContenido => _contenido().toString();
+
   // --- Cambios ------------------------------------------------------------------------------
 
   void cambiarCategoria(String? valor) => _cambio('categoria', () {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'confirmar_edad_screen.dart';
+
 import '../controllers/sesion_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
@@ -37,6 +39,8 @@ class _RegistroScreenState extends State<RegistroScreen> {
       nombre: _nombre.text,
       email: _email.text,
       password: _password.text,
+      confirmaMayoriaEdad:
+          true, // el formulario no se envía sin la casilla marcada
     );
     if (creada && mounted) Get.back<void>();
   }
@@ -115,6 +119,35 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       ),
                     ),
                     validator: Validadores.passwordNueva,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  // Estado local del formulario; el backend exige además `true`.
+                  FormField<bool>(
+                    initialValue: false,
+                    validator: (v) => v == true
+                        ? null
+                        : 'Debes confirmar que tienes 18 años o más.',
+                    builder: (campo) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(EdadTextos.aviso),
+                        CheckboxListTile(
+                          key: const Key('registro-mayoria-edad'),
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: campo.value ?? false,
+                          onChanged: enviando ? null : campo.didChange,
+                          title: const Text(EdadTextos.casilla),
+                        ),
+                        if (campo.hasError)
+                          Text(
+                            campo.errorText!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.l),
                   FilledButton(

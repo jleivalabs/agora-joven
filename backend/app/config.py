@@ -24,6 +24,22 @@ class Settings(BaseSettings):
     gemini_timeout_segundos: float = Field(default=25, gt=0, le=60)
     gemini_base_url: str = "https://generativelanguage.googleapis.com"
 
+    # Investigación asistida (Bloque 7C). Sin CROSSREF_MAILTO la búsqueda responde "no
+    # configurada": el pool "polite" de Crossref exige un correo de contacto.
+    crossref_mailto: str | None = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    crossref_base_url: str = "https://api.crossref.org"
+    crossref_timeout_segundos: float = Field(default=10, gt=0, le=30)
+    # Redacción con Gemini sin búsqueda: desactivada por defecto hasta revisar el tratamiento de
+    # datos según la configuración de Gemini (nivel gratuito o de pago).
+    redaccion_ia_activa: bool = False
+
+    @field_validator("crossref_mailto", mode="before")
+    @classmethod
+    def _correo_vacio_es_ausente(cls, valor: object) -> object:
+        if valor is None or (isinstance(valor, str) and not valor.strip()):
+            return None
+        return valor.strip() if isinstance(valor, str) else valor
+
     @field_validator("gemini_api_key", mode="before")
     @classmethod
     def _clave_vacia_es_ausente(cls, valor: object) -> object:

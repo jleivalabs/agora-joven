@@ -42,6 +42,8 @@ Regla: una pantalla solo habla con controladores; un controlador solo con reposi
 | `MisDebatesScreen` (borradores, publicados, archivados) | `MisDebatesController` | `DebatesRepository`, `BorradoresRepository`, `SolicitudesRepository` | `ApiClient` | ✅ 7B |
 | `AdminSolicitudesScreen`, `AdminSolicitudScreen` (solo administración) | `AdminSolicitudesController` | `SolicitudesRepository` | `ApiClient` | ✅ 7B (ajuste) |
 | `HistorialScreen`, `VersionScreen` | `HistorialController`, `VersionController` | `DebatesRepository` | `ApiClient` | ✅ 7B.1 |
+| `InvestigacionScreen` (desde el paso Contexto) | `InvestigacionController` | `InvestigacionRepository`, `BorradoresRepository` | `ApiClient`, `AbridorEnlaces` (`url_launcher`) | ✅ 7C |
+| `ConfirmarEdadScreen` (cuentas pendientes) | `SesionController` | `AuthRepository` | `ApiClient` | ✅ 7C |
 
 Widgets comunes: `EstadoCargando`, `EstadoVacio`, `EstadoError` (con reintentar y acción
 secundaria), `Marca` y `Aviso`. `setState` solo se usa para estado local de un formulario
@@ -191,9 +193,10 @@ existe, la respuesta es 401 `Sesión no válida o caducada. Inicia sesión de nu
 | Método y ruta | Estado | Uso | Respuestas |
 |---|---|---|---|
 | `GET /health` | ✅ | Salud del servicio | 200 `{status, servicio}` |
-| `POST /auth/registro` | ✅ | `{nombre (2–60), email, password (8–128)}`; cualquier otro campo (`rol`…) → 422. Siempre crea rol `usuario` | 201 `{id, nombre, email, creado_en, rol}` · 400 `Ya existe una cuenta con ese correo.` · 422 |
+| `POST /auth/registro` | ✅ | `{nombre (2–60), email, password (8–128), confirma_mayoria_edad: true}` (7C, booleano estricto); cualquier otro campo (`rol`…) → 422. Siempre crea rol `usuario` | 201 `{id, nombre, email, creado_en, rol, edad_confirmada}` · 400 `Ya existe una cuenta con ese correo.` · 422 |
+| `POST /auth/confirmar-edad` | ✅ 7C | Cuenta pendiente declara tener 18 años o más `{confirma_mayoria_edad: true}` | 200 · 401 · 422 |
 | `POST /auth/login` | ✅ | `{email, password}` | 200 `{access_token, token_type: "bearer", expira_en}` · 401 `Correo o contraseña incorrectos.` · 422 campos vacíos |
-| `GET /auth/me` | ✅ | Usuario del token (rol leído de la base) | 200 `{id, nombre, email, creado_en, rol}` · 401 · 405 a `PATCH`/`PUT` (no hay edición de perfil) |
+| `GET /auth/me` | ✅ | Usuario del token (rol leído de la base); disponible aunque la edad esté pendiente | 200 `{id, nombre, email, creado_en, rol, edad_confirmada}` · 401 · 405 a `PATCH`/`PUT` (no hay edición de perfil) |
 | `GET /debates/categorias` | ✅ | Las 8 categorías en orden fijo, con `etiqueta` y `total` de debates **activos** (puede ser 0) | 200 · 401 |
 | `GET /debates?categoria=` | ✅ | Debates **publicados** (no archivados): `{id, titulo, categoria, resumen, origen, procedencia, estado, autor_nombre}`, orden por `id` ascendente | 200 (lista vacía si la categoría no tiene debates) · 401 · 422 categoría desconocida |
 | `GET /debates/{id}` | ✅ | Detalle (también archivados): resumen + `contexto`, `perspectivas[{titulo, descripcion}]`, `actualizado_en`, `ambito`, `objetivo`, `publicado_en`, `archivado_en`, `archivo_origen`, `aportes`, `es_propio`, `editable` y, solo para la cuenta autora, `solicitud_archivo` | 200 · 401 · 404 `Debate no encontrado.` · 422 id no numérico |
@@ -488,7 +491,7 @@ Manual: `python -m app.migrar`.
 
 **Restaurar una copia de seguridad.** Las copias están fuera de Git (rutas en
 `docs/SEGUIMIENTO.md`): la previa a 7B (esquema 7A, revisión `0001`), la previa a los roles
-(revisión `0002`) y la previa al historial (revisión `0003`). Al arrancar, la API aplica las migraciones pendientes: restaurar una copia con
+(revisión `0002`), la previa al historial (revisión `0003`) y la previa a 7C (revisión `0004`). Al arrancar, la API aplica las migraciones pendientes: restaurar una copia con
 el código actual la vuelve a migrar a la última revisión conservando sus datos; para volver de
 verdad a un esquema anterior hay que usar también el código de esa versión. Con la API detenida:
 
@@ -575,6 +578,120 @@ separan con `-p agora-joven-v100` y un archivo de anulación local. Desde este b
 construye la imagen `agora-joven-api:1.1-dev` (antes `:dev`, el mismo nombre que la etiqueta).
 Instrucciones en README → "Qué código usar con cada app".
 
+## Investigación asistida y mayoría de edad (Bloque 7C, v1.1)
+
+### Decisiones (fuentes oficiales consultadas el 25/10/2026)
+
+- **Sin Grounding with Google Search.** Sus términos solo permiten mostrar los resultados y sus
+  sugerencias de búsqueda a quien hizo la consulta y prohíben modificarlos o mezclarlos sin
+  permiso escrito de Google; es incompatible con fuentes públicas en el debate
+  ([términos adicionales de Gemini API](https://ai.google.dev/gemini-api/terms), vigentes desde el
+  23/03/2026; [documentación de la búsqueda](https://ai.google.dev/gemini-api/docs/google-search)).
+  Además, la búsqueda no está en el nivel gratuito y se factura por consulta
+  ([precios](https://ai.google.dev/gemini-api/docs/pricing)).
+- **Referencias: Crossref REST API** (`api.crossref.org`, sin clave). Casi ningún metadato está
+  sujeto a derechos de autor; los resúmenes pueden estarlo
+  ([REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)). El pool
+  "polite" exige un correo de contacto en `mailto` y `User-Agent`; límites publicados: polite 10
+  y concurrencia 3, público 5 y 1 ([acceso](https://www.crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/));
+  un anuncio posterior los reduce para listas y consultas
+  ([cambios](https://www.crossref.org/blog/announcing-changes-to-rest-api-rate-limits/)).
+- **Resúmenes: no se procesan ni se publican** hasta aprobar una política de licencias
+  (`LICENCIAS_RESUMEN_ADMITIDAS = ()` en `app/investigacion.py`; se piden a Crossref sin el campo
+  `abstract`). Una licencia declarada o el acceso abierto no implican permiso de reutilización
+  ([licencias en Crossref](https://www.crossref.org/documentation/schema-library/markup-guide-metadata-segments/license-information/)).
+- **Redacción: Gemini sin herramientas** (sin búsqueda), `generateContent` con salida JSON por
+  esquema (`responseMimeType` + `responseSchema`); `gemini-3.5-flash-lite` declara salida
+  estructurada ([ficha del modelo](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite)).
+  **Desactivada por defecto** (`REDACCION_IA_ACTIVA=false`) hasta revisar el tratamiento de datos:
+  en el nivel gratuito Google puede usar entradas y salidas para mejorar sus productos, con
+  revisión humana; en el de pago no, pero registra peticiones por un tiempo limitado (términos).
+  Sin tope de gasto configurable, solo límites de ritmo
+  ([límites](https://ai.google.dev/gemini-api/docs/rate-limits)). Ninguna llamada real se hizo.
+- **Edad:** los términos de Gemini exigen 18 años o más y prohíben aplicaciones dirigidas a
+  menores o con probabilidad de que accedan. Ágora Joven es solo para personas de 18 años o más.
+
+### Mayoría de edad declarada
+
+- `POST /auth/registro` exige `confirma_mayoria_edad: true` (booleano estricto: `"true"`, `1` o
+  `false` → 422) y guarda la fecha en `usuarios.mayoria_edad_declarada_en`. No se piden documentos
+  ni fecha de nacimiento: es una **declaración, no una verificación**, y no garantiza por sí sola
+  el cumplimiento de las condiciones de los proveedores.
+- La migración `0005` deja **todas** las cuentas existentes pendientes (también administradoras).
+  Una cuenta pendiente puede iniciar sesión y usar solo `GET /auth/me` (`edad_confirmada: false`)
+  y `POST /auth/confirmar-edad {confirma_mayoria_edad: true}` (idempotente, conserva la primera
+  fecha). Cualquier otra ruta protegida responde **403 `{codigo: "edad_no_confirmada"}`**. Siguen
+  públicas `GET /health`, `POST /auth/registro` y `POST /auth/login`.
+- App: casilla obligatoria en el registro; `EstadoSesion.edadPendiente` muestra
+  `ConfirmarEdadScreen` (confirmar o cerrar sesión, sin aceptación automática); un 403
+  `edad_no_confirmada` con la app abierta lleva a esa pantalla.
+
+### Referencias y redacción
+
+| Método y ruta | Uso | Respuestas |
+|---|---|---|
+| `GET /investigacion/estado` | `{busqueda_disponible, redaccion_disponible, max_referencias, limites_por_hora}` | 200 · 401 · 403 |
+| `POST /borradores/{id}/referencias/buscar` | Busca en Crossref con pregunta + ámbito del borrador propio (≤ 300 caracteres); devuelve hasta 10 referencias normalizadas y el texto enviado. **No se guardan** | 200 (`resultados` o `sin_resultados`) · 404 ajeno · 409 publicado · 422 sin pregunta · 429/502/503 |
+| `POST /borradores/{id}/referencias` | Selecciona por `{doi}`: el servidor vuelve a pedir la obra a Crossref y guarda **sus** metadatos (nunca los de la app). Máximo **8** por borrador | 200 · 404 ajeno o DOI inexistente · 409 límite · 422 DOI no válido o campos extra |
+| `DELETE /borradores/{id}/referencias/{doi}` | Quita; las afirmaciones aceptadas que la citaban quedan "por revisar" | 200 · 404 · 409 · 422 |
+| `POST /borradores/{id}/redaccion` | Gemini sin búsqueda; guarda solo la última redacción pendiente | 200 · 404 · 409 · 422 · 503 `redaccion_desactivada` · 429/502/503 |
+| `POST /borradores/{id}/sugerencias/{sid}/aceptar` | Aplica una sugerencia (editable). Contexto: `modo` `anadir`/`sustituir` + `valor_anterior` (si el campo cambió → 409 `campo_cambiado`) | 200 · 404 · 409 `campo_cambiado`/`sin_espacio` |
+| `POST /borradores/{id}/sugerencias/{sid}/descartar` | Quita solo esa sugerencia; las demás siguen pendientes | 200 · 404 |
+
+Errores diferenciados en `detail.codigo`: `busqueda_no_configurada` (503, sin
+`CROSSREF_MAILTO`), `redaccion_desactivada` (503), `limite_cuenta` (429), `en_curso` (409),
+`proveedor_ocupado` (503), `cuota_proveedor` (429), `proveedor_no_disponible` (503, red o tiempo
+agotado), `respuesta_no_valida` (502), `doi_no_encontrado` (404), `limite_referencias`,
+`campo_cambiado`, `sin_espacio`, `ya_publicado` (409). "Sin evidencia" no es un error: 200 con
+`sin_resultados`, o limitaciones en la redacción.
+
+**Normalización** (`app/crossref.py`): DOI validado con el patrón recomendado por Crossref;
+título y textos sin etiquetas (JATS/HTML), entidades ni caracteres de control; autores (≤ 10),
+fecha solo con las partes que da Crossref, tipo declarado (artículo, informe, conjunto de datos,
+preprint…; si no, "tipo no determinado"), revista, editorial, licencias declaradas (solo URLs
+http/https, informativas) y relaciones preprint↔versión para no presentarlas como fuentes
+independientes. El único enlace es `https://doi.org/<DOI>`. No se descargan URLs, no se siguen
+enlaces de las respuestas y no hay crawler.
+
+**Redacción** (`app/investigacion.py`): se envían categoría, ámbito, pregunta, resumen,
+contexto, perspectivas y objetivo del borrador (≤ unos 6.000 caracteres en total) y título, fecha
+y tipo de las referencias seleccionadas (≤ 8), como datos JSON, nunca nombres, correos, ids,
+tokens ni aportes. `contenido_consultado` va vacío: sin resúmenes, **toda afirmación que cite
+referencias se descarta** (no se deducen resultados de títulos ni metadatos) y queda una
+limitación explicándolo. Salida: ≤ 2 sugerencias de contexto, ≤ 3 perspectivas, ≤ 5 preguntas, ≤ 5
+limitaciones, validadas y convertidas a texto plano; JSON mal formado → 502. Máx. 1.024 tokens de
+salida, 25 s de espera. Avisos: "Sugerencia de IA basada en tu borrador; pendiente de revisión" y,
+cuando haya resúmenes admitidos, "Sugerencia basada en el resumen; pendiente de revisión".
+Validar las referencias citadas no equivale a comprobar que respaldan la afirmación.
+
+**Límites de uso** (`app/limites.py`, en memoria del proceso; se reinician al reiniciar y no son
+un tope de facturación): por cuenta y hora, 10 búsquedas, 20 consultas por DOI y 5 redacciones;
+una acción de investigación a la vez por cuenta (`en_curso`); una consulta a Crossref a la vez en
+todo el servidor (`proveedor_ocupado` si no se libera a tiempo). Una llamada al proveedor por
+acción; tiempo de espera de Crossref 10 s.
+
+**Control humano y persistencia.** Nada se aplica al borrador sin "Revisar y aceptar"; aceptar o
+descartar una sugerencia no afecta a las demás. Lo aceptado queda en `borradores.evidencias`
+(procedencia `sugerencia_ia`, texto sugerido y aceptado, si se editó y si requiere revisión). Las
+preguntas aceptadas son notas privadas del borrador. Al publicar, `referencias` y la procedencia
+de contexto y perspectivas pasan a `debates` y a la versión 1 (inmutables; `nueva_version` las
+copia en cada edición). El detalle las muestra como "Fuentes indicadas por la persona autora" con
+el aviso de que localizar una obra, su DOI o su tipo no certifican calidad ni respaldan nada por
+sí solos. Los debates anteriores no tienen fuentes. No se guardan resultados de búsqueda,
+sugerencias descartadas ni historial de consultas.
+
+**App.** Paso "Contexto" → "Fuentes e IA (opcional)" (con categoría y pregunta) →
+`InvestigacionScreen` (`InvestigacionController`): diálogo previo con el texto exacto que se
+envía y a qué servicio; búsqueda, añadir/quitar, abrir; redacción, aceptar con edición y vista
+previa del contexto resultante (aviso si sustituye texto propio), descartar; aviso "basado en el
+texto anterior" si el borrador cambió durante la consulta. Una operación a la vez; respuestas de
+otra sesión, otro borrador o pantalla cerrada se descartan. Enlaces: `url_launcher` 6.3.3
+(`NavegadorExterno`, solo HTTPS, navegador externo, por acción explícita); si falla, "Copiar
+enlace". Sin imágenes remotas ni HTML.
+
+**Configuración del servidor** (en `backend/.env`, configurada por la persona autora):
+`CROSSREF_MAILTO` (vacío: búsqueda no configurada) y `REDACCION_IA_ACTIVA` (`false` por defecto).
+
 ## Persistencia
 
 | Dónde | Tecnología | Motivo |
@@ -605,6 +722,11 @@ Instrucciones en README → "Qué código usar con cada app".
   ninguna otra dependencia.
 - Backend (Bloque 7B, versiones del lock del curso): `alembic` 1.20.0 (migraciones versionadas),
   con sus dependencias `mako` 1.4.1 y `markupsafe` 3.0.3. La app no añadió paquetes en 7B.
+- App (Bloque 7C, autorizada por la persona autora): `url_launcher` 6.3.3 (abrir fuentes en el
+  navegador externo). No está en el lock del curso (ExploraEC); se comprobó en pub.dev (publicada
+  hace 23 días el 25/10/2026, Dart ≥ 3.11) y con `flutter pub add --dry-run`: solo añade sus
+  paquetes de plataforma y eleva el mínimo de Flutter del lock a 3.44.0 (se usa 3.47.5). Backend:
+  sin dependencias nuevas (Crossref por `urllib`).
 - Asistente (Bloque 5): **sin dependencias nuevas**. Gemini se llama por REST con `urllib` de la
   biblioteca estándar; no se instaló el SDK de Google.
 

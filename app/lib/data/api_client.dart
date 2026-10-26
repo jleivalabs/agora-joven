@@ -66,8 +66,9 @@ class ApiClient {
     );
   }
 
-  Future<void> delete(String ruta, {String? token}) async {
-    await _enviar(() => _dio.delete<dynamic>(ruta, options: _opciones(token)));
+  /// Devuelve el cuerpo si lo hay (algunas rutas responden 204 sin cuerpo).
+  Future<dynamic> delete(String ruta, {String? token}) {
+    return _enviar(() => _dio.delete<dynamic>(ruta, options: _opciones(token)));
   }
 
   Options? _opciones(String? token, [Duration? tiempoRecepcion]) =>

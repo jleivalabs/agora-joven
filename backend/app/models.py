@@ -95,6 +95,11 @@ class Usuario(Base):
     rol: Mapped[str] = mapped_column(
         String(20), default=Rol.usuario.value, server_default="usuario"
     )
+    # Migración 0005 (7C). Momento en que la persona **declaró** tener 18 años o más. No es una
+    # verificación de edad. Nulo: pendiente (las cuentas anteriores no se dan por confirmadas).
+    mayoria_edad_declarada_en: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
 
 class Debate(Base):
@@ -143,6 +148,10 @@ class Debate(Base):
     bloqueo_historico: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("0")
     )
+    # Migración 0005 (7C). Referencias bibliográficas y procedencia de sugerencias aceptadas,
+    # copiadas del borrador al publicar. Nulas en los debates anteriores (sin fuentes).
+    referencias: Mapped[list[dict] | None] = mapped_column(JSON, default=None)
+    evidencias: Mapped[list[dict] | None] = mapped_column(JSON, default=None)
 
 
 class TipoVersion(StrEnum):
@@ -189,6 +198,9 @@ class VersionDebate(Base):
     # catálogo editorial.
     autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), default=None)
     motivo: Mapped[str | None] = mapped_column(Text, default=None)
+    # Migración 0005 (7C): fuentes y procedencia vigentes en esta versión (inmutables).
+    referencias: Mapped[list[dict] | None] = mapped_column(JSON, default=None)
+    evidencias: Mapped[list[dict] | None] = mapped_column(JSON, default=None)
 
 
 class Aclaracion(Base):
@@ -259,6 +271,17 @@ class Borrador(Base):
     debate_id: Mapped[int | None] = mapped_column(
         ForeignKey("debates.id"), default=None, unique=True
     )
+    # Migración 0005 (7C). Referencias seleccionadas (metadatos obtenidos por el servidor),
+    # procedencia de sugerencias aceptadas y la última redacción con IA pendiente de revisar.
+    referencias: Mapped[list[dict] | None] = mapped_column(JSON, default=None)
+    evidencias: Mapped[list[dict] | None] = mapped_column(JSON, default=None)
+    redaccion: Mapped[dict | None] = mapped_column(JSON, default=None)
+
+    @property
+    def redaccion_vigente(self) -> dict | None:
+        from app.repositorios.investigacion import redaccion_vigente
+
+        return redaccion_vigente(self)
 
 
 class TipoAporte(StrEnum):

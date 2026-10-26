@@ -13,11 +13,13 @@ class AuthRepository {
     required String nombre,
     required String email,
     required String password,
+    required bool confirmaMayoriaEdad,
   }) async {
     final datos = await _api.post('/auth/registro', {
       'nombre': nombre,
       'email': email,
       'password': password,
+      'confirma_mayoria_edad': confirmaMayoriaEdad,
     });
     return leerRespuesta(datos, (d) => Usuario.fromJson(d));
   }
@@ -36,6 +38,14 @@ class AuthRepository {
 
   Future<Usuario> usuarioActual(String token) async {
     final datos = await _api.get('/auth/me', token: token);
+    return leerRespuesta(datos, (d) => Usuario.fromJson(d));
+  }
+
+  /// Declaración de tener 18 años o más para una cuenta existente pendiente.
+  Future<Usuario> confirmarEdad(String token) async {
+    final datos = await _api.post('/auth/confirmar-edad', {
+      'confirma_mayoria_edad': true,
+    }, token: token);
     return leerRespuesta(datos, (d) => Usuario.fromJson(d));
   }
 

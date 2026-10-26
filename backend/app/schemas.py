@@ -8,6 +8,7 @@ from pydantic import (
     ConfigDict,
     EmailStr,
     Field,
+    StrictBool,
     StringConstraints,
     field_validator,
     model_validator,
@@ -39,6 +40,16 @@ class RegistroEntrada(BaseModel):
     nombre: str = Field(min_length=2, max_length=60)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    # 7C: declaración obligatoria de tener 18 años o más. Booleano estricto: solo `true` (ni
+    # "true", ni 1). Es una declaración de la persona, no una verificación de edad.
+    confirma_mayoria_edad: StrictBool
+
+    @field_validator("confirma_mayoria_edad")
+    @classmethod
+    def _exigir_confirmacion(cls, valor: bool) -> bool:
+        if valor is not True:
+            raise ValueError("Debes confirmar que tienes 18 años o más.")
+        return valor
 
     @field_validator("nombre")
     @classmethod
@@ -71,6 +82,22 @@ class UsuarioSalida(BaseModel):
     creado_en: datetime
     # Informativo para la interfaz; los permisos se comprueban siempre en el servidor.
     rol: Rol
+    # False: la cuenta aún no declaró tener 18 años o más; solo puede consultar /auth/me y
+    # confirmar en /auth/confirmar-edad.
+    edad_confirmada: bool
+
+
+class ConfirmacionEdadEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    confirma_mayoria_edad: StrictBool
+
+    @field_validator("confirma_mayoria_edad")
+    @classmethod
+    def _exigir_confirmacion(cls, valor: bool) -> bool:
+        if valor is not True:
+            raise ValueError("Debes confirmar que tienes 18 años o más.")
+        return valor
 
 
 class TokenSalida(BaseModel):
@@ -124,6 +151,16 @@ class DebateDetalle(DebateResumen):
     solicitud_archivo: "SolicitudPropia | None" = None
     # 7B.1: versión vigente, protección del contenido y aclaraciones del autor.
     version_actual: int | None = None
+    # 7C: fuentes publicadas (metadatos bibliográficos) y procedencia de texto sugerido por IA.
+    # Vacías en los debates anteriores: no se les atribuye investigación.
+    referencias: list["ReferenciaSalida"] = []
+    evidencias: list["EvidenciaSalida"] = []
+
+    @field_validator("referencias", "evidencias", mode="before")
+    @classmethod
+    def _sin_datos_es_vacio(cls, valor: object) -> object:
+        return valor or []
+
     motivo_bloqueo: Literal["participacion", "historico"] | None = Field(
         default=None,
         description="Por qué el contenido ya no se puede reescribir (si aplica).",
@@ -362,6 +399,15 @@ class BorradorSalida(BaseModel):
     creado_en: datetime
     actualizado_en: datetime
     debate_id: int | None
+    # 7C: referencias seleccionadas, procedencia de sugerencias aceptadas y redacción pendiente.
+    referencias: list["ReferenciaSalida"] = []
+    evidencias: list["EvidenciaSalida"] = []
+    redaccion: "RedaccionSalida | None" = Field(default=None, validation_alias="redaccion_vigente")
+
+    @field_validator("referencias", "evidencias", mode="before")
+    @classmethod
+    def _sin_datos_es_vacio(cls, valor: object) -> object:
+        return valor or []
 
 
 class MiDebate(BaseModel):
@@ -504,8 +550,118 @@ class VersionDetalle(VersionResumen):
     perspectivas: list[Perspectiva]
     objetivo: str | None
     cambios: list[CambioCampo] = Field(description="Diferencias con la versión anterior.")
+    referencias: list["ReferenciaSalida"] = []
+    evidencias: list["EvidenciaSalida"] = []
+
+    @field_validator("referencias", "evidencias", mode="before")
+    @classmethod
+    def _sin_datos_es_vacio(cls, valor: object) -> object:
+        return valor or []
+
+
+# --- Bloque 7C: referencias bibliográficas y redacción asistida ------------------------------
+
+
+class LicenciaSalida(BaseModel):
+    url: str
+    aplica_a: str | None = None
+    inicio: str | None = None
+
+
+class RelacionSalida(BaseModel):
+    relacion: str
+    doi: str
+
+
+class ReferenciaSalida(BaseModel):
+    """Metadatos bibliográficos obtenidos por el servidor en Crossref. Una referencia localizada
+    no certifica la calidad de la obra ni respalda por sí sola ninguna afirmación."""
+
+    doi: str
+    titulo: str
+    autores: list[str] = []
+    fecha_publicacion: str | None = None
+    tipo: str
+    tipo_crossref: str | None = None
+    publicacion: str | None = None
+    editorial: str | None = None
+    licencias: list[LicenciaSalida] = []
+    relacionadas: list[RelacionSalida] = []
+    misma_obra_que: list[str] = []
+    enlace: str
+    procedencia: Literal["crossref"]
+    consultada_en: str
+
+
+class EvidenciaSalida(BaseModel):
+    """Procedencia de un texto aceptado a partir de una sugerencia de IA."""
+
+    id: str
+    tipo: str
+    campo: str
+    procedencia: str
+    texto_sugerido: str
+    texto_aceptado: str
+    editada: bool
+    referencias: list[str] = []
+    requiere_revision: bool = False
+    aceptada_en: str
+    presente_al_publicar: bool | None = None
+
+
+class SugerenciaSalida(BaseModel):
+    id: str
+    tipo: Literal["contexto", "perspectiva", "pregunta", "afirmacion"]
+    estado: Literal["pendiente", "aceptada"]
+    texto: str | None = None
+    titulo: str | None = None
+    descripcion: str | None = None
+    aviso: str
+    referencias: list[str] = []
+
+
+class RedaccionSalida(BaseModel):
+    creada_en: str
+    sugerencias: list[SugerenciaSalida]
+    limitaciones: list[str]
+    desactualizada: bool = Field(description="El borrador cambió después de pedir la redacción.")
+
+
+class BusquedaSalida(BaseModel):
+    estado: Literal["resultados", "sin_resultados"]
+    consulta: str = Field(description="Texto exacto enviado a Crossref.")
+    referencias: list[ReferenciaSalida]
+    consultada_en: datetime
+
+
+class ReferenciaEntrada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    doi: str = Field(min_length=7, max_length=220)
+
+
+class AceptacionEntrada(BaseModel):
+    """Aceptar una sugerencia, opcionalmente editada. `valor_anterior` es el contenido del campo
+    que la persona vio al confirmar: si cambió entretanto, no se sobrescribe (409)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    modo: Literal["anadir", "sustituir"] = "anadir"
+    valor_anterior: str | None = None
+    texto: _parcial(1500) | None = None
+    titulo: _parcial(80) | None = None
+    descripcion: _parcial(600) | None = None
+
+
+class EstadoInvestigacion(BaseModel):
+    busqueda_disponible: bool
+    redaccion_disponible: bool
+    max_referencias: int
+    limites_por_hora: dict[str, int]
 
 
 EstadisticasPersonales.model_rebuild()
 DebateDetalle.model_rebuild()
+BorradorSalida.model_rebuild()
+VersionDetalle.model_rebuild()
 MiDebate.model_rebuild()

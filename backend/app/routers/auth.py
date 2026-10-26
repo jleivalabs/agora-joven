@@ -9,6 +9,7 @@ from app.config import Settings
 from app.db import get_db
 from app.repositorios import usuarios as repo_usuarios
 from app.schemas import (
+    ConfirmacionEdadEntrada,
     LoginEntrada,
     RegistroEntrada,
     TokenSalida,
@@ -16,7 +17,7 @@ from app.schemas import (
     normalizar_email,
 )
 from app.security import (
-    UsuarioActual,
+    UsuarioAutenticado,
     crear_token,
     get_settings,
     hashear_password,
@@ -39,7 +40,7 @@ def registro(datos: RegistroEntrada, db: Db) -> UsuarioSalida:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ya existe una cuenta con ese correo.",
         ) from None
-    return UsuarioSalida.model_validate(usuario)
+    return _salida(usuario)
 
 
 @router.post("/login", response_model=TokenSalida)
@@ -62,5 +63,26 @@ def login(
 
 
 @router.get("/me", response_model=UsuarioSalida)
-def me(usuario: UsuarioActual) -> UsuarioSalida:
-    return UsuarioSalida.model_validate(usuario)
+def me(usuario: UsuarioAutenticado) -> UsuarioSalida:
+    """Disponible aunque la edad esté pendiente: la app lo usa para pedir la confirmación."""
+    return _salida(usuario)
+
+
+@router.post("/confirmar-edad", response_model=UsuarioSalida)
+def confirmar_edad(
+    _: ConfirmacionEdadEntrada, db: Db, usuario: UsuarioAutenticado
+) -> UsuarioSalida:
+    """La cuenta declara tener 18 años o más. Repetir no cambia la fecha de la primera
+    declaración. No se piden documentos ni fecha de nacimiento."""
+    return _salida(repo_usuarios.declarar_mayoria_edad(db, usuario))
+
+
+def _salida(usuario) -> UsuarioSalida:
+    return UsuarioSalida(
+        id=usuario.id,
+        nombre=usuario.nombre,
+        email=usuario.email,
+        creado_en=usuario.creado_en,
+        rol=usuario.rol,
+        edad_confirmada=usuario.mayoria_edad_declarada_en is not None,
+    )

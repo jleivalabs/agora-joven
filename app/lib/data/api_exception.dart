@@ -24,16 +24,21 @@ class ApiException implements Exception {
     this.tipo, {
     this.codigo,
     this.camposInvalidos = const [],
-    this.codigoConflicto,
+    this.codigoDetalle,
     this.versionActual,
   });
 
   final TipoError tipo;
   final int? codigo;
 
-  /// Código de un 409 estructurado (por ejemplo `version_desactualizada`). Solo un código: el
-  /// texto que ve la persona lo elige la app.
-  final String? codigoConflicto;
+  /// Código de un error estructurado del servidor (`detail.codigo`), por ejemplo
+  /// `version_desactualizada` (409) o `edad_no_confirmada` (403). Solo un código: el texto que
+  /// ve la persona lo elige la app.
+  final String? codigoDetalle;
+
+  /// Código de un 409 estructurado.
+  String? get codigoConflicto =>
+      tipo == TipoError.conflicto ? codigoDetalle : null;
 
   /// En `version_desactualizada`, la versión vigente del debate según el servidor.
   final int? versionActual;
@@ -57,9 +62,7 @@ class ApiException implements Exception {
           _tipoPorCodigo(codigo),
           codigo: codigo,
           camposInvalidos: codigo == 422 ? _campos(e.response?.data) : const [],
-          codigoConflicto: codigo == 409
-              ? (detalle?['codigo'] as String?)
-              : null,
+          codigoDetalle: detalle?['codigo'] as String?,
           versionActual: codigo == 409
               ? (detalle?['version_actual'] as int?)
               : null,

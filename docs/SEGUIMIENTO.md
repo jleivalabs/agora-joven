@@ -12,32 +12,44 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
   pendiente técnico de Hive.
 - **Solo queda entregar el enlace del repositorio en Moodle** (persona autora). No está
   registrado como realizado.
-- **v1.1 en desarrollo**: 7A (`c53367f`) y 7B (`2e82559`) publicados en `origin/main`; CI en verde
-  para `2e82559` según la persona autora. **Bloque 7B.1 (historial y protección del contexto)
-  comprobado**: pruebas automáticas del agente y recorrido manual confirmado por la persona autora,
-  salvo el conflicto entre sesiones simultáneas, que solo tiene cobertura automática. Base real
-  migrada a `0004` con copia previa. Pendiente: revisión, commit y push (persona autora). La etiqueta `v1.0.0` y sus
-  archivos publicados no se han tocado. 7C no ha empezado.
+- **v1.1 en desarrollo**: 7A (`c53367f`), 7B (`2e82559`) y 7B.1 (`cb2de64`) publicados en
+  `origin/main`; CI en verde para `cb2de64` según la persona autora. **Bloque 7C comprobado**
+  para la declaración de edad y la gestión de referencias con Crossref real (recorrido manual de
+  la persona autora en emulator-5554); la redacción con IA sigue desactivada y solo probada con
+  proveedor simulado; resúmenes sin procesar. Base real migrada a `0005` con respaldo previo.
+  Pendiente: revisión, commit y push. La etiqueta
+  `v1.0.0` y sus archivos publicados no se han tocado. 7D no ha empezado.
 
 ## Punto de continuación (actualizado el 25/10/2026)
 
-- **Último commit publicado:** `2e82559` (Bloque 7B), en `origin/main`; CI en verde según la
+- **Último commit publicado:** `cb2de64` (Bloque 7B.1), en `origin/main`; CI en verde según la
   persona autora (el agente no pudo consultarlo: `gh` no está instalado).
-- **7B.1 comprobado, sin commit ni push.** Resultados del agente: backend 184 pruebas (Python 3.11
+- **Público (decisión del 25/10/2026):** solo personas de 18 años o más. Declaración en el registro
+  y confirmación de las cuentas existentes implementadas en 7C. Tras migrar, las 4 cuentas
+  existentes (también "Admin") están pendientes de confirmar.
+- **7B.1 comprobado y publicado en `cb2de64`.** Resultados del agente: backend 184 pruebas (Python 3.11
   local y 3.12 en contenedor; 167 anteriores + 17), Flutter 190 (181 + 9) y `flutter analyze` sin
   incidencias. Recorrido manual satisfactorio según la persona autora; el conflicto entre dos
   sesiones simultáneas no se comprobó a mano (ver "Bloque 7B.1 → Comprobación manual").
-- **Base real migrada a la revisión `0004`**, con respaldos verificados fuera de Git:
+- **Base real migrada a la revisión `0005`** (7C), con respaldos verificados fuera de Git:
   - Previo a 7B (esquema 7A): `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-20261024-211248.db`
   - Previo a roles y solicitudes (revisión `0002`): `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b-roles-20261024-221206.db`
   - Previo al historial (revisión `0003`): `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b1-20261025-205218.db`
+  - Previo a 7C (revisión `0004`): `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7c-20261025-230538.db`
 - **Release v1.0.0:** el APK `v1.0.0` usa el backend de la etiqueta `v1.0.0` en un entorno
   separado (proyecto, volumen, contenedor e imagen propios; puerto 8010); la app 1.1 usa el backend
   de `main`. Nunca ejecutar el backend antiguo contra la base migrada a `0004`. El requisito de
   versión de los aportes no se relaja. Instrucciones en README → "Qué código usar con cada app".
-- **Pendiente (persona autora):** revisión del `git diff`, commit y push. Opcional: probar el APK
-  `v1.0.0` con los pasos A1–A7 del README.
-- **No empezar 7C** hasta que se indique.
+- **7C comprobado, sin commit ni push.** Resultados del agente: backend 220 pruebas (Python 3.11
+  local y 3.12 en contenedor), Flutter 212 y `flutter analyze` sin incidencias. Recorrido manual
+  satisfactorio de la persona autora en emulator-5554, con búsqueda real en Crossref
+  (`CROSSREF_MAILTO` configurado por ella). **No validado con Gemini real:** la redacción sigue
+  desactivada (`REDACCION_IA_ACTIVA=false`) y solo se probó con proveedor simulado. Resúmenes sin
+  procesar. Ver "Bloque 7C → Comprobación manual".
+- **Pendiente (persona autora):** decidir la política de licencias de los resúmenes y el
+  tratamiento de datos de Gemini (incluido el asistente existente); revisar el archivo
+  `respaldos-agora-joven$NOMBRE` (aparte); revisión, commit y push. Opcional: probar el APK
+  `v1.0.0` (pasos A1–A7 del README).
 
 ## Bloques
 
@@ -52,7 +64,8 @@ Leyenda: ✅ comprobado con evidencia · ⏳ pendiente · ⛔ bloqueado
 | 6 | CI, workflow de Release, README final, auditoría de secretos | ✅ Commit `1ce2f37`; CI en verde; Release `v1.0.0` publicada y validada en emulador (persona autora) |
 | 7A (v1.1) | Dashboard de comunidad y participación personal; navegación Inicio · Debates · Guardados | ✅ Commit `c53367f`, publicado en `origin/main` |
 | 7B (v1.1) | Creación de debates por usuarios: borradores, publicación, edición, Mis debates; archivo con solicitud y revisión administrativa; roles; migraciones 0002–0003 | ✅ Commit `2e82559`, publicado en `origin/main`; CI en verde según la persona autora |
-| 7B.1 (v1.1) | Historial de versiones, bloqueo permanente tras participación, aportes por versión, aclaraciones; migración 0004 | ✅ Comprobado (pruebas automáticas y recorrido manual de la persona autora; conflicto entre sesiones solo con pruebas automáticas); pendiente revisión, commit y push |
+| 7B.1 (v1.1) | Historial de versiones, bloqueo permanente tras participación, aportes por versión, aclaraciones; migración 0004 | ✅ Commit `cb2de64`, publicado en `origin/main`; CI en verde según la persona autora |
+| 7C (v1.1) | Referencias de Crossref (metadatos), redacción con Gemini sin búsqueda (desactivada), mayoría de edad declarada; migración 0005 | ✅ Comprobado: edad y referencias con Crossref real (recorrido manual); redacción solo con proveedor simulado (desactivada); pendiente commit y push |
 
 La numeración de los bloques 2 a 6 se ajustó al plan de trabajo vigente: el Bloque 2 pasó a ser
 la sesión y el catálogo en la app.
@@ -1031,6 +1044,206 @@ atribuye ninguna prueba manual.
 
 **Estado de 7B.1:** comprobado con esos límites. Pendiente: revisión de cambios, commit y push
 (persona autora). 7C no ha empezado.
+
+## Bloque 7C — fuentes con Crossref, redacción sin búsqueda y mayoría de edad (25/10/2026)
+
+Punto de partida: `cb2de64` (7B.1) en `origin/main`, árbol limpio; CI en verde según la persona
+autora. Sin subagentes, sin llamadas reales a Gemini ni a Crossref, sin commit, push, etiquetas
+ni Releases. Diseño, enlaces oficiales consultados y límites en `docs/ARQUITECTURA.md` →
+"Investigación asistida y mayoría de edad".
+
+### Decisiones
+
+- Descartado Grounding with Google Search: sus términos solo permiten mostrar resultados a quien
+  consultó y prohíben modificarlos o mezclarlos, incompatible con fuentes públicas. La persona
+  autora decidió no usarlo para campos públicos, catálogos de referencias ni otra base de datos.
+- Referencias desde Crossref (metadatos reutilizables), separando "referencia localizada",
+  "contenido consultado" y "afirmación respaldada". **Resúmenes desactivados** hasta aprobar una
+  política de licencias: sin contenido consultado no hay afirmaciones respaldadas.
+- Redacción con Gemini sin búsqueda, **desactivada por defecto** hasta revisar el tratamiento de
+  datos (también del asistente existente).
+- Público adulto (18+): declaración en el registro y confirmación obligatoria de las cuentas
+  existentes (incluidas las administradoras), sin documentos ni fecha de nacimiento.
+- `url_launcher` 6.3.3 autorizado por la persona autora (no está en el lock del curso; comprobado
+  en pub.dev y con resolución en seco).
+
+### Acciones realizadas (agente)
+
+- Backend: `app/crossref.py` (cliente y normalización), `app/investigacion.py` (redacción y
+  validación), `app/limites.py` (límites en memoria), `app/repositorios/investigacion.py`,
+  `app/routers/investigacion.py`; declaración de edad en `security.py` y `routers/auth.py`;
+  publicación de referencias y procedencia en debates y versiones; `CROSSREF_MAILTO` y
+  `REDACCION_IA_ACTIVA` en `config.py`, `docker-compose.yml` y `.env.example` (el `.env` real no se
+  leyó ni se modificó).
+- Migración `0005` (nueva; `0001`–`0004` sin cambios).
+- App: casilla de edad en el registro, `ConfirmarEdadScreen`, `InvestigacionScreen` desde el paso
+  Contexto, fuentes en el detalle y en las versiones, apertura de enlaces con `url_launcher` y
+  copia del enlace si falla.
+- Error real encontrado y corregido durante las pruebas: las secciones de la pantalla de
+  investigación no se actualizaban con los resultados (un `Obx` exterior no seguía lo leído al
+  construir los widgets hijos); ahora cada sección tiene su propio `Obx`. También se aplazó la
+  carga inicial para no modificar observables durante la construcción.
+
+### Resultados verificados (agente, proveedores simulados)
+
+| Comprobación | Resultado |
+|---|---|
+| `pytest -q` (Python 3.11 local) | 220 passed (184 + 36) |
+| `pytest -q` en contenedor desechable `python:3.12-slim` | 220 passed |
+| `flutter analyze` | No issues found |
+| `flutter test` | 212 passed (190 + 22) |
+
+Backend, 36 pruebas nuevas: 10 de edad (`test_edad.py`: `true` estricto con 6 valores inválidos,
+registro sin declaración, cuentas pendientes —también administradora— con 403 salvo `/auth/me` y
+confirmación, confirmación idempotente), 25 de investigación (`test_investigacion.py`:
+configuración ausente, autenticación y aislamiento entre borradores, solo pregunta y ámbito hacia
+Crossref, metadatos válidos, incompletos y hostiles, DOI inválidos o inexistentes, licencias con
+esquemas inseguros, preprints como misma obra, errores de cuota, red y respuesta mal formada,
+selección con metadatos del servidor, máximo de 8 referencias, límites por cuenta incluidas las
+consultas por DOI, concurrencia, redacción sin resúmenes que descarta afirmaciones, contenido
+hostil, aceptar, descartar y editar sin sobrescritura silenciosa, borrador desactualizado,
+afirmación editada por revisar, publicación con fuentes en la versión, inmutabilidad, debates
+anteriores sin fuentes) y 1 de migración `0005`.
+
+Flutter, 22 pruebas nuevas (`test/investigacion_test.dart`): acceso opcional, diálogo con el
+texto enviado, metadatos y avisos, añadir, abrir HTTPS a doi.org y copiar si falla, sin
+resultados y error con reintento, búsqueda no configurada, redacción desactivada, aceptar con
+vista previa y descartar conservando las demás, aviso al sustituir, fuentes y procedencia en el
+detalle, debate anterior sin fuentes, publicación en el servidor simulado, pantalla estrecha y
+texto ×2, duplicados, respuesta tardía tras cambiar de sesión, borrador cambiado durante la
+redacción, 409 sin sobrescribir, y edad (registro, confirmación obligatoria, cerrar sesión, 403
+con la app abierta).
+
+Las respuestas de Crossref y Gemini de las pruebas son **simuladas** (marcadas "SIMULADA" o
+sintéticas): no prueban la integración real.
+
+### Ensayo de la migración 0005 (sin tocar el volumen real)
+
+Sobre una copia temporal del respaldo `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7b1-20261025-205218.db`
+(revisión `0003`): migración a `0005`, mismos recuentos (4 cuentas, 22 debates, 6 aportes, 3
+borradores, 1 solicitud) y mismas huellas SHA-256 de cuentas, debates, aportes, borradores y
+solicitudes; 22 versiones; ninguna cuenta con edad declarada (1 administradora y 3 usuarias
+pendientes); ninguna referencia en debates, versiones ni borradores; `integrity_check` ok y
+`foreign_key_check` vacío. Copia temporal eliminada. La base real (en `0004`) **no se migró**.
+
+### Migración de la base real a 0005 (25/10/2026, autorizada por la persona autora)
+
+1. **Pausa de uso:** se detuvo solo el servicio `api` (`docker compose stop api`; sin `down`, sin
+   tocar otros servicios ni el volumen), de modo que nada pudo cambiar entre la copia y la
+   migración. Diario de SQLite en modo `delete` (un único archivo, sin WAL).
+2. **Respaldo nuevo** (no se sobrescribió ninguno anterior): copia del archivo con el servicio
+   detenido y copia consistente con la API de copia de SQLite, fuera de Git:
+   `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7c-20261025-230538.db`.
+   Verificado: revisión `0004`, `integrity_check` ok, `foreign_key_check` vacío; 4 cuentas (1
+   administradora, 3 usuarias), 23 debates, 24 versiones, 6 aportes (sin versión asignada: anteriores
+   al historial), 0 aclaraciones, 4 borradores, 1 solicitud. La copia intermedia se eliminó.
+3. **Ensayo 0004 → 0005** sobre una copia temporal de ese respaldo: revisión `0005`, integridad y
+   claves foráneas sin errores, mismos recuentos y mismas huellas SHA-256 de cuentas (con roles),
+   debates (con versión vigente, participación, bloqueos y archivo), versiones, aportes (con su
+   vínculo de versión), aclaraciones, borradores y solicitudes; 0 cuentas con edad declarada; 0
+   debates, versiones o borradores con datos de investigación. Copia temporal eliminada.
+   Nota: la primera comparación dio "no conservados" porque la consulta de versiones usaba
+   `SELECT *` y la revisión `0005` añade columnas (vacías); con columnas explícitas, todas las
+   tablas coinciden. No se cambió ningún dato.
+4. **Migración real:** `docker compose up --build -d api` (imagen `agora-joven-api:1.1-dev`).
+   Servicio sano; revisión `0005`; mismas huellas que el respaldo en todas las tablas; 0 cuentas
+   con edad declarada; ninguna referencia añadida; `integrity_check` ok y `foreign_key_check` vacío.
+   `/health` 200; `/auth/me`, `/investigacion/estado` y `/debates` → 401 sin token. En el
+   contenedor: `REDACCION_IA_ACTIVA=false` y `CROSSREF_MAILTO` vacío (se comprobó solo si está
+   definido, sin mostrar su valor). Volumen `agora-joven_agora_datos` conservado. Las
+   comprobaciones solo mostraron recuentos, estados y huellas.
+
+**Restauración compatible** (si hiciera falta volver al estado previo a 7C):
+
+```bash
+cd backend
+docker compose stop api
+docker compose cp <ruta-del-respaldo-agora-pre-7c>.db api:/srv/data/agora.db
+docker compose start api      # con el código actual, vuelve a migrar a 0005 conservando datos
+```
+
+Para quedarse en `0004` hay que usar también el código de esa revisión (`cb2de64`) antes de
+arrancar; con el código actual, el arranque aplica `0005` de nuevo y todas las cuentas vuelven a
+quedar pendientes de confirmar la edad. Copiar antes la base actual y no usar `down -v`.
+
+### Procedimiento seguido (para futuras migraciones)
+
+1. Copia consistente fuera de Git con la API de copia de SQLite (origen en solo lectura), desde
+   el contenedor actual, como en los bloques anteriores, a
+   `C:/Users/juanl/Documents/UTE/FORMACION/CEDIA-CURSO-FLOTTER-DART/respaldos-agora-joven/agora-pre-7c-<fecha>.db`.
+2. Verificarla: `integrity_check`, revisión `0004`, recuentos y huellas.
+3. Ensayo sobre una copia temporal de ese respaldo con el código de 7C (debe dar `0005`, mismos
+   datos, cuentas pendientes de edad, sin referencias) y eliminar la copia.
+4. Solo entonces `docker compose up --build -d api` (sin `down -v`) y repetir las comprobaciones
+   sobre el volumen. Tras migrar, **todas las cuentas** (también "Admin") deberán confirmar la
+   edad al entrar.
+5. Restauración, si hiciera falta: `docs/ARQUITECTURA.md` → "Restaurar una copia de seguridad".
+
+### Pendiente: recorrido manual (persona autora)
+
+No ejecutado por el agente en emulador. La base ya está migrada; requiere la app compilada con 7C.
+
+1. Al entrar con una cuenta existente aparece "Antes de continuar": el botón está desactivado
+   hasta marcar la casilla; "Cerrar sesión" funciona; al confirmar se llega a Inicio.
+2. Registro de una cuenta nueva sin marcar la casilla: error junto a la casilla; con ella, se crea.
+3. Sin `CROSSREF_MAILTO`: en el paso Contexto, "Fuentes e IA (opcional)" muestra que la búsqueda
+   no está configurada y que la redacción está desactivada; el asistente funciona igual.
+4. Con `CROSSREF_MAILTO` (prueba real pequeña, abajo): buscar, revisar el texto que se envía,
+   añadir 1–2 referencias, abrir una en el navegador, quitar otra.
+5. Cerrar la app por completo y retomar el borrador: las referencias siguen.
+6. Publicar y abrir el debate con otra cuenta: "Fuentes indicadas por la persona autora" con el
+   aviso de que no certifican nada; un debate anterior no muestra fuentes.
+7. Revisión visual con texto ampliado y pantalla estrecha.
+
+### Prueba real pequeña y controlada (persona autora, después de migrar)
+
+1. Configurar en `backend/.env` (sin compartirlo) `CROSSREF_MAILTO=<correo de contacto>` y dejar
+   `REDACCION_IA_ACTIVA=false`; recrear la API (`docker compose up -d api`).
+2. Comprobar `GET /investigacion/estado` con una sesión: `busqueda_disponible: true`,
+   `redaccion_disponible: false`.
+3. Un único borrador de prueba con una pregunta neutra; **una** búsqueda y **una** selección por
+   DOI (cuentan para el límite: 10 búsquedas y 20 consultas por hora).
+4. Comprobar en la app que los metadatos coinciden con la página de `https://doi.org/<DOI>` (título,
+   autores, año) y que no aparecen resúmenes.
+5. Registrar el resultado aquí distinguiéndolo de las pruebas simuladas. La redacción con Gemini
+   no se prueba hasta decidir el tratamiento de datos.
+
+### Comprobación manual de la persona autora (emulator-5554, 25/10/2026)
+
+La persona autora confirma **satisfactorio** el recorrido manual de 7C. Es evidencia de la persona
+autora, no del agente (el agente no ejecutó la app ni consultó Crossref). La búsqueda usó Crossref
+real con `CROSSREF_MAILTO` configurado por ella en el servidor.
+
+**Visible en las capturas aportadas:**
+
+- Confirmación de edad de una cuenta existente, con el botón desactivado antes de marcar la
+  casilla y activado después.
+- Funciones sin configurar (búsqueda no configurada y redacción desactivada).
+- Publicación de un debate sin fuentes.
+- Búsqueda real en Crossref con el diálogo previo que muestra el texto enviado.
+- Resultados de la búsqueda.
+- Selección de dos referencias y retirada de una.
+- Debate publicado con la referencia restante.
+
+**Por confirmación de la persona autora** (no se ven en las capturas): el resto de
+comprobaciones previstas, incluidas la apertura de una referencia en el navegador y la
+comparación de sus metadatos, la persistencia del borrador tras cerrar la app, la consulta desde
+otra cuenta, el historial y la revisión visual (texto ampliado y pantalla estrecha).
+
+**Estado:**
+
+- Declaración de mayoría de edad: **comprobada** (pruebas automáticas y recorrido manual).
+- Gestión de referencias con Crossref real (buscar, seleccionar, quitar, publicar y mostrar):
+  **comprobada** (pruebas automáticas y recorrido manual con Crossref real).
+- Redacción con Gemini sin búsqueda: **no validada con Gemini real**. Sigue desactivada
+  (`REDACCION_IA_ACTIVA=false`) y solo se probó con proveedor simulado.
+- Resúmenes: no se procesan ni se publican.
+
+### Pendiente de decisión (persona autora)
+
+- Política de licencias para procesar y publicar resúmenes.
+- Tratamiento de datos según la configuración de Gemini (nivel gratuito o de pago), también para
+  el asistente existente, antes de activar `REDACCION_IA_ACTIVA`.
 
 ## Decisiones registradas (2026-10-22)
 

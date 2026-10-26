@@ -53,6 +53,9 @@ def nueva_version(
         tipo=tipo.value,
         autor_id=autor_id,
         motivo=motivo,
+        # Las fuentes forman parte de la instantánea (7C) y no cambian después.
+        referencias=debate.referencias,
+        evidencias=debate.evidencias,
         **contenido_de(debate),
     )
     db.add(version)

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/sesion_controller.dart';
 import '../widgets/estados.dart';
+import 'confirmar_edad_screen.dart';
 import 'principal_screen.dart';
 import 'login_screen.dart';
 
@@ -40,6 +41,8 @@ class RaizScreen extends StatelessWidget {
           return const LoginScreen();
         case EstadoSesion.autenticada:
           return const PrincipalScreen();
+        case EstadoSesion.edadPendiente:
+          return const ConfirmarEdadScreen();
       }
     });
   }

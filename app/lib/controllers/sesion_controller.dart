@@ -5,7 +5,16 @@ import '../models/usuario.dart';
 import '../repositories/auth_repository.dart';
 import '../utils/mensajes_error.dart';
 
-enum EstadoSesion { restaurando, sinSesion, autenticada, errorRestauracion }
+enum EstadoSesion {
+  restaurando,
+  sinSesion,
+  autenticada,
+  errorRestauracion,
+
+  /// Sesión válida de una cuenta que aún no declaró tener 18 años o más: solo puede confirmar
+  /// o cerrar sesión. Ninguna otra operación se ejecuta en este estado.
+  edadPendiente,
+}
 
 /// La operación pertenece a una sesión que ya no está vigente; su resultado se descarta.
 class SesionObsoleta implements Exception {
@@ -73,7 +82,7 @@ class SesionController extends GetxController {
       if (sesion != _sesion) return;
       _token = token;
       usuario.value = actual;
-      estado.value = EstadoSesion.autenticada;
+      estado.value = _estadoPara(actual);
     } on ApiException catch (e) {
       if (sesion != _sesion) return;
       if (e.tipo == TipoError.noAutorizado) {
@@ -125,7 +134,7 @@ class SesionController extends GetxController {
 
       _token = token;
       usuario.value = actual;
-      estado.value = EstadoSesion.autenticada;
+      estado.value = _estadoPara(actual);
     } on ApiException catch (e) {
       if (sesion != _sesion) return;
       // Un 401 del login son credenciales incorrectas, no una sesión caducada.
@@ -144,6 +153,7 @@ class SesionController extends GetxController {
     required String nombre,
     required String email,
     required String password,
+    required bool confirmaMayoriaEdad,
   }) async {
     if (enviando.value) return false;
     final sesion = _sesion;
@@ -155,6 +165,7 @@ class SesionController extends GetxController {
         nombre: nombre.trim(),
         email: email.trim(),
         password: password,
+        confirmaMayoriaEdad: confirmaMayoriaEdad,
       );
       if (sesion != _sesion) return false;
       emailSugerido.value = creado.email;
@@ -168,6 +179,39 @@ class SesionController extends GetxController {
         _ => mensajeDeError(e),
       };
       return false;
+    } finally {
+      if (sesion == _sesion) enviando.value = false;
+    }
+  }
+
+  EstadoSesion _estadoPara(Usuario u) =>
+      u.edadConfirmada ? EstadoSesion.autenticada : EstadoSesion.edadPendiente;
+
+  /// La cuenta pendiente declara tener 18 años o más. Solo con la confirmación del servidor
+  /// pasa a la sesión normal.
+  Future<void> confirmarEdad() async {
+    final token = _token;
+    if (enviando.value ||
+        token == null ||
+        estado.value != EstadoSesion.edadPendiente) {
+      return;
+    }
+    final sesion = _sesion;
+    enviando.value = true;
+    errorFormulario.value = null;
+    try {
+      final actual = await _auth.confirmarEdad(token);
+      if (sesion != _sesion) return;
+      usuario.value = actual;
+      estado.value = _estadoPara(actual);
+    } on ApiException catch (e) {
+      if (sesion != _sesion) return;
+      if (e.tipo == TipoError.noAutorizado) {
+        _expirar(sesion, token);
+        return;
+      }
+      errorFormulario.value =
+          'No se pudo registrar tu confirmación. ${mensajeDeError(e)}';
     } finally {
       if (sesion == _sesion) enviando.value = false;
     }
@@ -209,6 +253,10 @@ class SesionController extends GetxController {
         _expirar(sesion, token);
         throw const SesionObsoleta();
       }
+      if (e.codigoDetalle == 'edad_no_confirmada') {
+        _pedirEdad(sesion);
+        throw const SesionObsoleta();
+      }
       rethrow;
     }
   }
@@ -222,6 +270,15 @@ class SesionController extends GetxController {
     estado.value = EstadoSesion.sinSesion;
     _volverAlInicio();
     _borrarTokenSinFallar(token);
+  }
+
+  /// El servidor exige la confirmación de edad (por ejemplo, tras migrar una cuenta antigua con
+  /// la app abierta): se invalidan las operaciones en curso y se muestra la confirmación.
+  void _pedirEdad(int sesion) {
+    if (sesion != _sesion) return;
+    _sesion++;
+    estado.value = EstadoSesion.edadPendiente;
+    _volverAlInicio();
   }
 
   void _limpiar() {

@@ -1,4 +1,5 @@
 import 'debate.dart';
+import 'referencia.dart';
 import 'solicitud_archivo.dart';
 
 /// Límites del contenido de un debate (iguales a backend/app/schemas.py → LIMITES).
@@ -48,6 +49,9 @@ class Borrador {
     this.paso = 1,
     required this.actualizadoEn,
     this.debateId,
+    this.referencias = const [],
+    this.evidencias = const [],
+    this.redaccion,
   });
 
   final int id;
@@ -64,6 +68,11 @@ class Borrador {
   /// Debate creado al publicarlo; null mientras sea borrador.
   final int? debateId;
 
+  /// 7C: referencias seleccionadas, procedencia de lo aceptado y redacción pendiente.
+  final List<Referencia> referencias;
+  final List<Evidencia> evidencias;
+  final Redaccion? redaccion;
+
   factory Borrador.fromJson(Map<String, dynamic> json) => Borrador(
     id: json['id'] as int,
     categoria: json['categoria'] as String?,
@@ -79,6 +88,9 @@ class Borrador {
     paso: json['paso'] as int,
     actualizadoEn: DateTime.parse(json['actualizado_en'] as String),
     debateId: json['debate_id'] as int?,
+    referencias: referenciasDe(json['referencias']),
+    evidencias: evidenciasDe(json['evidencias']),
+    redaccion: Redaccion.fromJsonONulo(json['redaccion']),
   );
 }
 

@@ -5,12 +5,34 @@ Entrega: lunes 26 de octubre de 2026, 08:00, en Moodle (enlace al repositorio).
 
 ## Propósito
 
-Ágora Joven ayuda a personas jóvenes a **comprender temas públicos**, **consultar debates
-ciudadanos** y **publicar preguntas, argumentos o propuestas**.
+Ágora Joven ayuda a personas adultas jóvenes (**18 años o más**) a **comprender temas públicos**,
+**consultar debates ciudadanos** y **publicar preguntas, argumentos o propuestas**. Ver "Público".
 
 Los contenidos iniciales son **material editorial de demostración**, identificado como tal en la
 app y en el backend. El asistente es **educativo**: explica contexto y resume perspectivas de forma
 equilibrada; **nunca publica contenido automáticamente**.
+
+## Público: solo personas adultas (decisión del 25/10/2026)
+
+Ágora Joven está dirigida **exclusivamente a personas de 18 años o más**. No está destinada a
+menores de edad. Los debates sobre colegios, adolescentes o menores se mantienen como temas que
+discuten personas adultas.
+
+Medidas implementadas con 7C (comprobadas con pruebas automáticas y recorrido manual):
+
+- Registro: aviso claro del rango de edad y confirmación obligatoria de que la persona tiene 18
+  años o más, validada también por el backend (sin la confirmación, no se crea la cuenta).
+- Cuentas existentes: deben confirmar la edad antes de seguir usando la plataforma; la
+  confirmación no se da por aceptada automáticamente en la migración.
+- No se recopilan documentos de identidad ni fecha de nacimiento en esta versión.
+
+Es una **declaración de la persona, no una verificación de edad**. Por sí sola no garantiza el
+cumplimiento de las condiciones de los proveedores (por ejemplo, los términos de Gemini API exigen
+18 años o más y prohíben aplicaciones dirigidas a menores o con probabilidad de que accedan
+menores).
+
+La v1.0.0 publicada (etiqueta y Release, que no se modifican) se describía como dirigida a
+"personas jóvenes"; esta decisión rige desde la v1.1.
 
 ## Funciones obligatorias
 
@@ -33,9 +55,9 @@ original** con cuatro funciones, entregadas por bloques:
 | Bloque | Función | Estado |
 |---|---|---|
 | 7A | Dashboard de comunidad y participación personal como inicio de la sesión | Implementado (ver `docs/SEGUIMIENTO.md`) |
-| 7B | Creación de debates por usuarios: borradores privados, publicación, edición sin aportes; archivo mediante solicitud revisada por la administración (roles usuario/administrador) | Implementado; recorrido manual de la política nueva pendiente (ver `docs/SEGUIMIENTO.md`) |
+| 7B | Creación de debates por usuarios: borradores privados, publicación, edición sin aportes; archivo mediante solicitud revisada por la administración (roles usuario/administrador) | Implementado y comprobado (ver `docs/SEGUIMIENTO.md`) |
 | 7B.1 | Historial de versiones publicadas, protección permanente del contenido tras el primer aporte, aportes vinculados a su versión y aclaraciones del autor | Implementado y comprobado (ver `docs/SEGUIMIENTO.md`) |
-| — | Investigación asistida con fuentes | Prevista; no implementada |
+| 7C | Referencias bibliográficas localizadas en Crossref (búsqueda, selección y publicación de metadatos) y redacción con Gemini **sin** búsqueda de Google (desactivada por defecto); confirmación de mayoría de edad | Comprobado: declaración de edad y referencias con Crossref real (pruebas automáticas y recorrido manual). Redacción con IA desactivada y probada solo con proveedor simulado; resúmenes sin procesar hasta aprobar una política de licencias (ver `docs/SEGUIMIENTO.md`) |
 | — | Construcción de acuerdos | Prevista; no implementada |
 
 En 7B: cualquier cuenta crea debates con un asistente de 6 pasos; los borradores son privados y

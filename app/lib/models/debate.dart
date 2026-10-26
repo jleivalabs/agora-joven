@@ -1,3 +1,4 @@
+import 'referencia.dart';
 import 'solicitud_archivo.dart';
 import 'version_debate.dart';
 
@@ -124,6 +125,8 @@ class DebateDetalle extends DebateResumen {
     this.versionActual,
     this.motivoBloqueo,
     this.aclaraciones = const [],
+    this.referencias = const [],
+    this.evidencias = const [],
   });
 
   final String contexto;
@@ -154,6 +157,11 @@ class DebateDetalle extends DebateResumen {
   /// Añadidos fechados del autor, en orden cronológico.
   final List<Aclaracion> aclaraciones;
 
+  /// 7C: fuentes publicadas (metadatos de Crossref) y procedencia de texto sugerido por IA.
+  /// Vacías en los debates anteriores.
+  final List<Referencia> referencias;
+  final List<Evidencia> evidencias;
+
   /// Mismo detalle con otra solicitud (tras solicitar o cancelar, sin recargar todo).
   DebateDetalle conSolicitud(SolicitudArchivo? solicitud) => DebateDetalle(
     id: id,
@@ -177,6 +185,8 @@ class DebateDetalle extends DebateResumen {
     versionActual: versionActual,
     motivoBloqueo: motivoBloqueo,
     aclaraciones: aclaraciones,
+    referencias: referencias,
+    evidencias: evidencias,
   );
 
   /// Mismo detalle con una aclaración más (tras confirmarla el servidor).
@@ -202,6 +212,8 @@ class DebateDetalle extends DebateResumen {
     versionActual: versionActual,
     motivoBloqueo: motivoBloqueo,
     aclaraciones: [...aclaraciones, aclaracion],
+    referencias: referencias,
+    evidencias: evidencias,
   );
 
   factory DebateDetalle.fromJson(Map<String, dynamic> json) {
@@ -238,6 +250,8 @@ class DebateDetalle extends DebateResumen {
         for (final a in (json['aclaraciones'] as List?) ?? const [])
           Aclaracion.fromJson(a as Map<String, dynamic>),
       ],
+      referencias: referenciasDe(json['referencias']),
+      evidencias: evidenciasDe(json['evidencias']),
     );
   }
 }

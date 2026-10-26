@@ -188,7 +188,11 @@ def version(debate_id: int, numero: int, db: Db) -> VersionDetalle:
     )
     cambios = datos.pop("_cambios")
     return VersionDetalle(
-        **datos, **repo_versiones.contenido_de(actual), cambios=[CambioCampo(**c) for c in cambios]
+        **datos,
+        **repo_versiones.contenido_de(actual),
+        cambios=[CambioCampo(**c) for c in cambios],
+        referencias=actual.referencias,
+        evidencias=actual.evidencias,
     )
 
 

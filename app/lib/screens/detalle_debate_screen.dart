@@ -15,6 +15,7 @@ import '../repositories/solicitudes_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dialogo_motivo.dart';
 import '../widgets/estados.dart';
+import '../widgets/tarjeta_referencia.dart';
 import '../widgets/marca.dart';
 import '../utils/formato.dart';
 import 'aporte_form_screen.dart';
@@ -509,6 +510,11 @@ class _Contenido extends StatelessWidget {
             const SizedBox(height: AppSpacing.l),
             _Aclaraciones(aclaraciones: debate.aclaraciones),
           ],
+          if (debate.referencias.isNotEmpty ||
+              debate.evidencias.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.l),
+            _Fuentes(debate: debate),
+          ],
           const SizedBox(height: AppSpacing.l),
           SeccionAsistente(asistente: asistente),
           const SizedBox(height: AppSpacing.l),
@@ -519,6 +525,49 @@ class _Contenido extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Fuentes publicadas con el debate (7C): metadatos de Crossref y procedencia de texto sugerido
+/// por IA. Nada de esto se presenta como verificado.
+class _Fuentes extends StatelessWidget {
+  const _Fuentes({required this.debate});
+
+  final DebateDetalle debate;
+
+  @override
+  Widget build(BuildContext context) {
+    final texto = Theme.of(context).textTheme;
+    final dois = {for (final r in debate.referencias) r.doi};
+    return Column(
+      key: const Key('fuentes'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Fuentes indicadas por la persona autora',
+          style: texto.titleLarge,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(avisoReferencias, style: texto.bodySmall),
+        const SizedBox(height: AppSpacing.s),
+        for (final r in debate.referencias)
+          TarjetaReferencia(referencia: r, otrasEnLista: dois),
+        for (final e in debate.evidencias)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.s),
+            child: Aviso(
+              key: Key('procedencia-${e.id}'),
+              texto:
+                  '${e.campo == 'perspectivas' ? 'Una perspectiva' : 'Parte del contexto'} '
+                  'procede de una sugerencia de IA que la persona autora aceptó'
+                  '${e.editada ? ' y editó' : ''}. Sugerencia pendiente de revisión: '
+                  'no está verificada.'
+                  '${e.presenteAlPublicar == false ? ' El texto se modificó antes de publicar.' : ''}'
+                  '${e.requiereRevision ? ' La relación con la fuente necesita revisión.' : ''}',
+            ),
+          ),
+      ],
     );
   }
 }

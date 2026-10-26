@@ -39,7 +39,7 @@ def test_migra_conservando_ids_cuentas_hashes_debates_y_aportes(tmp_path, settin
     with TestClient(create_app(config)):  # el arranque migra y carga el catálogo
         pass
 
-    assert _filas(ruta, "SELECT version_num FROM alembic_version") == [("0004",)]
+    assert _filas(ruta, "SELECT version_num FROM alembic_version") == [("0005",)]
     assert _filas(ruta, "SELECT id, nombre, email, password_hash FROM usuarios ORDER BY id") == (
         usuarios_antes
     )
@@ -84,7 +84,7 @@ def test_aplicar_dos_veces_no_cambia_nada(tmp_path):
     esquema = _filas(ruta, "SELECT sql FROM sqlite_master ORDER BY name")
     aplicar_migraciones(motor)
 
-    assert revision_actual(motor) == "0004"
+    assert revision_actual(motor) == "0005"
     assert _filas(ruta, "SELECT sql FROM sqlite_master ORDER BY name") == esquema
     motor.dispose()
 
@@ -93,7 +93,7 @@ def test_base_nueva_desde_cero(tmp_path):
     motor = crear_motor(f"sqlite:///{(tmp_path / 'nueva.db').as_posix()}")
     aplicar_migraciones(motor)
 
-    assert revision_actual(motor) == "0004"
+    assert revision_actual(motor) == "0005"
     motor.dispose()
 
 
@@ -199,7 +199,7 @@ def test_0004_registra_instantanea_inicial_sin_inventar_historia(tmp_path):
     }
     antes = {k: _filas(ruta, q) for k, q in consultas.items()}
 
-    aplicar_migraciones(motor)
+    aplicar_migraciones(motor, destino="0004")
 
     assert revision_actual(motor) == "0004"
     assert {k: _filas(ruta, q) for k, q in consultas.items()} == antes
@@ -259,4 +259,37 @@ def test_0004_bloquea_lo_anterior_y_deja_editables_borradores_y_lo_nuevo(tmp_pat
         ruta, "SELECT numero, tipo FROM versiones_debate WHERE debate_id = "
         "(SELECT debate_id FROM borradores WHERE id = 5) ORDER BY numero",
     ) == [(1, "publicacion"), (2, "edicion")]
+    motor.dispose()
+
+
+def test_0005_deja_la_edad_pendiente_y_sin_fuentes_retroactivas(tmp_path):
+    ruta, motor = _base_en_0003(tmp_path)
+    aplicar_migraciones(motor, destino="0004")
+    consultas = {
+        "usuarios": "SELECT id, nombre, email, password_hash, rol FROM usuarios ORDER BY id",
+        "debates": "SELECT id, titulo, contexto, estado, version_actual, con_participacion FROM debates",
+        "versiones": "SELECT debate_id, numero, tipo, titulo FROM versiones_debate ORDER BY id",
+        "aportes": f"SELECT {COLUMNAS_APORTE}, version_id FROM aportes ORDER BY id",
+        "borradores": "SELECT id, autor_id, titulo, paso FROM borradores ORDER BY id",
+        "solicitudes": "SELECT * FROM solicitudes_archivo ORDER BY id",
+    }
+    antes = {k: _filas(ruta, q) for k, q in consultas.items()}
+
+    aplicar_migraciones(motor)
+
+    assert revision_actual(motor) == "0005"
+    assert {k: _filas(ruta, q) for k, q in consultas.items()} == antes
+    # Ninguna cuenta queda confirmada automáticamente, tampoco la administradora (id 7).
+    assert _filas(ruta, "SELECT rol, COUNT(*), COUNT(mayoria_edad_declarada_en) FROM usuarios "
+                        "GROUP BY rol ORDER BY rol") == [("administrador", 1, 0), ("usuario", 2, 0)]
+    for tabla, columnas in (
+        ("debates", "referencias, evidencias"),
+        ("versiones_debate", "referencias, evidencias"),
+        ("borradores", "referencias, evidencias, redaccion"),
+    ):
+        assert _filas(ruta, f"SELECT DISTINCT {columnas} FROM {tabla}") == [
+            tuple(None for _ in columnas.split(","))
+        ]
+    assert _filas(ruta, "PRAGMA integrity_check") == [("ok",)]
+    assert _filas(ruta, "PRAGMA foreign_key_check") == []
     motor.dispose()

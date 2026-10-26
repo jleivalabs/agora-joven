@@ -38,9 +38,227 @@ class ServidorFalso implements HttpClientAdapter {
     _rutasDeEstadisticas();
     _rutasDeBorradores();
     _rutasDeSolicitudes();
+    _rutasDeInvestigacion();
+  }
+
+  // --- Investigación (7C), con respuestas simuladas ---------------------------------------
+
+  bool busquedaDisponible = true;
+  bool redaccionDisponible = false;
+
+  /// Resultados simulados de Crossref (metadatos ya normalizados como los da el servidor).
+  List<Map<String, Object?>> resultadosBusqueda = [
+    referenciaFalsa(
+      '10.1234/movilidad.2024.001',
+      'Transporte nocturno y seguridad',
+    ),
+    referenciaFalsa(
+      '10.5678/preprint.2023.07',
+      'Movilidad estudiantil (preprint)',
+    ),
+  ];
+
+  /// Sugerencias simuladas de la IA (no son de Gemini).
+  List<Map<String, Object?>> sugerenciasSimuladas = [
+    {
+      'id': 'ctx1',
+      'tipo': 'contexto',
+      'estado': 'pendiente',
+      'texto': 'SIMULADA: el horario afecta a quienes estudian y trabajan.',
+      'aviso': 'Sugerencia de IA basada en tu borrador; pendiente de revisión.',
+      'referencias': <String>[],
+    },
+    {
+      'id': 'per1',
+      'tipo': 'perspectiva',
+      'estado': 'pendiente',
+      'titulo': 'Rutas compartidas',
+      'descripcion': 'SIMULADA: coordinar rutas con institutos cercanos.',
+      'aviso': 'Sugerencia de IA basada en tu borrador; pendiente de revisión.',
+      'referencias': <String>[],
+    },
+    {
+      'id': 'pre1',
+      'tipo': 'pregunta',
+      'estado': 'pendiente',
+      'texto': 'SIMULADA: ¿cuántas personas estudian de noche?',
+      'aviso': 'Sugerencia de IA basada en tu borrador; pendiente de revisión.',
+      'referencias': <String>[],
+    },
+  ];
+
+  static Map<String, Object?> referenciaFalsa(String doi, String titulo) => {
+    'doi': doi,
+    'titulo': titulo,
+    'autores': ['María Pérez'],
+    'fecha_publicacion': '2024-05',
+    'tipo': 'articulo',
+    'tipo_crossref': 'journal-article',
+    'publicacion': 'Revista Sintética',
+    'editorial': null,
+    'licencias': <Object?>[],
+    'relacionadas': <Object?>[],
+    'misma_obra_que': <String>[],
+    'enlace': 'https://doi.org/$doi',
+    'procedencia': 'crossref',
+    'consultada_en': '2026-10-25T10:00:00Z',
+  };
+
+  String _firma(Map<String, Object?> b) =>
+      jsonEncode([for (final c in _camposContenido) b[c]]);
+
+  Map<String, Object?>? _miBorrador(RequestOptions p) {
+    final usuario = usuarioDelToken(p);
+    return borradores
+        .where((b) => b['id'] == idDe(p) && b['autor_id'] == usuario)
+        .firstOrNull;
+  }
+
+  static RespuestaFalsa _codigo(int estado, String codigo) =>
+      RespuestaFalsa(estado, {
+        'detail': {'codigo': codigo, 'mensaje': 'x'},
+      });
+
+  void _rutasDeInvestigacion() {
+    const noEncontrado = RespuestaFalsa(404, {'detail': 'x'});
+    cuando('GET /investigacion/estado', (p) {
+      if (usuarioDelToken(p) == null) return _noAutorizado;
+      return RespuestaFalsa(200, {
+        'busqueda_disponible': busquedaDisponible,
+        'redaccion_disponible': redaccionDisponible,
+        'max_referencias': 8,
+        'limites_por_hora': {
+          'busqueda': 10,
+          'consulta_doi': 20,
+          'redaccion': 5,
+        },
+      });
+    });
+    cuando('POST /borradores/{id}/referencias/buscar', (p) {
+      final b = _miBorrador(p);
+      if (b == null) return noEncontrado;
+      if (!busquedaDisponible) return _codigo(503, 'busqueda_no_configurada');
+      return RespuestaFalsa(200, {
+        'estado': resultadosBusqueda.isEmpty ? 'sin_resultados' : 'resultados',
+        'consulta': '${b['titulo']} ${b['ambito']}',
+        'referencias': resultadosBusqueda,
+        'consultada_en': '2026-10-25T10:00:00Z',
+      });
+    });
+    cuando('POST /borradores/{id}/referencias', (p) {
+      final b = _miBorrador(p);
+      if (b == null) return noEncontrado;
+      final doi = (cuerpo(p) as Map)['doi'] as String;
+      final r = resultadosBusqueda.where((r) => r['doi'] == doi).firstOrNull;
+      if (r == null) return _codigo(404, 'doi_no_encontrado');
+      final actuales = [...((b['referencias'] as List?) ?? const [])];
+      if (!actuales.any((x) => (x as Map)['doi'] == doi)) actuales.add(r);
+      b['referencias'] = actuales;
+      return RespuestaFalsa(200, _borradorSalida(b));
+    });
+    cuando('DELETE /borradores/{id}/referencias/{doi}', (p) {
+      final b = _miBorrador(p);
+      if (b == null) return noEncontrado;
+      final doi = p.path.split('/referencias/').last;
+      b['referencias'] = [
+        for (final r in (b['referencias'] as List?) ?? const [])
+          if ((r as Map)['doi'] != doi) r,
+      ];
+      return RespuestaFalsa(200, _borradorSalida(b));
+    });
+    cuando('POST /borradores/{id}/redaccion', (p) {
+      final b = _miBorrador(p);
+      if (b == null) return noEncontrado;
+      if (!redaccionDisponible) return _codigo(503, 'redaccion_desactivada');
+      b['redaccion'] = {
+        'base': _firma(b),
+        'creada_en': '2026-10-25T10:00:00Z',
+        'sugerencias': [
+          for (final s in sugerenciasSimuladas) {...s},
+        ],
+        'limitaciones': ['SIMULADA: no hay datos locales.'],
+      };
+      return RespuestaFalsa(200, _borradorSalida(b));
+    });
+    cuando('POST /borradores/{id}/sugerencias/{sid}/aceptar', (p) {
+      final b = _miBorrador(p);
+      if (b == null) return noEncontrado;
+      final sid = p.path.split('/sugerencias/').last.split('/').first;
+      final redaccion = b['redaccion'] as Map?;
+      final sug = ((redaccion?['sugerencias'] as List?) ?? const [])
+          .cast<Map<String, Object?>>()
+          .where((s) => s['id'] == sid && s['estado'] == 'pendiente')
+          .firstOrNull;
+      if (sug == null) return noEncontrado;
+      final datos = (cuerpo(p) as Map).cast<String, Object?>();
+      String campo;
+      String aceptado;
+      if (sug['tipo'] == 'contexto') {
+        if ((datos['valor_anterior'] ?? '') != (b['contexto'] ?? '')) {
+          return _codigo(409, 'campo_cambiado');
+        }
+        aceptado = (datos['texto'] ?? sug['texto']) as String;
+        final actual = (b['contexto'] as String?) ?? '';
+        b['contexto'] = datos['modo'] == 'sustituir' || actual.isEmpty
+            ? aceptado
+            : '$actual\n\n$aceptado';
+        campo = 'contexto';
+      } else if (sug['tipo'] == 'perspectiva') {
+        final t = (datos['titulo'] ?? sug['titulo']) as String;
+        final d = (datos['descripcion'] ?? sug['descripcion']) as String;
+        b['perspectivas'] = [
+          ...((b['perspectivas'] as List?) ?? const []),
+          {'titulo': t, 'descripcion': d},
+        ];
+        campo = 'perspectivas';
+        aceptado = '$t: $d';
+      } else {
+        aceptado = (datos['texto'] ?? sug['texto']) as String;
+        campo = 'preguntas';
+      }
+      sug['estado'] = 'aceptada';
+      b['evidencias'] = [
+        ...((b['evidencias'] as List?) ?? const []),
+        {
+          'id': 'ev-$sid',
+          'tipo': sug['tipo'],
+          'campo': campo,
+          'procedencia': 'sugerencia_ia',
+          'texto_sugerido': sug['texto'] ?? sug['descripcion'],
+          'texto_aceptado': aceptado,
+          'editada': datos['texto'] != null || datos['descripcion'] != null,
+          'referencias': <String>[],
+          'requiere_revision': false,
+          'aceptada_en': '2026-10-25T11:00:00Z',
+        },
+      ];
+      return RespuestaFalsa(200, _borradorSalida(b));
+    });
+    cuando('POST /borradores/{id}/sugerencias/{sid}/descartar', (p) {
+      final b = _miBorrador(p);
+      if (b == null) return noEncontrado;
+      final sid = p.path.split('/sugerencias/').last.split('/').first;
+      final redaccion = b['redaccion'] as Map?;
+      if (redaccion == null) return noEncontrado;
+      redaccion['sugerencias'] = [
+        for (final s in redaccion['sugerencias'] as List)
+          if ((s as Map)['id'] != sid) s,
+      ];
+      return RespuestaFalsa(200, _borradorSalida(b));
+    });
   }
 
   final _rutas = <String, Manejador>{};
+
+  /// Cuentas sin declaración de edad (7C): solo pueden usar /auth/me y /auth/confirmar-edad.
+  final edadPendiente = <int>{};
+  static const _rutasSinEdad = {
+    'GET /health',
+    'POST /auth/registro',
+    'POST /auth/login',
+    'GET /auth/me',
+    'POST /auth/confirmar-edad',
+  };
   final peticiones = <RequestOptions>[];
   final tokensValidos = <String, int>{'token-ana': 1, 'token-beto': 2};
   final usuarios = <String, Map<String, Object>>{
@@ -125,7 +343,10 @@ class ServidorFalso implements HttpClientAdapter {
   int contar(String ruta) => peticiones.where((p) => _clave(p) == ruta).length;
 
   String _clave(RequestOptions p) {
-    final ruta = p.path.replaceAll(RegExp(r'/\d+(?=/|$)'), '/{id}');
+    final ruta = p.path
+        .replaceAll(RegExp(r'/referencias/10\..*$'), '/referencias/{doi}')
+        .replaceAll(RegExp(r'/sugerencias/[^/]+/'), '/sugerencias/{sid}/')
+        .replaceAll(RegExp(r'/\d+(?=/|$)'), '/{id}');
     return '${p.method} $ruta';
   }
 
@@ -136,6 +357,20 @@ class ServidorFalso implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     peticiones.add(options);
+    final pendiente = usuarioDelToken(options);
+    if (pendiente != null &&
+        edadPendiente.contains(pendiente) &&
+        !_rutasSinEdad.contains(_clave(options))) {
+      return ResponseBody.fromString(
+        jsonEncode({
+          'detail': {'codigo': 'edad_no_confirmada', 'mensaje': 'x'},
+        }),
+        403,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    }
     final manejador = _rutas[_clave(options)];
     final respuesta = manejador == null
         ? const RespuestaFalsa(404, {'detail': 'Not Found'})
@@ -213,6 +448,17 @@ class ServidorFalso implements HttpClientAdapter {
     cuando('POST /auth/registro', (p) {
       final datos = cuerpo(p) as Map;
       final email = (datos['email'] as String).trim().toLowerCase();
+      if (datos['confirma_mayoria_edad'] != true) {
+        return const RespuestaFalsa(422, {
+          'detail': [
+            {
+              'loc': ['body', 'confirma_mayoria_edad'],
+              'msg': 'x',
+              'type': 'value_error',
+            },
+          ],
+        });
+      }
       if (usuarios.containsKey(email)) {
         return const RespuestaFalsa(400, {
           'detail': 'Ya existe una cuenta con ese correo.',
@@ -260,6 +506,24 @@ class ServidorFalso implements HttpClientAdapter {
         'email': u['email'],
         'creado_en': '2026-10-22T00:00:00Z',
         'rol': u['rol'] ?? 'usuario',
+        'edad_confirmada': !edadPendiente.contains(id),
+      });
+    });
+    cuando('POST /auth/confirmar-edad', (p) {
+      final id = usuarioDelToken(p);
+      if (id == null) return _noAutorizado;
+      if ((cuerpo(p) as Map)['confirma_mayoria_edad'] != true) {
+        return const RespuestaFalsa(422, {'detail': []});
+      }
+      edadPendiente.remove(id);
+      final u = usuarios.values.firstWhere((u) => u['id'] == id);
+      return RespuestaFalsa(200, {
+        'id': id,
+        'nombre': u['nombre'],
+        'email': u['email'],
+        'creado_en': '2026-10-22T00:00:00Z',
+        'rol': u['rol'] ?? 'usuario',
+        'edad_confirmada': true,
       });
     });
     cuando('GET /debates/categorias', (p) {
@@ -554,6 +818,8 @@ class ServidorFalso implements HttpClientAdapter {
       'archivo_origen': d['archivo_origen'],
       'solicitud_archivo': propio ? _ultimaSolicitud(d['id'], usuario) : null,
       'version_actual': d['version_actual'],
+      'referencias': d['referencias'],
+      'evidencias': d['evidencias'],
       'motivo_bloqueo': d['con_participacion'] == true || nAportes > 0
           ? 'participacion'
           : d['bloqueo_historico'] == true
@@ -714,7 +980,13 @@ class ServidorFalso implements HttpClientAdapter {
 
   Map<String, Object?> _borradorSalida(Map<String, Object?> b) => {
     for (final e in b.entries)
-      if (e.key != 'autor_id') e.key: e.value,
+      if (e.key != 'autor_id' && e.key != 'redaccion') e.key: e.value,
+    'redaccion': b['redaccion'] == null
+        ? null
+        : {
+            ...(b['redaccion'] as Map).cast<String, Object?>(),
+            'desactualizada': (b['redaccion'] as Map)['base'] != _firma(b),
+          },
   };
 
   static const _camposContenido = [
@@ -823,6 +1095,12 @@ class ServidorFalso implements HttpClientAdapter {
         'archivado_en': null,
         'version_actual': 1,
         'con_participacion': false,
+        'referencias': b['referencias'],
+        'evidencias': [
+          for (final e in (b['evidencias'] as List?) ?? const [])
+            if ((e as Map)['campo'] != 'preguntas')
+              {...e, 'presente_al_publicar': true},
+        ],
       };
       debates.add(d);
       versiones.add(_versionDe(d, 1, 'publicacion', autorId: usuario));

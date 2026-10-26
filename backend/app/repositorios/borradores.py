@@ -14,6 +14,7 @@ from app.models import (
     TipoVersion,
     ahora_utc,
 )
+from app.repositorios import investigacion as repo_investigacion
 from app.repositorios import versiones as repo_versiones
 from app.schemas import ContenidoDebate
 
@@ -92,6 +93,14 @@ def publicar(db: Session, borrador: Borrador, contenido: ContenidoDebate) -> tup
         origen=ORIGEN_USUARIO,
         publicado_en=ahora,
         **contenido.model_dump(mode="json"),
+    )
+    # 7C: las referencias seleccionadas y la procedencia de lo aceptado se publican con el debate
+    # y quedan en la versión 1 (inmutables desde aquí).
+    datos = contenido.model_dump(mode="json")
+    debate.referencias = list(borrador.referencias or []) or None
+    debate.evidencias = (
+        repo_investigacion.evidencias_publicas(borrador, datos["contexto"], datos["perspectivas"])
+        or None
     )
     db.add(debate)
     db.flush()  # INSERT: toma el bloqueo de escritura de SQLite

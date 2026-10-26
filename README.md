@@ -1,8 +1,14 @@
 # Ágora Joven
 
-App Android (Flutter) para que personas jóvenes **comprendan temas públicos**, **consulten debates
-ciudadanos** y **publiquen preguntas, argumentos o propuestas**, con un backend propio (FastAPI) y
-un asistente educativo con IA (Gemini) que explica el contexto y resume perspectivas.
+App Android (Flutter) para que personas adultas jóvenes **comprendan temas públicos**, **consulten
+debates ciudadanos** y **publiquen preguntas, argumentos o propuestas**, con un backend propio
+(FastAPI) y un asistente educativo con IA (Gemini) que explica el contexto y resume perspectivas.
+
+> **Solo para personas de 18 años o más** (desde la v1.1). No está destinada a menores. La edad es
+> una declaración de la persona, no una verificación, y por sí sola no garantiza el cumplimiento
+> de las condiciones de los proveedores de IA. Desde el Bloque 7C el registro pide la
+> declaración y las cuentas existentes deben confirmarla antes de seguir. Ver
+> [docs/ALCANCE.md](docs/ALCANCE.md).
 
 Proyecto Final del curso *Desarrolla Aplicaciones Móviles Robustas con Flutter e IA* (CEDIA). Los
 20 debates son **material editorial de demostración** redactado para este proyecto.
@@ -402,7 +408,18 @@ ejecutar la app desde el código (`flutter run`, sección 4 de "Desarrollo v1.1"
   texto y pide confirmar. El autor puede añadir aclaraciones fechadas. Requiere la app de este
   bloque: el APK `v1.0.0` ya no puede publicar aportes contra este backend. Detalles en
   [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#historial-de-versiones-bloque-7b1-v11).
-- Próximo: investigación asistida con fuentes (7C) y construcción de acuerdos. Alcance en [docs/ALCANCE.md](docs/ALCANCE.md).
+- **Bloque 7C — fuentes y mayoría de edad.** En el paso "Contexto" del asistente, "Fuentes e IA
+  (opcional)" busca referencias en Crossref con la pregunta y el ámbito, permite añadir hasta 8 al
+  borrador y abrirlas en el navegador (enlace `https://doi.org/…`). Al publicar, aparecen como
+  "Fuentes indicadas por la persona autora", sin presentarlas como verificadas. Los resúmenes no
+  se procesan hasta aprobar una política de licencias, y la redacción con IA (Gemini **sin**
+  búsqueda de Google) está desactivada (`REDACCION_IA_ACTIVA=false`): solo se ha probado con un
+  proveedor simulado y no se activará hasta decidir el tratamiento de datos de Gemini. La búsqueda
+  requiere `CROSSREF_MAILTO` en `backend/.env`, que configura la persona autora; se comprobó con
+  Crossref real en el recorrido manual.
+  Registro con declaración de 18 años o más; las cuentas existentes la confirman al entrar.
+  Detalles en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#investigación-asistida-y-mayoría-de-edad-bloque-7c-v11).
+- Próximo: construcción de acuerdos. Alcance en [docs/ALCANCE.md](docs/ALCANCE.md).
 
 ## Desarrollo
 

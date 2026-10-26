@@ -128,6 +128,8 @@ void main() {
       find.byKey(const Key('registro-password')),
       'clave-de-bea-123',
     );
+    await tester.ensureVisible(find.byKey(const Key('registro-mayoria-edad')));
+    await tester.tap(find.byKey(const Key('registro-mayoria-edad')));
     await tester.tap(find.byKey(const Key('registro-enviar')));
     await tester.pumpAndSettle();
 
@@ -155,6 +157,10 @@ void main() {
         find.byKey(const Key('registro-password')),
         passwordAna,
       );
+      await tester.ensureVisible(
+        find.byKey(const Key('registro-mayoria-edad')),
+      );
+      await tester.tap(find.byKey(const Key('registro-mayoria-edad')));
       await tester.tap(find.byKey(const Key('registro-enviar')));
       await tester.pumpAndSettle();
 

@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../utils/formato.dart';
 import '../widgets/estados.dart';
 import '../widgets/marca.dart';
+import '../widgets/tarjeta_referencia.dart';
 
 /// Versiones publicadas de un debate, de la más reciente a la primera. Nunca muestra borradores.
 class HistorialScreen extends StatefulWidget {
@@ -237,6 +238,16 @@ class _VersionScreenState extends State<VersionScreen> {
                   const SizedBox(height: AppSpacing.m),
                   Text('Objetivo', style: texto.titleMedium),
                   Text(v.objetivo!, style: texto.bodyLarge),
+                ],
+                if (v.referencias.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.m),
+                  Text('Fuentes de esta versión', style: texto.titleMedium),
+                  Text(avisoReferencias, style: texto.bodySmall),
+                  for (final r in v.referencias)
+                    TarjetaReferencia(
+                      referencia: r,
+                      otrasEnLista: {for (final x in v.referencias) x.doi},
+                    ),
                 ],
               ],
             );

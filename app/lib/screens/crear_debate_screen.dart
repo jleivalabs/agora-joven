@@ -12,6 +12,7 @@ import '../widgets/dialogo_motivo.dart';
 import '../widgets/estados.dart';
 import '../widgets/marca.dart';
 import 'detalle_debate_screen.dart';
+import 'investigacion_screen.dart';
 
 /// Asistente guiado para crear un debate (nuevo o desde un borrador) o editar uno propio.
 class CrearDebateScreen extends StatefulWidget {
@@ -350,6 +351,14 @@ class _Campo extends StatefulWidget {
 class _CampoState extends State<_Campo> {
   late final _texto = TextEditingController(text: widget.valor);
 
+  /// Refleja cambios que llegan del servidor (una sugerencia aceptada). Al escribir, el valor
+  /// ya coincide con el campo y no se toca el cursor.
+  @override
+  void didUpdateWidget(covariant _Campo anterior) {
+    super.didUpdateWidget(anterior);
+    if (widget.valor != _texto.text) _texto.text = widget.valor;
+  }
+
   @override
   void dispose() {
     _texto.dispose();
@@ -502,6 +511,25 @@ class _PasoContexto extends StatelessWidget {
             maximo: LimitesDebate.contexto.$2,
             lineas: 6,
           ),
+          if (!c.modoEdicion) ...[
+            const SizedBox(height: AppSpacing.m),
+            // Opcional: el asistente funciona igual sin investigación.
+            OutlinedButton.icon(
+              key: const Key('abrir-investigacion'),
+              onPressed:
+                  c.categoria.value != null &&
+                      c.titulo.value.trim().length >= LimitesDebate.titulo.$1
+                  ? () => Get.to<void>(() => InvestigacionScreen(crear: c))
+                  : null,
+              icon: const Icon(Icons.library_books_outlined),
+              label: const Text('Fuentes e IA (opcional)'),
+            ),
+            if (c.categoria.value == null ||
+                c.titulo.value.trim().length < LimitesDebate.titulo.$1)
+              const Text(
+                'Disponible cuando el borrador tenga categoría y pregunta.',
+              ),
+          ],
         ],
       ),
     );

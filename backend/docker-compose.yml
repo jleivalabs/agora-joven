@@ -22,6 +22,10 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
       GEMINI_TIMEOUT_SEGUNDOS: ${GEMINI_TIMEOUT_SEGUNDOS:-25}
+      # Investigación (7C): correo de contacto para Crossref (vacío: búsqueda no configurada) y
+      # redacción con IA sin búsqueda, desactivada salvo que se active expresamente.
+      CROSSREF_MAILTO: ${CROSSREF_MAILTO:-}
+      REDACCION_IA_ACTIVA: ${REDACCION_IA_ACTIVA:-false}
     volumes:
       - agora_datos:/srv/data
     healthcheck:

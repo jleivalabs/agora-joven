@@ -1,5 +1,6 @@
 import 'borrador.dart';
 import 'debate.dart';
+import 'referencia.dart';
 
 /// Límites de una aclaración (iguales en el backend).
 class LimitesAclaracion {
@@ -126,6 +127,7 @@ class VersionDetalle extends VersionResumen {
     required this.cambios,
     this.ambito,
     this.objetivo,
+    this.referencias = const [],
   });
 
   final String categoria;
@@ -136,6 +138,9 @@ class VersionDetalle extends VersionResumen {
   final List<Perspectiva> perspectivas;
   final String? objetivo;
   final List<CambioCampo> cambios;
+
+  /// Fuentes vigentes en esta versión (7C); vacías en versiones anteriores.
+  final List<Referencia> referencias;
 
   factory VersionDetalle.fromJson(Map<String, dynamic> json) {
     final r = VersionResumen.fromJson(json);
@@ -161,6 +166,7 @@ class VersionDetalle extends VersionResumen {
         for (final c in json['cambios'] as List)
           CambioCampo.fromJson(c as Map<String, dynamic>),
       ],
+      referencias: referenciasDe(json['referencias']),
     );
   }
 }

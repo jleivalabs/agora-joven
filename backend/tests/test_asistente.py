@@ -53,7 +53,10 @@ def ana(cliente):
 
 
 def _sesion(cliente, email, nombre):
-    cliente.post("/auth/registro", json={"nombre": nombre, "email": email, "password": PASSWORD})
+    cliente.post(
+        "/auth/registro",
+        json={"nombre": nombre, "email": email, "password": PASSWORD, "confirma_mayoria_edad": True},
+    )
     token = cliente.post("/auth/login", json={"email": email, "password": PASSWORD}).json()
     return {"Authorization": f"Bearer {token['access_token']}"}
 

@@ -32,7 +32,12 @@ def client(settings) -> Iterator[TestClient]:
 def registrar(client) -> Callable[..., dict]:
     def _registrar(email: str = "ana@example.com", nombre: str = "Ana") -> dict:
         respuesta = client.post(
-            "/auth/registro", json={"nombre": nombre, "email": email, "password": PASSWORD}
+            "/auth/registro", json={
+                "nombre": nombre,
+                "email": email,
+                "password": PASSWORD,
+                "confirma_mayoria_edad": True,
+            }
         )
         assert respuesta.status_code == 201, respuesta.text
         return respuesta.json()
